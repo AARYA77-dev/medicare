@@ -1,4 +1,11 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+Medicare – Medicine Management System
+
+This is a Next.js project designed for medicine management, built to help users efficiently organize, track, and manage their medication schedules.
+
+Medicare provides an intuitive interface to add, update, and monitor medicines, dosages, and frequency. The system aims to simplify medication tracking for individuals and caregivers alike.
+
+This project was bootstrapped with create-next-app.
+
 
 ## Getting Started
 
