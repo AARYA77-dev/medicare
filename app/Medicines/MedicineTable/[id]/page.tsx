@@ -68,7 +68,7 @@ const MedicineTablePage = () => {
                             </div>
                             <div className="info-item">
                                 <span className="label">Current No. of Days of Your Schedule:</span>
-                                <span className="value">{medicineData.number_days} </span>
+                                <span className="value">{medicineData.schedule.length} </span>
                             </div>
                         </div>
 

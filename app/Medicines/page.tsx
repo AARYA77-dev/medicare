@@ -129,7 +129,7 @@ const MedicineMenu = ({ id }: { id: string }) => {
         ${editOpen ? "opacity-100 scale-100 visible" : "opacity-0 scale-90 invisible"}`}
       >
         <Link
-          href={`/Medicines/MedicineTable/${id}`}
+          href={`/UpdateMedicine/${id}`}
           className="block hover:underline"
         >
           Edit
