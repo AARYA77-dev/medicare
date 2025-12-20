@@ -1,10 +1,9 @@
 "use client"
 import { MedicineSchema } from '@/Schemas/yupSChemas';
 import { useFormik } from 'formik';
-// import Link from 'next/link';
 import React, { useEffect, useState } from 'react'
 import toast from 'react-hot-toast';
-import { FaInfoCircle } from 'react-icons/fa';
+import { FaArrowLeft, FaInfoCircle } from 'react-icons/fa';
 import { Tooltip as ReactTooltip } from "react-tooltip";
 import axios from 'axios';
 import { Medicines } from '@/Interfaces/interface';
@@ -28,15 +27,14 @@ const UpdateMedicine = () => {
   const { id } = useParams();
   const { errors, values, handleBlur, touched, handleChange, handleSubmit } = useFormik<Medicines>({
     validationSchema: MedicineSchema,
-    enableReinitialize:true,
-    initialValues:medicineData ?? initialValues,
-    onSubmit: (values, { resetForm }) => {
+    enableReinitialize: true,
+    initialValues: medicineData ?? initialValues,
+    onSubmit: (values) => {
       setButtonLoading(true);
       //   const result = getSchedule();
-      axios.put('api/medicareDB', { ...values, })
+      axios.put(`/api/medicareDB/${id}`, { ...values, })
         .then(() => {
           toast.success("Your schedule generated")
-          resetForm()
         }).catch((error) => {
           console.log("Error:", error)
           toast.error("something went wrong")
@@ -67,12 +65,16 @@ const UpdateMedicine = () => {
   }
 
 
-  if(!medicineData){
+  if (!medicineData) {
     return null
   }
   return (
-      <form onSubmit={handleSubmit}>
-        <div className='flex flex-col bg-[linear-gradient(147deg,_#4B4E53_0%,_#000000_74%)] w-[28%] ml-11 items-center justify-between rounded-2xl h-[30%] shadow-2xl xl:px-12'  >
+    <>
+      <div className='absolute flex gap-2'>
+        <button className='flex gap-2 bg-[#03e9f4] cursor-pointer items-center text-black font-semibold px-4 py-2 rounded transition duration-150 ease-in-out transform active:scale-75 active:shadow-inner shadow-lg'><FaArrowLeft></FaArrowLeft>Back</button>
+      </div>
+      <form onSubmit={handleSubmit} className='flex justify-center mt-6 '>
+        <div className='flex flex-col bg-[linear-gradient(147deg,_#4B4E53_0%,_#000000_74%)] w-[28%] items-center rounded-2xl h-[30%] shadow-2xl xl:px-12'>
           <label htmlFor="medicine_name" className='mt-3 font-bold'>Medicine Name:</label>
           <input className='bg-black placeholder-[#03e9f4] rounded-md border-2 border-[#03e9f4]' type='text' placeholder='Enter Medicine name' name='medicine_name' onBlur={handleBlur} value={values.medicine_name} onChange={handleChange} id='medicine_name' />
           {errors.medicine_name && touched.medicine_name && <p className='text-red-500'>{errors.medicine_name}</p>}
@@ -164,15 +166,14 @@ const UpdateMedicine = () => {
 
           <button
             type="submit"
-            className="flex gap-2 bg-[#03e9f4] text-black font-semibold px-4 mb-6 my-2 py-2 rounded transition duration-150 ease-in-out transform active:scale-75 active:shadow-inner shadow-lg"
+            className="flex gap-2 bg-[#03e9f4] cursor-pointer text-black font-semibold px-4 mb-6 my-2 py-2 rounded transition duration-150 ease-in-out transform active:scale-75 active:shadow-inner shadow-lg"
           >{buttonLoading && <div
             className="h-[23px] w-[23px] animate-spin rounded-full border-4 border-solid border-black border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]">
           </div>}
             Update Schedule</button>
         </div>
-
       </form>
-
+    </>
   )
 }
 

@@ -2,7 +2,6 @@ import { MedicineSchema } from "@/Schemas/MedicinsSchema";
 import mongoose, { Types } from "mongoose";
 import { NextRequest, NextResponse } from "next/server";
 
-//for id based fetching
 const MONGO_DB_URL = process.env.ConnectionURl
 
 export async function GET(request: NextRequest, params: { params: { id: string } }) {
@@ -18,9 +17,6 @@ export async function GET(request: NextRequest, params: { params: { id: string }
   return NextResponse.json({ result: data, succes: true })
 }
 
-// const medicine = await MedicineSchema.findOne();
-
-
 export async function DELETE(
   request: NextRequest,
   params: { params: { id: string } }
@@ -30,17 +26,17 @@ export async function DELETE(
     await mongoose.connect(MONGO_DB_URL!);
 
     const objectId = new Types.ObjectId(id);
-    
+
     const result = await MedicineSchema.updateOne(
       { "schedule.doses._id": objectId },
       { $pull: { "schedule.$[].doses": { _id: objectId } } }
     );
-    
+
     const result2 = await MedicineSchema.updateMany(
       {},
       { $pull: { schedule: { doses: { $size: 0 } } } }
     )
-    
+
     const deletedMedicineResult = await MedicineSchema.deleteMany({
       schedule: { $size: 0 }
     })
@@ -61,3 +57,38 @@ export async function DELETE(
   }
 }
 
+export async function PUT(request: NextRequest, params: { params: { id: string } }) {
+  try {
+    const { id } = await params.params
+    const body = await request.json()
+    await mongoose.connect(MONGO_DB_URL!);
+
+    const updateMedicine = await MedicineSchema.findByIdAndUpdate(
+      id,
+      { $set: body },
+      { new: true }
+    )
+
+    if (!updateMedicine) {
+      return NextResponse.json(
+        { success: false, message: "Medicine not found" },
+        { status: 404 }
+      )
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: "Medicine updated succesfully",
+      result: updateMedicine
+    },
+    {status : 200}
+  )
+  }
+  catch (err) {
+    console.log("error", err);
+    return NextResponse.json(
+      { success: false, message: "Update failed", error: String(err) },
+      { status: 500 }
+    )
+  }
+}
