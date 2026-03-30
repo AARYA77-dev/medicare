@@ -61,9 +61,9 @@ export async function DELETE(
   }
 }
 
-export async function PUT(request: NextRequest, params: { params: { id: string } }) {
+export async function PUT(request: NextRequest, context: Context) {
   try {
-    const { id } = await params.params
+    const { id } = await context.params
     const body = await request.json()
     await mongoose.connect(MONGO_DB_URL!);
 
