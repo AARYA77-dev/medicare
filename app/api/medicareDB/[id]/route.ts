@@ -23,10 +23,10 @@ export async function GET(request: NextRequest, context: Context) {
 
 export async function DELETE(
   request: NextRequest,
-  params: { params: { id: string } }
+  context: Context
 ) {
   try {
-    const { id } = await params.params;
+    const { id } = await context.params;
     await mongoose.connect(MONGO_DB_URL!);
 
     const objectId = new Types.ObjectId(id);
