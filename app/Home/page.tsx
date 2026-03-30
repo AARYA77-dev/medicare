@@ -96,7 +96,7 @@ export default function HomePage() {
                     </h3>
 
                     <input 
-                      className="w-15 h-5 rounded cursor-pointer accent-[#03e9f4] transition-transform hover:scale-140"
+                      className="w-10 h-5 rounded cursor-pointer accent-[#03e9f4] transition-transform hover:scale-140"
                       onChange={() => handleCheckbox(dose._id!)} 
                       checked={isChecked} 
                       type="checkbox" 
