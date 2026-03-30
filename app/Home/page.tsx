@@ -71,8 +71,8 @@ export default function HomePage() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {medicineData.length === 0 ? (
-            <div className="col-span-full flex flex-col items-center justify-center h-[50vh] opacity-60">
-              <Image src="/not_found.png" height={100} width={200} alt="not found" className="grayscale brightness-50" />
+            <div className="col-span-full flex flex-col items-center justify-center h-[50vh]">
+              <Image src="/not_found.png" height={100} width={200} alt="not found" />
               <h1 className="mt-4 text-2xl font-light tracking-widest uppercase">No Medicines Today</h1>
             </div>
           ) : (

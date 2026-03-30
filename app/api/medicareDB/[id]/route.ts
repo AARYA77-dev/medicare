@@ -2,7 +2,7 @@ import { MedicineSchema } from "@/Schemas/MedicinsSchema";
 import mongoose, { Types } from "mongoose";
 import { NextRequest, NextResponse } from "next/server";
 
-const MONGO_DB_URL = process.env.ConnectionURl
+const MONGO_DB_URL = process.env.MONGO_URI;
 
 type Context = {
   params: Promise<{ id: string }>;
