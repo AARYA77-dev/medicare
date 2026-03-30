@@ -6,7 +6,7 @@ const UserPage = () => {
     <div className="">
       <Header></Header>
       <div className="flex flex-col gap-4">
-        <div className="grid place-items-center gap-4 bg-[linear-gradient(147deg,_#4B4E53_0%,_#000000_74%)] mx-auto w-[28%] rounded-2xl h-[30%] shadow-2xl p-4">
+        <div className="grid place-items-center gap-4 border border-white/10 rounded-2xl bg-white/5 backdrop-blur-md mx-auto w-[28%] rounded-2xl h-[30%] shadow-2xl p-4">
           <h1>UserName</h1>
           <button
             type="submit"
@@ -16,7 +16,7 @@ const UserPage = () => {
           </button>
         </div>
 
-        <div className="grid place-items-center gap-4 bg-[linear-gradient(147deg,_#4B4E53_0%,_#000000_74%)] mx-auto w-[28%] rounded-2xl h-[30%] shadow-2xl p-4">
+        <div className="grid place-items-center gap-4 border border-white/10 rounded-2xl bg-white/5 backdrop-blur-md mx-auto w-[28%] rounded-2xl h-[30%] shadow-2xl p-4">
           <h1>UserName</h1>
           <button
             type="submit"

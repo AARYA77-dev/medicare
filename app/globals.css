@@ -428,37 +428,57 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 /* not found page */
 
-    .error {
-      font-size: 120px;
-      font-weight: bold;
-      display: flex;
-      gap: 20px;
-      color: #03e9f4;
-      align-items: center;
-    }
+.error {
+  font-size: 120px;
+  font-weight: bold;
+  display: flex;
+  gap: 20px;
+  color: #03e9f4;
+  align-items: center;
+}
 
-    .pill {
-      width: 80px;
-      height: 40px;
-      border-radius: 40px;
-      background: linear-gradient(90deg, #03e9f4 50%, black 50%);
-      border: 2px solid white;
-      position: relative;
-      animation: breakPill 1.2s infinite alternate;
-    }
+.pill {
+  width: 80px;
+  height: 40px;
+  border-radius: 40px;
+  background: linear-gradient(90deg, #03e9f4 50%, black 50%);
+  border: 2px solid white;
+  position: relative;
+  animation: breakPill 1.2s infinite alternate;
+}
 
-    .pill::before {
-      content: "";
-      position: absolute;
-      width: 6px;
-      height: 100%;
-      background: white;
-      left: 50%;
-      transform: translateX(-50%);
-    }
+.pill::before {
+  content: "";
+  position: absolute;
+  width: 6px;
+  height: 100%;
+  background: white;
+  left: 50%;
+  transform: translateX(-50%);
+}
 
-    @keyframes breakPill {
-      0%   { transform: rotate(0deg) translateX(0); }
-      50%  { transform: rotate(-15deg) translateX(-10px); }
-      100% { transform: rotate(15deg) translateX(10px); }
-    }
+@keyframes breakPill {
+  0% {
+    transform: rotate(0deg) translateX(0);
+  }
+
+  50% {
+    transform: rotate(-15deg) translateX(-10px);
+  }
+
+  100% {
+    transform: rotate(15deg) translateX(10px);
+  }
+}
+
+@keyframes dropdownIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
