@@ -4,11 +4,15 @@ import { NextRequest, NextResponse } from "next/server";
 
 const MONGO_DB_URL = process.env.ConnectionURl
 
-export async function GET(request: NextRequest, params: { params: { id: string } }) {
+type Context = {
+  params: Promise<{ id: string }>;
+};
+
+export async function GET(request: NextRequest, context: Context) {
   let data = []
 
   try {
-    const { id } = await params.params
+    const { id } = await context.params
     await mongoose.connect(MONGO_DB_URL!)
     data = await MedicineSchema.findById(id)
   } catch (err) {
