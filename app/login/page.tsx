@@ -1,0 +1,117 @@
+"use client";
+
+import React, { useState } from "react";
+import Header from "@/components/header";
+import { signIn } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import toast from "react-hot-toast";
+import Link from "next/link";
+import { FaEnvelope, FaLock } from "react-icons/fa";
+
+export default function LoginPage() {
+  const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !password) {
+      toast.error("Please enter email and password");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+      });
+
+      if (res?.error) {
+        toast.error(res.error || "Invalid credentials");
+      } else {
+        toast.success("Logged in successfully!");
+        router.push("/User");
+        router.refresh();
+      }
+    } catch (err: any) {
+      toast.error(err?.message || "An unexpected error occurred");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-[#0a0a0a] text-white">
+      <Header />
+      <main className="flex items-center justify-center px-4 py-12">
+        <div className="w-full max-w-md border border-white/10 rounded-3xl bg-white/5 backdrop-blur-xl p-8 shadow-[0_8px_32px_0_rgba(0,0,0,0.8)] border-b-[#03e9f4]/30">
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold text-[#03e9f4] drop-shadow-[0_0_10px_rgba(3,233,244,0.5)]">
+              Welcome Back
+            </h1>
+            <p className="text-gray-400 text-sm mt-2">
+              Sign in to access your Medicare dashboard
+            </p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2">
+                Email Address
+              </label>
+              <div className="relative flex items-center">
+                <FaEnvelope className="absolute left-4 text-gray-400" />
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="user@example.com"
+                  required
+                  className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-11 pr-4 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#03e9f4] focus:ring-1 focus:ring-[#03e9f4] transition-all"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2">
+                Password
+              </label>
+              <div className="relative flex items-center">
+                <FaLock className="absolute left-4 text-gray-400" />
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  required
+                  className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-11 pr-4 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#03e9f4] focus:ring-1 focus:ring-[#03e9f4] transition-all"
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-3.5 px-4 bg-[#03e9f4] text-black font-semibold rounded-xl hover:bg-[#02c4ce] transition-all shadow-[0_0_15px_rgba(3,233,244,0.4)] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer text-sm"
+            >
+              {loading ? "Signing in..." : "Sign In"}
+            </button>
+          </form>
+
+          <div className="mt-6 text-center text-sm text-gray-400">
+            Don&apos;t have an account?{" "}
+            <Link
+              href="/signup"
+              className="text-[#03e9f4] font-medium hover:underline ml-1"
+            >
+              Create Account
+            </Link>
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}
