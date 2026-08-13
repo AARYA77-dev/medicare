@@ -33,7 +33,8 @@ export default function LoginPage() {
         toast.error(res.error || "Invalid credentials");
       } else {
         toast.success("Logged in successfully!");
-        router.push("/User");
+        const callbackUrl = new URLSearchParams(window.location.search).get("callbackUrl") || "/User";
+        router.push(callbackUrl);
         router.refresh();
       }
     } catch (err: any) {
