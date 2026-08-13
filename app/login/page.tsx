@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import Link from "next/link";
 import { FaEnvelope, FaLock } from "react-icons/fa";
-import Header from "@/components/header";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -46,7 +45,6 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen text-white flex flex-col relative overflow-hidden">
-      <Header />
       <main className="flex-1 flex items-center justify-center px-4 py-12 relative z-10">
         {/* Ambient Glassmorphic Background Accents */}
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-[#03e9f4]/10 blur-3xl rounded-full pointer-events-none" />
