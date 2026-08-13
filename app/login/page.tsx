@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import Link from "next/link";
 import { FaEnvelope, FaLock } from "react-icons/fa";
+import Header from "@/components/header";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -44,9 +45,14 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
-      <main className="flex items-center justify-center px-4 py-12">
-        <div className="w-full max-w-md border border-white/10 rounded-3xl bg-white/5 backdrop-blur-xl p-8 shadow-[0_8px_32px_0_rgba(0,0,0,0.8)] border-b-[#03e9f4]/30">
+    <div className="min-h-screen text-white flex flex-col relative overflow-hidden">
+      <Header />
+      <main className="flex-1 flex items-center justify-center px-4 py-12 relative z-10">
+        {/* Ambient Glassmorphic Background Accents */}
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-[#03e9f4]/10 blur-3xl rounded-full pointer-events-none" />
+        <div className="absolute bottom-10 right-1/4 w-80 h-80 bg-purple-600/10 blur-3xl rounded-full pointer-events-none" />
+
+        <div className="w-full max-w-md border border-white/10 rounded-3xl bg-white/5 backdrop-blur-xl p-8 shadow-[0_8px_32px_0_rgba(0,0,0,0.8)] border-b-[#03e9f4]/30 relative z-10">
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-[#03e9f4] drop-shadow-[0_0_10px_rgba(3,233,244,0.5)]">
               Welcome Back
