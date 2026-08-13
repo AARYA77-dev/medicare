@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState } from "react";
-import Header from "@/components/header";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
@@ -46,7 +45,6 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
-      <Header />
       <main className="flex items-center justify-center px-4 py-12">
         <div className="w-full max-w-md border border-white/10 rounded-3xl bg-white/5 backdrop-blur-xl p-8 shadow-[0_8px_32px_0_rgba(0,0,0,0.8)] border-b-[#03e9f4]/30">
           <div className="text-center mb-8">
