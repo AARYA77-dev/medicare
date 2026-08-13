@@ -1,15 +1,17 @@
-"use client"
-import Header from '@/components/header'
+"use client";
+
+import Header from '@/components/header';
 import { MedicineSchema } from '@/Schemas/yupSChemas';
 import { useFormik } from 'formik';
 import Link from 'next/link';
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { FaEllipsisV, FaInfoCircle } from 'react-icons/fa';
 import { Tooltip as ReactTooltip } from "react-tooltip";
 import { ScheduleEntry, Medicines, Dose } from '../../Interfaces/interface';
-import axios from 'axios';
 import Loading from '../loading';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { fetchMedicines, addMedicineSchedule } from '@/store/medicineSlice';
 
 const initialValues: Medicines = {
   medicine_name: "",
@@ -19,33 +21,29 @@ const initialValues: Medicines = {
   times_days: "",
   number_days: "",
   startdate: "",
-}
+};
 
 const MedicinePage = () => {
-  const [medicineData, setMedicineData] = useState<Medicines[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [buttonLoading, setButtonLoading] = useState(false);
+  const dispatch = useAppDispatch();
+  const { medicines: medicineData, loading, actionLoading } = useAppSelector((state) => state.medicine);
+
   const { errors, values, handleBlur, touched, handleChange, handleSubmit } = useFormik<Medicines>({
     validationSchema: MedicineSchema,
     initialValues,
-    onSubmit: (values, { resetForm }) => {
-      setButtonLoading(true);
+    onSubmit: async (formValues, { resetForm }) => {
       const result = getSchedule();
-      axios.post('api/medicareDB', { ...values, schedule: result })
-        .then(() => {
-          toast.success("Your schedule generated")
-          resetForm()
-        }).catch((error) => {
-          console.log("Error:", error)
-          toast.error("something went wrong")
-        }).finally(() => {
-          setButtonLoading(false);
-        })
+      try {
+        await dispatch(addMedicineSchedule({ ...formValues, schedule: result })).unwrap();
+        toast.success("Your schedule generated");
+        resetForm();
+      } catch {
+        toast.error("Something went wrong");
+      }
     }
-  })
+  });
 
   const getSchedule = () => {
-    const { frequency, dosage_pattern, times_days, number_days, startdate, } = values;
+    const { frequency, dosage_pattern, times_days, number_days, startdate } = values;
 
     const dosagePattern = dosage_pattern.split(",").map(p => parseFloat(p.trim()));
     const timesOfDays = times_days.split(",").map(p => p.trim());
@@ -53,7 +51,7 @@ const MedicinePage = () => {
     const noOFDays = parseInt(number_days);
     const startDate = new Date(startdate);
     if (timesOfDays.length !== freq) {
-      toast.error("frequancy and times of days are not making reasonable logic")
+      toast.error("Frequency and times of days logic check required");
     }
 
     const result: ScheduleEntry[] = [];
@@ -61,58 +59,49 @@ const MedicinePage = () => {
     for (let i = 0; i < noOFDays; i++) {
       const currentDate = new Date(startDate);
       currentDate.setDate(startDate.getDate() + i);
-      let doses: Dose[] = []
-      if (freq == 1) {
-        const index = i % dosagePattern.length
+      let doses: Dose[] = [];
+      if (freq === 1) {
+        const index = i % dosagePattern.length;
         doses.push({
           time: timesOfDays[0],
           dosage: dosagePattern[index] + "mg"
-        })
+        });
       } else {
         doses = timesOfDays.map((time, j) => ({
           time: time,
           dosage: dosagePattern[j % dosagePattern.length] + "mg"
-        }))
+        }));
       }
       result.push({
         day: i + 1,
         date: currentDate.toLocaleDateString(),
         doses
-      })
+      });
     }
-    return result
-  }
-  useEffect(() => {
-    setLoading(true);
-    axios.get("/api/medicareDB")
-      .then((response) => {
-        setMedicineData(response.data.result);
-      })
-      .catch((error) => {
-        console.log("ERROR", error);
-        toast.error("something went wrong");
-      }).finally(() => {
-        setLoading(false);
-      })
-  }, [])
+    return result;
+  };
 
-  if (loading === true) {
-    return (<Loading />)
+  useEffect(() => {
+    dispatch(fetchMedicines());
+  }, [dispatch]);
+
+  if (loading) {
+    return <Loading />;
   }
 
   const MedicineMenu = ({ id }: { id: string }) => {
-    const [editOpen, setEditOpen] = useState(false)
-    const menuRef = useRef<HTMLDivElement>(null)
+    const [editOpen, setEditOpen] = useState(false);
+    const menuRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
       const handleClickOutside = (e: MouseEvent) => {
         if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-          setEditOpen(false)
+          setEditOpen(false);
         }
-      }
-      document.addEventListener("mousedown", handleClickOutside)
-      return () => document.removeEventListener("mousedown", handleClickOutside)
-    }, [])
+      };
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
 
     return (
       <div ref={menuRef} className="absolute right-2">
@@ -136,15 +125,15 @@ const MedicinePage = () => {
           </Link>
         </div>
       </div>
-    )
-  }
+    );
+  };
 
   return (
     <>
-      <Header></Header>
+      <Header />
       <form onSubmit={handleSubmit}>
         <div className="flex flex-col lg:flex-row gap-6 px-3 sm:px-6">
-          <div className="flex flex-col border border-white/10 rounded-2xl bg-white/5 backdrop-blur-md  w-full lg:w-[45%] xl:w-[28%] mx-auto items-center rounded-2xl shadow-2xl px-4 sm:px-8 xl:px-12">
+          <div className="flex flex-col border border-white/10 rounded-2xl bg-white/5 backdrop-blur-md w-full lg:w-[45%] xl:w-[28%] mx-auto items-center shadow-2xl px-4 sm:px-8 xl:px-12">
             <label htmlFor="medicine_name" className='mt-3 font-bold'>Medicine Name:</label>
             <input className='w-full bg-black placeholder-[#03e9f4] rounded-md border-2 border-[#03e9f4] px-3 py-2' type='text' placeholder='Enter Medicine name' name='medicine_name' onBlur={handleBlur} value={values.medicine_name} onChange={handleChange} id='medicine_name' />
             {errors.medicine_name && touched.medicine_name && <p className='text-red-500'>{errors.medicine_name}</p>}
@@ -155,7 +144,7 @@ const MedicinePage = () => {
 
             <div className='flex items-center gap-2 mt-3'>
               <label htmlFor="frequency" className='mt-3 font-bold'>Frequency(Times Per Day)</label>
-              <FaInfoCircle data-tooltip-id="my-tooltip-3"></FaInfoCircle>
+              <FaInfoCircle data-tooltip-id="my-tooltip-3" />
               <ReactTooltip
                 id='my-tooltip-3'
                 place='top'
@@ -171,8 +160,8 @@ const MedicinePage = () => {
             {errors.frequency && touched.frequency && <p className='text-red-500'>{errors.frequency}</p>}
 
             <div className='flex items-center gap-2 mt-3'>
-              <label htmlFor="dosage_pattern" className='mt-3 font-bold'>Dorage Pattern(e.g.2,3,3):</label>
-              <FaInfoCircle data-tooltip-id="my-tooltip-2"></FaInfoCircle>
+              <label htmlFor="dosage_pattern" className='mt-3 font-bold'>Dosage Pattern(e.g.2,3,3):</label>
+              <FaInfoCircle data-tooltip-id="my-tooltip-2" />
               <ReactTooltip
                 id="my-tooltip-2"
                 place="top"
@@ -198,7 +187,7 @@ const MedicinePage = () => {
 
             <div className='flex items-center gap-2 mt-3'>
               <label htmlFor="times_days" className='mt-3 font-bold'>Time(e.g.,Evening,Morning,10:00AM):</label>
-              <FaInfoCircle data-tooltip-id="my-tooltip-1"></FaInfoCircle>
+              <FaInfoCircle data-tooltip-id="my-tooltip-1" />
               <ReactTooltip
                 id="my-tooltip-1"
                 place="top"
@@ -214,13 +203,10 @@ const MedicinePage = () => {
                       If you want to enter part of day then enter like Evening
                     </li>
                     <li>
-                      If you want to enter any time or part of day more then one
-                      Like you have to take a medicine two times in a day then you have to enter your time details like Ex. 10:00AM,08:00PM
-                      Or morning, evening
+                      If you want to enter any time or part of day more than one, enter details like Ex. 10:00AM,08:00PM
                     </li>
                   </ol>
                 </div>
-
               </ReactTooltip>
             </div>
             <input onChange={handleChange} onBlur={handleBlur} value={values.times_days} className='w-full bg-black placeholder-[#03e9f4] rounded-md border-2 border-[#03e9f4] px-3 py-2' type='text' placeholder='Evening' id='times_days' name='times_days' />
@@ -236,23 +222,25 @@ const MedicinePage = () => {
 
             <button
               type="submit"
-              className="w-full flex cursor-pointer justify-center items-center gap-2 bg-[#03e9f4] text-black font-semibold px-4 py-2 my-6 rounded shadow-lg active:scale-95"
-            >{buttonLoading && <div
-              className="h-[23px] w-[23px] animate-spin rounded-full border-4 border-solid border-black border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]">
-            </div>}
-              Generate Schedule</button>
+              disabled={actionLoading}
+              className="w-full flex cursor-pointer justify-center items-center gap-2 bg-[#03e9f4] text-black font-semibold px-4 py-2 my-6 rounded shadow-lg active:scale-95 disabled:opacity-50"
+            >
+              {actionLoading && (
+                <div className="h-[23px] w-[23px] animate-spin rounded-full border-4 border-solid border-black border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]" />
+              )}
+              Generate Schedule
+            </button>
           </div>
 
           <div className="flex flex-col w-full h-[fit-content] lg:w-[35%] xl:w-[20%] mx-auto border border-white/10 rounded-2xl bg-white/5 backdrop-blur-md items-center rounded-2xl">
             <div className='border border-white/10 rounded-2xl bg-white/5 backdrop-blur-md py-2 mb-2 text-center rounded-2xl xl:px-12 w-full font-bold'>
               <h1>Your Medicines</h1>
             </div>
-            {
-              loading === false && medicineData.length === 0 ? <h1 className='grid place-items-center my-3 font-mono'>No medicines found</h1> : (medicineData.map((item) => (
-                <div
-                  key={item._id}
-                  className="mt-2 w-full"
-                >
+            {medicineData.length === 0 ? (
+              <h1 className='grid place-items-center my-3 font-mono'>No medicines found</h1>
+            ) : (
+              medicineData.map((item) => (
+                <div key={item._id} className="mt-2 w-full">
                   <div className="flex flex-col items-center justify-between gap-2 relative">
                     <p className="font-bold text-center flex-1">
                       {item.medicine_name}
@@ -260,21 +248,20 @@ const MedicinePage = () => {
                     <MedicineMenu id={item._id!} />
                   </div>
 
-                  {/* Schedule button */}
                   <Link
-                    className="w-[80%] m-[auto] flex cursor-pointer justify-center items-center gap-2 bg-[#03e9f4] text-black font-semibold px-4 py-2 my-6 rounded shadow-lg active:scale-95"
+                    className="w-[80%] m-[auto] flex cursor-pointer justify-center items-center gap-2 bg-[#03e9f4] text-black font-semibold px-4 py-2 my-6 rounded shadow-lg active:scale-95 text-sm"
                     href={`/Medicines/MedicineTable/${item._id}`}
                   >
                     See Schedule
                   </Link>
                 </div>
               ))
-              )}
+            )}
           </div>
         </div>
       </form>
     </>
-  )
-}
+  );
+};
 
-export default MedicinePage
+export default MedicinePage;
