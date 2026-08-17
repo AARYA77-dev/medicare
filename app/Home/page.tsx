@@ -90,7 +90,7 @@ export default function HomePage() {
 
         {/* Low Stock Alert Bar */}
         {lowStockMedicines.length > 0 && !alertDismissed && (
-          <div className="mb-8 relative overflow-hidden rounded-2xl border border-amber-500/50 bg-gradient-to-r from-amber-950/40 via-red-950/30 to-black/60 backdrop-blur-xl p-4 sm:p-5 shadow-[0_0_25px_rgba(245,158,11,0.2)] animate-in fade-in slide-in-from-top-4 duration-300">
+          <div className="mb-8 relative overflow-hidden rounded-2xl border border-amber-500/50 bg-gradient-to-r from-amber-950/40 via-red-950/30 to-black/60 backdrop-blur-xl p-4 sm:p-5">
             {/* Glowing Accent */}
             <div className="absolute top-0 left-0 w-2 h-full bg-gradient-to-b from-amber-400 to-red-500" />
 
@@ -131,7 +131,7 @@ export default function HomePage() {
               <div className="flex items-center gap-2 shrink-0 self-end md:self-center">
                 <Link
                   href="/Medicines"
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-[#03e9f4] text-black font-bold text-xs shadow-lg hover:opacity-90 active:scale-95 transition-all"
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-blue-500 to-[#03e9f4] text-black font-bold text-xs shadow-lg hover:opacity-90 active:scale-95 transition-all"
                 >
                   Refill / Manage
                   <FaArrowRight className="text-xs" />
