@@ -29,8 +29,26 @@ export async function DELETE(
     const { id } = await context.params;
     await mongoose.connect(MONGO_DB_URL!);
 
+    if (!Types.ObjectId.isValid(id)) {
+      return NextResponse.json(
+        { message: "Invalid ID", success: false },
+        { status: 400 }
+      );
+    }
+
     const objectId = new Types.ObjectId(id);
 
+    // Check if it's a medicine ID directly
+    const deletedMedicine = await MedicineSchema.findByIdAndDelete(objectId);
+    if (deletedMedicine) {
+      return NextResponse.json({
+        message: "Medicine deleted successfully",
+        success: true,
+        result: deletedMedicine,
+      });
+    }
+
+    // Otherwise, treat as dose ID
     const result = await MedicineSchema.updateOne(
       { "schedule.doses._id": objectId },
       { $pull: { "schedule.$[].doses": { _id: objectId } } }
@@ -55,7 +73,7 @@ export async function DELETE(
   } catch (err) {
     console.error("Error", err);
     return NextResponse.json(
-      { message: "Failed to delete dose", error: String(err) },
+      { message: "Failed to delete", error: String(err) },
       { status: 500 }
     );
   }

@@ -6,12 +6,12 @@ import { useFormik } from 'formik';
 import Link from 'next/link';
 import React, { useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
-import { FaEllipsisV, FaInfoCircle } from 'react-icons/fa';
+import { FaEdit, FaEllipsisV, FaInfoCircle, FaTrash } from 'react-icons/fa';
 import { Tooltip as ReactTooltip } from "react-tooltip";
 import { ScheduleEntry, Medicines, Dose } from '../../Interfaces/interface';
 import Loading from '../loading';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { fetchMedicines, addMedicineSchedule } from '@/store/medicineSlice';
+import { fetchMedicines, addMedicineSchedule, deleteMedicine } from '@/store/medicineSlice';
 
 const initialValues: Medicines = {
   medicine_name: "",
@@ -91,6 +91,7 @@ const MedicinePage = () => {
 
   const MedicineMenu = ({ id }: { id: string }) => {
     const [editOpen, setEditOpen] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -103,26 +104,55 @@ const MedicinePage = () => {
       return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
+    const handleDelete = async () => {
+      setIsDeleting(true);
+      try {
+        await dispatch(deleteMedicine(id)).unwrap();
+        toast.success("Medicine deleted successfully");
+        setEditOpen(false);
+      } catch {
+        toast.error("Failed to delete medicine");
+      } finally {
+        setIsDeleting(false);
+      }
+    };
+
     return (
       <div ref={menuRef} className="absolute right-2">
         <button
           type="button"
           onClick={() => setEditOpen((prev) => !prev)}
-          className="cursor-pointer"
+          className="cursor-pointer p-1 text-gray-300 hover:text-white transition-colors"
+          aria-label="Medicine options"
         >
           <FaEllipsisV />
         </button>
 
         <div
-          className={`absolute right-0 mt-2 bg-black text-white border-2 border-[#03e9f4] rounded-lg shadow-md z-50 px-4 py-2 transform transition-all duration-300 origin-top-right
+          className={`absolute right-0 mt-2 bg-black text-white border-2 border-[#03e9f4] rounded-lg shadow-xl z-50 py-1.5 w-28 transform transition-all duration-300 origin-top-right
         ${editOpen ? "opacity-100 scale-100 visible" : "opacity-0 scale-90 invisible"}`}
         >
           <Link
             href={`/UpdateMedicine/${id}`}
-            className="block hover:underline"
+            onClick={() => setEditOpen(false)}
+            className="flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-[#03e9f4]/20 hover:text-[#03e9f4] transition-colors"
           >
-            Edit
+            <FaEdit className="text-xs" />
+            <span>Edit</span>
           </Link>
+          <button
+            type="button"
+            onClick={handleDelete}
+            disabled={isDeleting}
+            className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-red-400 hover:bg-red-500/20 hover:text-red-300 transition-colors text-left cursor-pointer disabled:opacity-50"
+          >
+            {isDeleting ? (
+              <div className="h-3 w-3 animate-spin rounded-full border-2 border-red-400 border-t-transparent" />
+            ) : (
+              <FaTrash className="text-xs" />
+            )}
+            <span>Delete</span>
+          </button>
         </div>
       </div>
     );

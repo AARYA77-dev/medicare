@@ -55,6 +55,19 @@ export const deleteDose = createAsyncThunk(
   }
 );
 
+// Async Thunk: Delete whole medicine
+export const deleteMedicine = createAsyncThunk(
+  'medicine/deleteMedicine',
+  async (medicineId: string, { rejectWithValue }) => {
+    try {
+      await axios.delete(`/api/medicareDB/${medicineId}`);
+      return medicineId;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to delete medicine');
+    }
+  }
+);
+
 const medicineSlice = createSlice({
   name: 'medicine',
   initialState,
@@ -112,6 +125,11 @@ const medicineSlice = createSlice({
             return med;
           })
           .filter((med) => med.schedule.length > 0);
+      })
+
+      // Delete Medicine
+      .addCase(deleteMedicine.fulfilled, (state, action: PayloadAction<string>) => {
+        state.medicines = state.medicines.filter((med) => med._id !== action.payload);
       });
   },
 });
