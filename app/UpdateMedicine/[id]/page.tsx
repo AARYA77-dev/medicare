@@ -3,8 +3,7 @@ import { MedicineSchema } from '@/Schemas/yupSChemas';
 import { useFormik } from 'formik';
 import React, { useEffect, useState } from 'react'
 import toast from 'react-hot-toast';
-import { FaArrowLeft, FaPlus, FaQuestionCircle, FaTrash } from 'react-icons/fa';
-import { Tooltip as ReactTooltip } from "react-tooltip";
+import { FaArrowLeft, FaPlus, FaTrash } from 'react-icons/fa';
 import axios from 'axios';
 import { Medicines } from '@/Interfaces/interface';
 import { useParams } from 'next/navigation';
