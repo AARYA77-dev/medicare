@@ -29,8 +29,8 @@ const MedicinesModel = new mongoose.Schema({
         required:true
     },
     quantity: {
-        type:String,
-        required:true
+        type: mongoose.Schema.Types.Mixed,
+        required: true
     },
     frequency: {
         type:String,

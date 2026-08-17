@@ -60,7 +60,19 @@ const MedicineTablePage = () => {
                             </div>
                             <div className="info-item">
                                 <span className="label">Quantity:</span>
-                                <span className="value">{medicineData.quantity}</span>
+                                <span className="value">
+                                    {typeof medicineData.quantity === 'object' && medicineData.quantity !== null ? (
+                                        <div className="flex flex-wrap gap-2 mt-1">
+                                            {Object.entries(medicineData.quantity).map(([dose, qty]) => (
+                                                <span key={dose} className="bg-[#03e9f4]/20 border border-[#03e9f4] text-white px-2 py-0.5 rounded text-xs">
+                                                    {dose}: {qty} pills
+                                                </span>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        medicineData.quantity
+                                    )}
+                                </span>
                             </div>
                             <div className="info-item">
                                 <span className="label">No. of Days of Your Schedule:</span>

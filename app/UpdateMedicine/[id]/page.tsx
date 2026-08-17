@@ -25,9 +25,27 @@ const UpdateMedicine = () => {
   const [medicineData, setMedicineData] = useState<Medicines>();
   const [loading, setLoading] = useState(false);
   const [buttonLoading, setButtonLoading] = useState(false);
+  const [separateQuantity, setSeparateQuantity] = useState(false);
   const { id } = useParams();
-  const route = useRouter()
-  const { errors, values, handleBlur, touched, handleChange, handleSubmit } = useFormik<Medicines>({
+  const route = useRouter();
+
+  const getUniqueDoses = (pattern: string): string[] => {
+    if (!pattern) return [];
+    const parts = pattern.split(',').map((p) => p.trim()).filter(Boolean);
+    const nums: string[] = [];
+    parts.forEach((p) => {
+      const val = parseFloat(p);
+      if (!isNaN(val)) {
+        const formatted = `${val}mg`;
+        if (!nums.includes(formatted)) {
+          nums.push(formatted);
+        }
+      }
+    });
+    return nums;
+  };
+
+  const { errors, values, handleBlur, touched, handleChange, handleSubmit, setFieldValue } = useFormik<Medicines>({
     validationSchema: MedicineSchema,
     enableReinitialize: true,
     initialValues: medicineData ?? initialValues,
@@ -44,13 +62,19 @@ const UpdateMedicine = () => {
           setButtonLoading(false);
         })
     }
-  })
+  });
+
+  const uniqueDoses = getUniqueDoses(values.dosage_pattern);
 
   useEffect(() => {
     setLoading(true);
     axios.get(`/api/medicareDB/${id}`)
       .then((response) => {
-        setMedicineData(response.data.result)
+        const data = response.data.result;
+        setMedicineData(data);
+        if (data && typeof data.quantity === 'object' && data.quantity !== null) {
+          setSeparateQuantity(true);
+        }
         console.log(response.data.result, "data collected")
       }
       ).catch((error) => {
@@ -124,9 +148,102 @@ const UpdateMedicine = () => {
           <input onChange={handleChange} onBlur={handleBlur} value={values.dosage_pattern} className='w-full bg-black placeholder-[#03e9f4] rounded-md border-2 border-[#03e9f4] px-3 py-2' name='dosage_pattern' id='dosage_pattern' type='text' placeholder='2,3,3' />
           {errors.dosage_pattern && touched.dosage_pattern && <p className='text-red-500'>{errors.dosage_pattern}</p>}
 
-          <label htmlFor="quantity" className='mt-3 font-bold'>Quantity:</label>
-          <input onChange={handleChange} value={values.quantity} onBlur={handleBlur} className='w-full bg-black placeholder-[#03e9f4] rounded-md border-2 border-[#03e9f4] px-3 py-2' type='number' id='quantity' min="0" max="99" maxLength={2} placeholder='30' name='quantity' />
-          {errors.quantity && touched.quantity && <p className='text-red-500'>{errors.quantity}</p>}
+          {/* Multiple Dosage Separation Question */}
+          {uniqueDoses.length > 1 && (
+            <div className="w-full mt-3 p-3 bg-white/5 border border-[#03e9f4]/40 rounded-lg transition-all">
+              <label className="flex items-start gap-2.5 cursor-pointer text-xs sm:text-sm font-semibold text-white">
+                <input
+                  type="checkbox"
+                  checked={separateQuantity}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setSeparateQuantity(checked);
+                    if (checked) {
+                      const initialQuantities: Record<string, string> = {};
+                      uniqueDoses.forEach((dose) => {
+                        initialQuantities[dose] =
+                          typeof values.quantity === 'object' && values.quantity !== null && (values.quantity as Record<string, string>)[dose]
+                            ? String((values.quantity as Record<string, string>)[dose])
+                            : (typeof values.quantity === 'string' ? values.quantity : "");
+                      });
+                      setFieldValue("quantity", initialQuantities);
+                    } else {
+                      const firstVal =
+                        typeof values.quantity === 'object' && values.quantity !== null
+                          ? Object.values(values.quantity as Record<string, string>)[0] || ""
+                          : (typeof values.quantity === 'string' ? values.quantity : "");
+                      setFieldValue("quantity", firstVal);
+                    }
+                  }}
+                  className="mt-0.5 w-4 h-4 rounded cursor-pointer accent-[#03e9f4]"
+                />
+                <span>
+                  Separate quantity for each dosage packet ({uniqueDoses.join(", ")})
+                </span>
+              </label>
+              <p className="text-[11px] text-gray-400 mt-1 pl-6">
+                Check this if different dosage strengths come in separate medicine packets/bottles.
+              </p>
+            </div>
+          )}
+
+          {/* Quantity Inputs */}
+          {uniqueDoses.length > 1 && separateQuantity ? (
+            <div className="w-full mt-3 space-y-2">
+              <label className="font-bold block text-sm">Quantity per Dosage Variant:</label>
+              {uniqueDoses.map((dose) => {
+                const qtyMap = (typeof values.quantity === 'object' && values.quantity !== null ? values.quantity : {}) as Record<string, string>;
+                const qtyVal = qtyMap[dose] ?? "";
+                return (
+                  <div key={dose} className="flex items-center gap-2">
+                    <span className="min-w-[70px] text-xs font-mono bg-[#03e9f4]/20 border border-[#03e9f4] text-white px-2 py-2 rounded text-center font-bold">
+                      {dose}
+                    </span>
+                    <input
+                      type="number"
+                      min="0"
+                      max="999"
+                      placeholder={`Pills for ${dose}`}
+                      value={qtyVal}
+                      onChange={(e) => {
+                        const newMap = { ...qtyMap, [dose]: e.target.value };
+                        setFieldValue("quantity", newMap);
+                      }}
+                      onBlur={handleBlur}
+                      name={`quantity_${dose}`}
+                      className="w-full bg-black placeholder-gray-500 rounded-md border-2 border-[#03e9f4] px-3 py-2 text-sm"
+                    />
+                  </div>
+                );
+              })}
+              {errors.quantity && touched.quantity && (
+                <p className="text-red-500 text-sm">
+                  {typeof errors.quantity === 'string' ? errors.quantity : "Please enter quantity for each dosage"}
+                </p>
+              )}
+            </div>
+          ) : (
+            <div className="w-full">
+              <label htmlFor="quantity" className="mt-3 font-bold block">
+                {uniqueDoses.length === 1 ? `Quantity (${uniqueDoses[0]}):` : "Quantity (Total Pills):"}
+              </label>
+              <input
+                onChange={(e) => setFieldValue("quantity", e.target.value)}
+                value={typeof values.quantity === 'string' ? values.quantity : (Object.values(values.quantity || {})[0] ?? "")}
+                onBlur={handleBlur}
+                className="w-full bg-black placeholder-[#03e9f4] rounded-md border-2 border-[#03e9f4] px-3 py-2"
+                type="number"
+                id="quantity"
+                min="0"
+                max="999"
+                placeholder="30"
+                name="quantity"
+              />
+              {errors.quantity && touched.quantity && (
+                <p className="text-red-500">{typeof errors.quantity === 'string' ? errors.quantity : "please enter Quantity"}</p>
+              )}
+            </div>
+          )}
 
           <div className='flex items-center gap-2 mt-3'>
             <label htmlFor="times_days" className='mt-3 font-bold'>Time(e.g.,Evening,Morning,10:00AM):</label>

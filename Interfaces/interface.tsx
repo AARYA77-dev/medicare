@@ -1,7 +1,7 @@
 export interface Medicines {
     _id?: string;
-    medicine_name: string
-    quantity: string;
+    medicine_name: string;
+    quantity: string | Record<string, string>;
     frequency: string;
     dosage_pattern: string;
     times_days: string;
