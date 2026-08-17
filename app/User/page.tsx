@@ -27,10 +27,6 @@ const UserPage = () => {
                 <h1 className="text-2xl font-bold text-white">
                   {session.user.name || "Medicare User"}
                 </h1>
-                <p className="text-sm text-gray-400 flex items-center justify-center gap-2 mt-1">
-                  <FaEnvelope className="text-[#03e9f4]" />
-                  {session.user.email}
-                </p>
               </div>
               <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#03e9f4]/10 text-[#03e9f4] border border-[#03e9f4]/30 rounded-full text-xs font-semibold">
                 <FaShieldAlt /> Authenticated User

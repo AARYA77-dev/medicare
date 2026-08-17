@@ -28,6 +28,7 @@ const UpdateMedicine = () => {
   const [separateQuantity, setSeparateQuantity] = useState(false);
   const [dosageList, setDosageList] = useState<string[]>([""]);
   const [timeList, setTimeList] = useState<string[]>([""]);
+  const [timeDoseIndices, setTimeDoseIndices] = useState<number[]>([0]);
   const { id } = useParams();
   const route = useRouter();
 
@@ -49,6 +50,14 @@ const UpdateMedicine = () => {
     setDosageList(updated);
     const combined = updated.filter((d) => d.trim() !== "").join(",");
     setFieldValue("dosage_pattern", combined);
+
+    setTimeDoseIndices((prev) =>
+      prev.map((dIdx) => {
+        if (dIdx === index) return 0;
+        if (dIdx > index) return dIdx - 1;
+        return dIdx;
+      })
+    );
   };
 
   const handleTimeChange = (index: number, val: string) => {
@@ -57,6 +66,12 @@ const UpdateMedicine = () => {
     setTimeList(updated);
     const combined = updated.filter((t) => t.trim() !== "").join(",");
     setFieldValue("times_days", combined);
+  };
+
+  const handleTimeDoseChange = (timeIndex: number, doseIndex: number) => {
+    const updated = [...timeDoseIndices];
+    updated[timeIndex] = doseIndex;
+    setTimeDoseIndices(updated);
   };
 
   const getUniqueDoses = (pattern: string): string[] => {
@@ -75,26 +90,94 @@ const UpdateMedicine = () => {
     return nums;
   };
 
+  const getSchedule = () => {
+    const { frequency, dosage_pattern, times_days, number_days, startdate } = values;
+
+    const dosagePattern = dosage_pattern.split(",").map(p => parseFloat(p.trim())).filter(n => !isNaN(n));
+    const timesOfDays = times_days.split(",").map(p => p.trim()).filter(Boolean);
+    const freq = parseInt(frequency) || 1;
+    const noOFDays = parseInt(number_days) || 1;
+    const startDate = new Date(startdate);
+
+    const result: any[] = [];
+
+    for (let i = 0; i < noOFDays; i++) {
+      const currentDate = new Date(startDate);
+      currentDate.setDate(startDate.getDate() + i);
+      let doses: any[] = [];
+      if (freq === 1) {
+        if (dosagePattern.length > 1 && (timeDoseIndices[0] === undefined || timeDoseIndices[0] === 0)) {
+          const index = i % dosagePattern.length;
+          doses.push({
+            time: timesOfDays[0] || "08:00",
+            dosage: (dosagePattern[index] ?? 0) + "mg"
+          });
+        } else {
+          const selectedDoseIdx = timeDoseIndices[0] ?? 0;
+          const doseVal = dosagePattern[selectedDoseIdx] ?? dosagePattern[0] ?? 0;
+          doses.push({
+            time: timesOfDays[0] || "08:00",
+            dosage: doseVal + "mg"
+          });
+        }
+      } else {
+        doses = timesOfDays.map((time, j) => {
+          const selectedDoseIdx = timeDoseIndices[j] !== undefined ? timeDoseIndices[j] : (j % (dosagePattern.length || 1));
+          const doseVal = dosagePattern[selectedDoseIdx] ?? dosagePattern[0] ?? 0;
+          return {
+            time: time,
+            dosage: doseVal + "mg"
+          };
+        });
+      }
+      result.push({
+        day: i + 1,
+        date: currentDate.toLocaleDateString(),
+        doses
+      });
+    }
+    return result;
+  };
+
   const { errors, values, handleBlur, touched, handleChange, handleSubmit, setFieldValue } = useFormik<Medicines>({
     validationSchema: MedicineSchema,
     enableReinitialize: true,
     initialValues: medicineData ?? initialValues,
     onSubmit: (values) => {
       setButtonLoading(true);
-      //   const result = getSchedule();
-      axios.put(`/api/medicareDB/${id}`, { ...values, })
+      const result = getSchedule();
+      axios.put(`/api/medicareDB/${id}`, { ...values, schedule: result })
         .then(() => {
-          toast.success("Your schedule generated")
+          toast.success("Your schedule updated successfully");
+          route.push("/Medicines");
         }).catch((error) => {
-          console.log("Error:", error)
-          toast.error("something went wrong")
+          console.log("Error:", error);
+          toast.error("Something went wrong");
         }).finally(() => {
           setButtonLoading(false);
-        })
+        });
     }
   });
 
   const uniqueDoses = getUniqueDoses(values.dosage_pattern);
+
+  useEffect(() => {
+    const freq = parseInt(values.frequency);
+    if (!isNaN(freq) && freq > 0) {
+      setTimeDoseIndices((prev) => {
+        return Array.from({ length: freq }).map((_, idx) => {
+          if (prev[idx] !== undefined && prev[idx] < Math.max(1, dosageList.length)) {
+            return prev[idx];
+          }
+          return idx < dosageList.length ? idx : 0;
+        });
+      });
+      setTimeList((prev) => {
+        if (prev.length === freq) return prev;
+        return Array.from({ length: freq }).map((_, idx) => prev[idx] || "");
+      });
+    }
+  }, [values.frequency, dosageList.length]);
 
   useEffect(() => {
     setLoading(true);
@@ -105,24 +188,35 @@ const UpdateMedicine = () => {
         if (data && typeof data.quantity === 'object' && data.quantity !== null) {
           setSeparateQuantity(true);
         }
+        let splitDoses: string[] = [];
         if (data && data.dosage_pattern) {
-          const splitDoses = data.dosage_pattern.split(',').map((s: string) => s.trim()).filter(Boolean);
+          splitDoses = data.dosage_pattern.split(',').map((s: string) => s.trim()).filter(Boolean);
           setDosageList(splitDoses.length > 0 ? splitDoses : [""]);
         }
         if (data && data.times_days) {
           const splitTimes = data.times_days.split(',').map((s: string) => s.trim()).filter(Boolean);
           setTimeList(splitTimes.length > 0 ? splitTimes : [""]);
         }
-        console.log(response.data.result, "data collected")
-      }
-      ).catch((error) => {
-        console.log("Error:", error)
-        toast.error("something went wrong")
+        if (data && data.schedule && data.schedule[0] && data.schedule[0].doses && splitDoses.length > 0) {
+          const initialIndices = data.schedule[0].doses.map((d: any) => {
+            const dNum = parseFloat(d.dosage);
+            const foundIdx = splitDoses.findIndex((sd: string) => parseFloat(sd) === dNum);
+            return foundIdx >= 0 ? foundIdx : 0;
+          });
+          if (initialIndices.length > 0) {
+            setTimeDoseIndices(initialIndices);
+          }
+        }
+        console.log(response.data.result, "data collected");
+      })
+      .catch((error) => {
+        console.log("Error:", error);
+        toast.error("something went wrong");
       }).finally(() => {
         setLoading(false);
-      })
+      });
 
-  }, [id])
+  }, [id]);
 
   if (loading === true) {
     return (<Loading />)
@@ -295,37 +389,79 @@ const UpdateMedicine = () => {
             </div>
           )}
 
-          <div className='flex items-center gap-2 mt-3 w-full'>
-            <label className='font-bold'>Time of Dose:</label>
+          <div className='flex items-center justify-between mt-3 w-full'>
+            <label className='font-bold'>Time & Dosage of Dose:</label>
             <span className='text-xs text-gray-400'>({values.frequency ? `${values.frequency} time${parseInt(values.frequency) > 1 ? 's' : ''} per day` : 'set frequency first'})</span>
           </div>
 
-          <div className="w-full space-y-2 mt-1">
-            {Array.from({ length: Math.max(1, parseInt(values.frequency) || 1) }).map((_, idx) => (
-              <div key={idx} className="flex items-center gap-2">
-                <span className="text-xs text-gray-400 font-mono min-w-[50px]">
-                  Time {idx + 1}:
-                </span>
-                <input
-                  type="time"
-                  value={timeList[idx] ?? ""}
-                  onChange={(e) => handleTimeChange(idx, e.target.value)}
-                  onBlur={handleBlur}
-                  className="flex-1 bg-black text-white rounded-md border-2 border-[#03e9f4] px-3 py-2 text-sm [color-scheme:dark]"
-                />
-                {timeList[idx] && (
-                  <span className="text-xs text-[#03e9f4] font-mono min-w-[55px] text-right">
-                    {(() => {
-                      const [h, m] = (timeList[idx] || "00:00").split(":");
-                      const hr = parseInt(h);
-                      const ampm = hr >= 12 ? "PM" : "AM";
-                      const hr12 = hr % 12 || 12;
-                      return `${hr12}:${m} ${ampm}`;
-                    })()}
-                  </span>
-                )}
-              </div>
-            ))}
+          <div className="w-full space-y-2.5 mt-1">
+            {Array.from({ length: Math.max(1, parseInt(values.frequency) || 1) }).map((_, idx) => {
+              const isMultiFreq = (parseInt(values.frequency) || 1) > 1;
+              const isMultiDose = dosageList.length > 1;
+              const showDoseSelector = isMultiFreq || isMultiDose;
+              const selectedDoseIdx = timeDoseIndices[idx] ?? (idx % Math.max(1, dosageList.length));
+
+              return (
+                <div
+                  key={idx}
+                  className="p-2.5 bg-black/40 border border-[#03e9f4]/40 rounded-lg space-y-2 transition-all hover:border-[#03e9f4]"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-[#03e9f4] uppercase tracking-wider">
+                      Dose Time #{idx + 1}
+                    </span>
+                    {timeList[idx] && (
+                      <span className="text-xs text-[#03e9f4] font-mono">
+                        {(() => {
+                          const [h, m] = (timeList[idx] || "00:00").split(":");
+                          const hr = parseInt(h);
+                          const ampm = hr >= 12 ? "PM" : "AM";
+                          const hr12 = hr % 12 || 12;
+                          return `${hr12}:${m} ${ampm}`;
+                        })()}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className={`grid ${showDoseSelector ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'} gap-2 items-center`}>
+                    <div>
+                      <label className="block text-[11px] text-gray-400 mb-1">Time:</label>
+                      <input
+                        type="time"
+                        value={timeList[idx] ?? ""}
+                        onChange={(e) => handleTimeChange(idx, e.target.value)}
+                        onBlur={handleBlur}
+                        className="w-full bg-black text-white rounded-md border-2 border-[#03e9f4] px-3 py-1.5 text-sm [color-scheme:dark]"
+                      />
+                    </div>
+
+                    {showDoseSelector ? (
+                      <div>
+                        <label className="block text-[11px] text-gray-400 mb-1">Which Dose?</label>
+                        <select
+                          value={selectedDoseIdx}
+                          onChange={(e) => handleTimeDoseChange(idx, Number(e.target.value))}
+                          className="w-full bg-black text-white rounded-md border-2 border-[#03e9f4] px-2.5 py-2 text-sm cursor-pointer"
+                        >
+                          {dosageList.map((dose, dIdx) => (
+                            <option key={dIdx} value={dIdx} className="bg-black text-white">
+                              Dose {dIdx + 1}: {dose ? `${dose}mg` : "(empty)"}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    ) : (
+                      <div className="text-xs text-gray-400 flex items-center gap-1.5 mt-1">
+                        <span>Dose:</span>
+                        <span className="font-semibold text-[#03e9f4]">
+                          {dosageList[0] ? `${dosageList[0]}mg` : "Set dosage pattern above"}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
           {errors.times_days && touched.times_days && <p className='text-red-500 text-sm mt-1'>{errors.times_days}</p>}
 

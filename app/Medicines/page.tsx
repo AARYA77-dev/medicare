@@ -29,6 +29,7 @@ const MedicinePage = () => {
   const [separateQuantity, setSeparateQuantity] = useState(false);
   const [dosageList, setDosageList] = useState<string[]>([""]);
   const [timeList, setTimeList] = useState<string[]>([""]);
+  const [timeDoseIndices, setTimeDoseIndices] = useState<number[]>([0]);
 
   const handleDosageChange = (index: number, val: string) => {
     const updated = [...dosageList];
@@ -48,6 +49,14 @@ const MedicinePage = () => {
     setDosageList(updated);
     const combined = updated.filter((d) => d.trim() !== "").join(",");
     setFieldValue("dosage_pattern", combined);
+
+    setTimeDoseIndices((prev) =>
+      prev.map((dIdx) => {
+        if (dIdx === index) return 0;
+        if (dIdx > index) return dIdx - 1;
+        return dIdx;
+      })
+    );
   };
 
   const handleTimeChange = (index: number, val: string) => {
@@ -56,6 +65,12 @@ const MedicinePage = () => {
     setTimeList(updated);
     const combined = updated.filter((t) => t.trim() !== "").join(",");
     setFieldValue("times_days", combined);
+  };
+
+  const handleTimeDoseChange = (timeIndex: number, doseIndex: number) => {
+    const updated = [...timeDoseIndices];
+    updated[timeIndex] = doseIndex;
+    setTimeDoseIndices(updated);
   };
 
   const getUniqueDoses = (pattern: string): string[] => {
@@ -86,6 +101,7 @@ const MedicinePage = () => {
         setSeparateQuantity(false);
         setDosageList([""]);
         setTimeList([""]);
+        setTimeDoseIndices([0]);
       } catch {
         toast.error("Something went wrong");
       }
@@ -94,13 +110,31 @@ const MedicinePage = () => {
 
   const uniqueDoses = getUniqueDoses(values.dosage_pattern);
 
+  useEffect(() => {
+    const freq = parseInt(values.frequency);
+    if (!isNaN(freq) && freq > 0) {
+      setTimeDoseIndices((prev) => {
+        return Array.from({ length: freq }).map((_, idx) => {
+          if (prev[idx] !== undefined && prev[idx] < Math.max(1, dosageList.length)) {
+            return prev[idx];
+          }
+          return idx < dosageList.length ? idx : 0;
+        });
+      });
+      setTimeList((prev) => {
+        if (prev.length === freq) return prev;
+        return Array.from({ length: freq }).map((_, idx) => prev[idx] || "");
+      });
+    }
+  }, [values.frequency, dosageList.length]);
+
   const getSchedule = () => {
     const { frequency, dosage_pattern, times_days, number_days, startdate } = values;
 
-    const dosagePattern = dosage_pattern.split(",").map(p => parseFloat(p.trim()));
-    const timesOfDays = times_days.split(",").map(p => p.trim());
-    const freq = parseInt(frequency);
-    const noOFDays = parseInt(number_days);
+    const dosagePattern = dosage_pattern.split(",").map(p => parseFloat(p.trim())).filter(n => !isNaN(n));
+    const timesOfDays = times_days.split(",").map(p => p.trim()).filter(Boolean);
+    const freq = parseInt(frequency) || 1;
+    const noOFDays = parseInt(number_days) || 1;
     const startDate = new Date(startdate);
     if (timesOfDays.length !== freq) {
       toast.error("Frequency and times of days logic check required");
@@ -113,16 +147,29 @@ const MedicinePage = () => {
       currentDate.setDate(startDate.getDate() + i);
       let doses: Dose[] = [];
       if (freq === 1) {
-        const index = i % dosagePattern.length;
-        doses.push({
-          time: timesOfDays[0],
-          dosage: dosagePattern[index] + "mg"
-        });
+        if (dosagePattern.length > 1 && (timeDoseIndices[0] === undefined || timeDoseIndices[0] === 0)) {
+          const index = i % dosagePattern.length;
+          doses.push({
+            time: timesOfDays[0] || "08:00",
+            dosage: (dosagePattern[index] ?? 0) + "mg"
+          });
+        } else {
+          const selectedDoseIdx = timeDoseIndices[0] ?? 0;
+          const doseVal = dosagePattern[selectedDoseIdx] ?? dosagePattern[0] ?? 0;
+          doses.push({
+            time: timesOfDays[0] || "08:00",
+            dosage: doseVal + "mg"
+          });
+        }
       } else {
-        doses = timesOfDays.map((time, j) => ({
-          time: time,
-          dosage: dosagePattern[j % dosagePattern.length] + "mg"
-        }));
+        doses = timesOfDays.map((time, j) => {
+          const selectedDoseIdx = timeDoseIndices[j] !== undefined ? timeDoseIndices[j] : (j % (dosagePattern.length || 1));
+          const doseVal = dosagePattern[selectedDoseIdx] ?? dosagePattern[0] ?? 0;
+          return {
+            time: time,
+            dosage: doseVal + "mg"
+          };
+        });
       }
       result.push({
         day: i + 1,
@@ -372,37 +419,79 @@ const MedicinePage = () => {
               </div>
             )}
 
-            <div className='flex items-center gap-2 mt-3 w-full'>
-              <label className='font-bold'>Time of Dose:</label>
+            <div className='flex items-center justify-between mt-3 w-full'>
+              <label className='font-bold'>Time & Dosage of Dose:</label>
               <span className='text-xs text-gray-400'>({values.frequency ? `${values.frequency} time${parseInt(values.frequency) > 1 ? 's' : ''} per day` : 'set frequency first'})</span>
             </div>
 
-            <div className="w-full space-y-2 mt-1">
-              {Array.from({ length: Math.max(1, parseInt(values.frequency) || 1) }).map((_, idx) => (
-                <div key={idx} className="flex items-center gap-2">
-                  <span className="text-xs text-gray-400 font-mono min-w-[50px]">
-                    Time {idx + 1}:
-                  </span>
-                  <input
-                    type="time"
-                    value={timeList[idx] ?? ""}
-                    onChange={(e) => handleTimeChange(idx, e.target.value)}
-                    onBlur={handleBlur}
-                    className="flex-1 bg-black text-white rounded-md border-2 border-[#03e9f4] px-3 py-2 text-sm [color-scheme:dark]"
-                  />
-                  {timeList[idx] && (
-                    <span className="text-xs text-[#03e9f4] font-mono min-w-[55px] text-right">
-                      {(() => {
-                        const [h, m] = (timeList[idx] || "00:00").split(":");
-                        const hr = parseInt(h);
-                        const ampm = hr >= 12 ? "PM" : "AM";
-                        const hr12 = hr % 12 || 12;
-                        return `${hr12}:${m} ${ampm}`;
-                      })()}
-                    </span>
-                  )}
-                </div>
-              ))}
+            <div className="w-full space-y-2.5 mt-1">
+              {Array.from({ length: Math.max(1, parseInt(values.frequency) || 1) }).map((_, idx) => {
+                const isMultiFreq = (parseInt(values.frequency) || 1) > 1;
+                const isMultiDose = dosageList.length > 1;
+                const showDoseSelector = isMultiFreq || isMultiDose;
+                const selectedDoseIdx = timeDoseIndices[idx] ?? (idx % Math.max(1, dosageList.length));
+
+                return (
+                  <div
+                    key={idx}
+                    className="p-2.5 bg-black/40 border border-[#03e9f4]/40 rounded-lg space-y-2 transition-all hover:border-[#03e9f4]"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-[#03e9f4] uppercase tracking-wider">
+                        Dose Time #{idx + 1}
+                      </span>
+                      {timeList[idx] && (
+                        <span className="text-xs text-[#03e9f4] font-mono">
+                          {(() => {
+                            const [h, m] = (timeList[idx] || "00:00").split(":");
+                            const hr = parseInt(h);
+                            const ampm = hr >= 12 ? "PM" : "AM";
+                            const hr12 = hr % 12 || 12;
+                            return `${hr12}:${m} ${ampm}`;
+                          })()}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className={`grid ${showDoseSelector ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'} gap-2 items-center`}>
+                      <div>
+                        <label className="block text-[11px] text-gray-400 mb-1">Time:</label>
+                        <input
+                          type="time"
+                          value={timeList[idx] ?? ""}
+                          onChange={(e) => handleTimeChange(idx, e.target.value)}
+                          onBlur={handleBlur}
+                          className="w-full bg-black text-white rounded-md border-2 border-[#03e9f4] px-3 py-1.5 text-sm [color-scheme:dark]"
+                        />
+                      </div>
+
+                      {showDoseSelector ? (
+                        <div>
+                          <label className="block text-[11px] text-gray-400 mb-1">Which Dose?</label>
+                          <select
+                            value={selectedDoseIdx}
+                            onChange={(e) => handleTimeDoseChange(idx, Number(e.target.value))}
+                            className="w-full bg-black text-white rounded-md border-2 border-[#03e9f4] px-2.5 py-2 text-sm cursor-pointer"
+                          >
+                            {dosageList.map((dose, dIdx) => (
+                              <option key={dIdx} value={dIdx} className="bg-black text-white">
+                                Dose {dIdx + 1}: {dose ? `${dose}mg` : "(empty)"}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      ) : (
+                        <div className="text-xs text-gray-400 flex items-center gap-1.5 mt-1">
+                          <span>Dose:</span>
+                          <span className="font-semibold text-[#03e9f4]">
+                            {dosageList[0] ? `${dosageList[0]}mg` : "Set dosage pattern above"}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
             {errors.times_days && touched.times_days && <p className='text-red-500 text-sm mt-1'>{errors.times_days}</p>}
 
