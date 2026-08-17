@@ -132,36 +132,12 @@ const UpdateMedicine = () => {
 
           <div className='flex items-center gap-2 mt-3'>
             <label htmlFor="frequency" className='mt-3 font-bold'>Frequency(Times Per Day)</label>
-            <FaQuestionCircle data-tooltip-id="my-tooltip-3"></FaQuestionCircle>
-            <ReactTooltip
-              id='my-tooltip-3'
-              place='top'
-              className="max-w-xs whitespace-pre-line"
-            >
-              <div>
-                <strong>Instructions:</strong>
-                <p>Enter how many times you need to take the medicine each day.</p>
-              </div>
-            </ReactTooltip>
           </div>
           <input onChange={handleChange} onBlur={handleBlur} value={values.frequency} className='w-full bg-black placeholder-[#03e9f4]  rounded-md border-2 border-[#03e9f4] px-3 py-2' pattern='^[0-9]+$' type='number' min="0" max="9" id='frequency' name='frequency' placeholder='1' />
           {errors.frequency && touched.frequency && <p className='text-red-500'>{errors.frequency}</p>}
 
           <div className='flex items-center gap-2 mt-3 w-full'>
             <label className='font-bold'>Dosage Pattern (mg):</label>
-            <FaQuestionCircle data-tooltip-id="my-tooltip-2"></FaQuestionCircle>
-            <ReactTooltip
-              id="my-tooltip-2"
-              place="top"
-              className="max-w-xs whitespace-pre-line"
-            >
-              <div>
-                <strong>Instructions:</strong>
-                <p>
-                  Enter the dosage amount in mg. Click <strong>+ Add More Dosage</strong> if you take different doses on different days or times.
-                </p>
-              </div>
-            </ReactTooltip>
           </div>
 
           <div className="w-full space-y-2 mt-1">
@@ -308,30 +284,6 @@ const UpdateMedicine = () => {
 
           <div className='flex items-center gap-2 mt-3'>
             <label htmlFor="times_days" className='mt-3 font-bold'>Time(e.g.,Evening,Morning,10:00AM):</label>
-            <FaQuestionCircle data-tooltip-id="my-tooltip-1"></FaQuestionCircle>
-            <ReactTooltip
-              id="my-tooltip-1"
-              place="top"
-              className="max-w-xs whitespace-pre-line"
-            >
-              <div>
-                <strong>Instructions:</strong>
-                <ol className="list-decimal list-inside">
-                  <li>
-                    If you want to enter specific time then enter like Ex. <code>10:00PM</code>
-                  </li>
-                  <li>
-                    If you want to enter part of day then enter like Evening
-                  </li>
-                  <li>
-                    If you want to enter any time or part of day more then one
-                    Like you have to take a medicine two times in a day then you have to enter your time details like Ex. 10:00AM,08:00PM
-                    Or morning, evening
-                  </li>
-                </ol>
-              </div>
-
-            </ReactTooltip>
           </div>
           <input onChange={handleChange} onBlur={handleBlur} value={values.times_days} className='w-full bg-black placeholder-[#03e9f4] rounded-md border-2 border-[#03e9f4] px-3 py-2' type='text' placeholder='Evening' id='times_days' name='times_days' />
           {errors.times_days && touched.times_days && <p className='text-red-500'>{errors.times_days}</p>}
