@@ -54,19 +54,48 @@ const Months = [
 
 const parseSafeDate = (dateStr: string): Date | null => {
   if (!dateStr) return null;
-  const parsed = new Date(dateStr);
-  if (!isNaN(parsed.getTime())) {
-    return parsed;
+  const str = String(dateStr).trim();
+
+  // 1. ISO format (YYYY-MM-DD or YYYY-MM-DDTHH:mm:ss)
+  if (/^\d{4}[\-\/]\d{1,2}[\-\/]\d{1,2}/.test(str)) {
+    const parts = str.split('T')[0].split(/[\-\/]/).map(Number);
+    const d = new Date(parts[0], parts[1] - 1, parts[2]);
+    if (!isNaN(d.getTime())) return d;
   }
-  const parts = dateStr.split(/[\/\-]/);
+
+  // 2. Delimited formats: DD/MM/YYYY, D/M/YYYY, DD-MM-YYYY, etc.
+  const parts = str.split(/[\/\-\.]/).map((p) => p.trim());
   if (parts.length === 3) {
-    const [p1, p2, p3] = parts.map(Number);
-    if (p3 > 1000) {
-      const d1 = new Date(p3, p1 - 1, p2);
-      if (!isNaN(d1.getTime())) return d1;
-      const d2 = new Date(p3, p2 - 1, p1);
-      if (!isNaN(d2.getTime())) return d2;
+    let [p1, p2, p3] = parts.map(Number);
+
+    // If 2-digit year (e.g. "26" -> 2026)
+    if (p3 < 100) {
+      p3 += 2000;
     }
+
+    if (p3 >= 1900 && p3 <= 2100) {
+      // In this application, dates are formatted in DD/MM/YYYY
+      // If p1 > 12: p1 is definitely Day, p2 is Month (e.g. 18/8/2026)
+      if (p1 > 12 && p2 <= 12) {
+        const d = new Date(p3, p2 - 1, p1);
+        if (!isNaN(d.getTime())) return d;
+      }
+      // If p2 > 12: p2 is Day, p1 is Month (e.g. 8/18/2026)
+      if (p2 > 12 && p1 <= 12) {
+        const d = new Date(p3, p1 - 1, p2);
+        if (!isNaN(d.getTime())) return d;
+      }
+      // If both <= 12 (e.g. "1/9/2026" or "01/09/2026"):
+      // Parse as DD/MM/YYYY (Day = 1, Month = 9 -> September 1, 2026)
+      const d = new Date(p3, p2 - 1, p1);
+      if (!isNaN(d.getTime())) return d;
+    }
+  }
+
+  // Fallback
+  const fallback = new Date(str);
+  if (!isNaN(fallback.getTime())) {
+    return fallback;
   }
   return null;
 };

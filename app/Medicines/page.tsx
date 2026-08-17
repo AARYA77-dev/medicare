@@ -287,7 +287,8 @@ const MedicinePage = () => {
   const getSchedule = () => {
     const { frequency, dosage_pattern, times_days, number_days, startdate } = values;
     const noOFDays = parseInt(number_days) || 1;
-    const startDate = new Date(startdate);
+    const [sYear, sMonth, sDay] = startdate.split('-').map(Number);
+    const startDate = new Date(sYear, (sMonth || 1) - 1, sDay || 1);
     const result: ScheduleEntry[] = [];
 
     if (scheduleType === "alternate") {
