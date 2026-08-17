@@ -355,22 +355,20 @@ export default function HistoryCalendarPage() {
                       setSelectedDate(cell.dateObj);
                       setActiveTab('selected');
                     }}
-                    className={`min-h-[72px] p-2 rounded-2xl border transition-all flex flex-col justify-between items-center relative group cursor-pointer ${
-                      !cell.isCurrentMonth
+                    className={`min-h-[72px] p-2 rounded-2xl border transition-all flex flex-col justify-between items-center relative group cursor-pointer ${!cell.isCurrentMonth
                         ? 'opacity-30 border-white/5 bg-transparent text-gray-500'
                         : isSelected
-                        ? 'border-[#03e9f4] bg-[#03e9f4]/15 shadow-[0_0_15px_rgba(3,233,244,0.3)] text-white'
-                        : cell.isToday
-                        ? 'border-[#03e9f4]/50 bg-white/10 text-[#03e9f4]'
-                        : 'border-white/10 bg-white/5 hover:border-[#03e9f4]/30 hover:bg-white/10 text-gray-200'
-                    }`}
+                          ? 'border-[#03e9f4] bg-[#03e9f4]/15 shadow-[0_0_15px_rgba(3,233,244,0.3)] text-white'
+                          : cell.isToday
+                            ? 'border-[#03e9f4]/50 bg-white/10 text-[#03e9f4]'
+                            : 'border-white/10 bg-white/5 hover:border-[#03e9f4]/30 hover:bg-white/10 text-gray-200'
+                      }`}
                   >
                     <span
-                      className={`text-xs font-bold ${
-                        cell.isToday
+                      className={`text-xs font-bold ${cell.isToday
                           ? 'w-6 h-6 rounded-full bg-[#03e9f4] text-black flex items-center justify-center'
                           : ''
-                      }`}
+                        }`}
                     >
                       {cell.dayNumber}
                     </span>
@@ -412,51 +410,46 @@ export default function HistoryCalendarPage() {
             <div className="flex items-center gap-1 bg-black/40 p-1.5 rounded-2xl border border-white/10 mb-6 overflow-x-auto">
               <button
                 onClick={() => setActiveTab('selected')}
-                className={`px-3 py-1.5 text-xs font-semibold rounded-xl transition-all whitespace-nowrap cursor-pointer ${
-                  activeTab === 'selected'
+                className={`px-3 py-1.5 text-xs font-semibold rounded-xl transition-all whitespace-nowrap cursor-pointer ${activeTab === 'selected'
                     ? 'bg-[#03e9f4] text-black shadow-md'
                     : 'text-gray-400 hover:text-white'
-                }`}
+                  }`}
               >
                 Selected Day
               </button>
               <button
                 onClick={() => setActiveTab('today')}
-                className={`px-3 py-1.5 text-xs font-semibold rounded-xl transition-all whitespace-nowrap cursor-pointer ${
-                  activeTab === 'today'
+                className={`px-3 py-1.5 text-xs font-semibold rounded-xl transition-all whitespace-nowrap cursor-pointer ${activeTab === 'today'
                     ? 'bg-[#03e9f4] text-black shadow-md'
                     : 'text-gray-400 hover:text-white'
-                }`}
+                  }`}
               >
                 Today ({todayDoses.length})
               </button>
               <button
                 onClick={() => setActiveTab('upcoming')}
-                className={`px-3 py-1.5 text-xs font-semibold rounded-xl transition-all whitespace-nowrap cursor-pointer ${
-                  activeTab === 'upcoming'
+                className={`px-3 py-1.5 text-xs font-semibold rounded-xl transition-all whitespace-nowrap cursor-pointer ${activeTab === 'upcoming'
                     ? 'bg-[#03e9f4] text-black shadow-md'
                     : 'text-gray-400 hover:text-white'
-                }`}
+                  }`}
               >
                 Upcoming ({upcomingDoses.length})
               </button>
               <button
                 onClick={() => setActiveTab('previous')}
-                className={`px-3 py-1.5 text-xs font-semibold rounded-xl transition-all whitespace-nowrap cursor-pointer ${
-                  activeTab === 'previous'
+                className={`px-3 py-1.5 text-xs font-semibold rounded-xl transition-all whitespace-nowrap cursor-pointer ${activeTab === 'previous'
                     ? 'bg-[#03e9f4] text-black shadow-md'
                     : 'text-gray-400 hover:text-white'
-                }`}
+                  }`}
               >
                 Previous ({previousDoses.length})
               </button>
               <button
                 onClick={() => setActiveTab('all')}
-                className={`px-3 py-1.5 text-xs font-semibold rounded-xl transition-all whitespace-nowrap cursor-pointer ${
-                  activeTab === 'all'
+                className={`px-3 py-1.5 text-xs font-semibold rounded-xl transition-all whitespace-nowrap cursor-pointer ${activeTab === 'all'
                     ? 'bg-[#03e9f4] text-black shadow-md'
                     : 'text-gray-400 hover:text-white'
-                }`}
+                  }`}
               >
                 All ({allDoses.length})
               </button>
@@ -467,24 +460,24 @@ export default function HistoryCalendarPage() {
                 <FaCalendarDay className="text-[#03e9f4]" />
                 {activeTab === 'selected'
                   ? `Doses for ${selectedDate.toLocaleDateString(undefined, {
-                      month: 'short',
-                      day: 'numeric',
-                      year: 'numeric',
-                    })}`
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric',
+                  })}`
                   : activeTab === 'today'
-                  ? "Today's Medication Doses"
-                  : activeTab === 'upcoming'
-                  ? 'Upcoming Scheduled Doses'
-                  : activeTab === 'previous'
-                  ? 'Previous Doses History'
-                  : 'All Scheduled Doses'}
+                    ? "Today's Medication Doses"
+                    : activeTab === 'upcoming'
+                      ? 'Upcoming Scheduled Doses'
+                      : activeTab === 'previous'
+                        ? 'Previous Doses History'
+                        : 'All Scheduled Doses'}
               </h3>
             </div>
 
             <div className="flex-1 space-y-3 overflow-y-auto max-h-[480px] pr-1">
               {displayedDoses.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16 text-center text-gray-400 space-y-3">
-                  <FaPills className="text-4xl text-gray-600 animate-pulse" />
+                  <FaPills className="text-4xl text-gray-600" />
                   <p className="text-sm font-medium">No doses found for this selection</p>
                   <p className="text-xs text-gray-500 max-w-xs">
                     Select another date on the calendar or add a new medicine schedule.
