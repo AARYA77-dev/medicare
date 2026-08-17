@@ -110,7 +110,7 @@ export default function HomePage() {
                   </div>
 
                   <p className="text-xs sm:text-sm text-gray-300 mt-1">
-                    The following medication stock is running critically low. Please refill your prescription soon:
+                    The following medication stock is running critically low.
                   </p>
 
                   <div className="flex flex-wrap gap-2 mt-2.5">
@@ -120,8 +120,8 @@ export default function HomePage() {
                         className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-black/60 border border-amber-500/40 text-xs text-amber-200"
                       >
                         <FaPills className="text-amber-400 text-[11px]" />
-                        <span className="font-bold text-white">{item.name}:</span>
-                        <span className="text-red-300 font-semibold">{item.details}</span>
+                        <span className="font-bold text-white">{item.name}</span>
+                        <span className="text-red-300 font-semibold">{item.details} left</span>
                       </div>
                     ))}
                   </div>
