@@ -27,6 +27,7 @@ const UpdateMedicine = () => {
   const [buttonLoading, setButtonLoading] = useState(false);
   const [separateQuantity, setSeparateQuantity] = useState(false);
   const [dosageList, setDosageList] = useState<string[]>([""]);
+  const [timeList, setTimeList] = useState<string[]>([""]);
   const { id } = useParams();
   const route = useRouter();
 
@@ -48,6 +49,14 @@ const UpdateMedicine = () => {
     setDosageList(updated);
     const combined = updated.filter((d) => d.trim() !== "").join(",");
     setFieldValue("dosage_pattern", combined);
+  };
+
+  const handleTimeChange = (index: number, val: string) => {
+    const updated = [...timeList];
+    updated[index] = val;
+    setTimeList(updated);
+    const combined = updated.filter((t) => t.trim() !== "").join(",");
+    setFieldValue("times_days", combined);
   };
 
   const getUniqueDoses = (pattern: string): string[] => {
@@ -99,6 +108,10 @@ const UpdateMedicine = () => {
         if (data && data.dosage_pattern) {
           const splitDoses = data.dosage_pattern.split(',').map((s: string) => s.trim()).filter(Boolean);
           setDosageList(splitDoses.length > 0 ? splitDoses : [""]);
+        }
+        if (data && data.times_days) {
+          const splitTimes = data.times_days.split(',').map((s: string) => s.trim()).filter(Boolean);
+          setTimeList(splitTimes.length > 0 ? splitTimes : [""]);
         }
         console.log(response.data.result, "data collected")
       }
@@ -282,11 +295,39 @@ const UpdateMedicine = () => {
             </div>
           )}
 
-          <div className='flex items-center gap-2 mt-3'>
-            <label htmlFor="times_days" className='mt-3 font-bold'>Time(e.g.,Evening,Morning,10:00AM):</label>
+          <div className='flex items-center gap-2 mt-3 w-full'>
+            <label className='font-bold'>Time of Dose:</label>
+            <span className='text-xs text-gray-400'>({values.frequency ? `${values.frequency} time${parseInt(values.frequency) > 1 ? 's' : ''} per day` : 'set frequency first'})</span>
           </div>
-          <input onChange={handleChange} onBlur={handleBlur} value={values.times_days} className='w-full bg-black placeholder-[#03e9f4] rounded-md border-2 border-[#03e9f4] px-3 py-2' type='text' placeholder='Evening' id='times_days' name='times_days' />
-          {errors.times_days && touched.times_days && <p className='text-red-500'>{errors.times_days}</p>}
+
+          <div className="w-full space-y-2 mt-1">
+            {Array.from({ length: Math.max(1, parseInt(values.frequency) || 1) }).map((_, idx) => (
+              <div key={idx} className="flex items-center gap-2">
+                <span className="text-xs text-gray-400 font-mono min-w-[50px]">
+                  Time {idx + 1}:
+                </span>
+                <input
+                  type="time"
+                  value={timeList[idx] ?? ""}
+                  onChange={(e) => handleTimeChange(idx, e.target.value)}
+                  onBlur={handleBlur}
+                  className="flex-1 bg-black text-white rounded-md border-2 border-[#03e9f4] px-3 py-2 text-sm [color-scheme:dark]"
+                />
+                {timeList[idx] && (
+                  <span className="text-xs text-[#03e9f4] font-mono min-w-[55px] text-right">
+                    {(() => {
+                      const [h, m] = (timeList[idx] || "00:00").split(":");
+                      const hr = parseInt(h);
+                      const ampm = hr >= 12 ? "PM" : "AM";
+                      const hr12 = hr % 12 || 12;
+                      return `${hr12}:${m} ${ampm}`;
+                    })()}
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+          {errors.times_days && touched.times_days && <p className='text-red-500 text-sm mt-1'>{errors.times_days}</p>}
 
           <label htmlFor="number_days" className='mt-3 font-bold'>Numbers of the Days:</label>
           <input onChange={handleChange} onBlur={handleBlur} value={values.number_days} className='w-full bg-black placeholder-[#03e9f4] rounded-md border-2 border-[#03e9f4] px-3 py-2' name='number_days' id='number_days' type='number' placeholder='15' />

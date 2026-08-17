@@ -15,8 +15,12 @@ export const MedicineSchema = Yup.object({
         .required("please enter Quantity"),
     frequency: Yup.string().required("please enter Frequancy"),
     dosage_pattern: Yup.string().matches(/^[0-9]+(\.[0-9]+)?(,[0-9]+(\.[0-9]+)?)*$/, 'Please enter valid numbers for dosage').required("please enter Dosage Pattern"),
-    times_days: Yup.string().matches(/^[A-Za-z0-9]+(:[A-Za-z0-9]+)?(,[A-Za-z0-9]+(:[A-Za-z0-9]+)?)*$/,
-        'Words or time (e.g., 10:00AM,Evening) allowed with one colon and comma per item').required("please enter Time of Day"),
+    times_days: Yup.string()
+        .matches(
+            /^([01]\d|2[0-3]):[0-5]\d(,([01]\d|2[0-3]):[0-5]\d)*$/,
+            'Please enter valid times (e.g., 10:00, 20:30)'
+        )
+        .required("please enter Time of Day"),
     number_days: Yup.string().required("please enter no. of Days"),
     startdate: Yup.string().required("please enter Start Date"),
 })
