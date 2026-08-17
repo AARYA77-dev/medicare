@@ -18,10 +18,8 @@ export interface Medicines {
 export interface Dose {
     time: string;
     dosage: string;
-    _id?:string;
+    _id?: string;
 }
-
-
 
 export interface ScheduleEntry {
     day: number;
@@ -37,11 +35,18 @@ export interface Reminder {
 }
 
 export interface MedicineWithSchedule extends Medicines {
-    _id:string;
+    _id: string;
     schedule: ScheduleEntry[];
 }
 
 export interface Days {
     label: number,
     className: string
+}
+
+export interface LowStockItem {
+    id?: string;
+    name: string;
+    details: string;
+    minQty: number;
 }
