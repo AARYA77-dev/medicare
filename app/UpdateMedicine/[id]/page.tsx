@@ -3,7 +3,7 @@ import { MedicineSchema } from '@/Schemas/yupSChemas';
 import { useFormik } from 'formik';
 import React, { useEffect, useState } from 'react'
 import toast from 'react-hot-toast';
-import { FaArrowLeft, FaQuestionCircle } from 'react-icons/fa';
+import { FaArrowLeft, FaPlus, FaQuestionCircle, FaTrash } from 'react-icons/fa';
 import { Tooltip as ReactTooltip } from "react-tooltip";
 import axios from 'axios';
 import { Medicines } from '@/Interfaces/interface';
@@ -26,8 +26,29 @@ const UpdateMedicine = () => {
   const [loading, setLoading] = useState(false);
   const [buttonLoading, setButtonLoading] = useState(false);
   const [separateQuantity, setSeparateQuantity] = useState(false);
+  const [dosageList, setDosageList] = useState<string[]>([""]);
   const { id } = useParams();
   const route = useRouter();
+
+  const handleDosageChange = (index: number, val: string) => {
+    const updated = [...dosageList];
+    updated[index] = val;
+    setDosageList(updated);
+    const combined = updated.filter((d) => d.trim() !== "").join(",");
+    setFieldValue("dosage_pattern", combined);
+  };
+
+  const handleAddDosage = () => {
+    setDosageList((prev) => [...prev, ""]);
+  };
+
+  const handleRemoveDosage = (index: number) => {
+    if (dosageList.length <= 1) return;
+    const updated = dosageList.filter((_, i) => i !== index);
+    setDosageList(updated);
+    const combined = updated.filter((d) => d.trim() !== "").join(",");
+    setFieldValue("dosage_pattern", combined);
+  };
 
   const getUniqueDoses = (pattern: string): string[] => {
     if (!pattern) return [];
@@ -74,6 +95,10 @@ const UpdateMedicine = () => {
         setMedicineData(data);
         if (data && typeof data.quantity === 'object' && data.quantity !== null) {
           setSeparateQuantity(true);
+        }
+        if (data && data.dosage_pattern) {
+          const splitDoses = data.dosage_pattern.split(',').map((s: string) => s.trim()).filter(Boolean);
+          setDosageList(splitDoses.length > 0 ? splitDoses : [""]);
         }
         console.log(response.data.result, "data collected")
       }
@@ -122,8 +147,8 @@ const UpdateMedicine = () => {
           <input onChange={handleChange} onBlur={handleBlur} value={values.frequency} className='w-full bg-black placeholder-[#03e9f4]  rounded-md border-2 border-[#03e9f4] px-3 py-2' pattern='^[0-9]+$' type='number' min="0" max="9" id='frequency' name='frequency' placeholder='1' />
           {errors.frequency && touched.frequency && <p className='text-red-500'>{errors.frequency}</p>}
 
-          <div className='flex items-center gap-2 mt-3'>
-            <label htmlFor="dosage_pattern" className='mt-3 font-bold'>Dorage Pattern(e.g.2,3,3):</label>
+          <div className='flex items-center gap-2 mt-3 w-full'>
+            <label className='font-bold'>Dosage Pattern (mg):</label>
             <FaQuestionCircle data-tooltip-id="my-tooltip-2"></FaQuestionCircle>
             <ReactTooltip
               id="my-tooltip-2"
@@ -132,21 +157,57 @@ const UpdateMedicine = () => {
             >
               <div>
                 <strong>Instructions:</strong>
-                <ol className="list-decimal list-inside">
-                  <li>
-                    If you want to enter the same medicine dose daily like 2mg,
-                    enter your dosage pattern like: <code>2</code>
-                  </li>
-                  <li>
-                    If you have different doses like Monday 2mg, Tuesday 3mg, Wednesday 2mg,
-                    enter pattern like: <code>2,3,2</code>
-                  </li>
-                </ol>
+                <p>
+                  Enter the dosage amount in mg. Click <strong>+ Add More Dosage</strong> if you take different doses on different days or times.
+                </p>
               </div>
             </ReactTooltip>
           </div>
-          <input onChange={handleChange} onBlur={handleBlur} value={values.dosage_pattern} className='w-full bg-black placeholder-[#03e9f4] rounded-md border-2 border-[#03e9f4] px-3 py-2' name='dosage_pattern' id='dosage_pattern' type='text' placeholder='2,3,3' />
-          {errors.dosage_pattern && touched.dosage_pattern && <p className='text-red-500'>{errors.dosage_pattern}</p>}
+
+          <div className="w-full space-y-2 mt-1">
+            {dosageList.map((dose, idx) => (
+              <div key={idx} className="flex items-center gap-2">
+                <span className="text-xs text-gray-400 font-mono min-w-[50px]">
+                  Dose {idx + 1}:
+                </span>
+                <div className="relative flex-1">
+                  <input
+                    type="number"
+                    min="0.1"
+                    step="any"
+                    placeholder={`e.g. ${idx === 0 ? "2" : "3"}`}
+                    value={dose}
+                    onChange={(e) => handleDosageChange(idx, e.target.value)}
+                    onBlur={handleBlur}
+                    className="w-full bg-black placeholder-gray-500 rounded-md border-2 border-[#03e9f4] px-3 py-2 pr-10 text-sm"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#03e9f4] font-semibold">
+                    mg
+                  </span>
+                </div>
+                {dosageList.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveDosage(idx)}
+                    className="text-red-400 hover:text-red-300 p-2 rounded hover:bg-red-500/10 cursor-pointer transition-colors"
+                    title="Remove this dose"
+                  >
+                    <FaTrash className="text-xs" />
+                  </button>
+                )}
+              </div>
+            ))}
+
+            <button
+              type="button"
+              onClick={handleAddDosage}
+              className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg border border-dashed border-[#03e9f4]/60 text-[#03e9f4] text-xs font-semibold hover:bg-[#03e9f4]/15 transition-colors cursor-pointer active:scale-98 mt-2"
+            >
+              <FaPlus className="text-xs" />
+              Add More Dosage
+            </button>
+          </div>
+          {errors.dosage_pattern && touched.dosage_pattern && <p className='text-red-500 text-sm mt-1'>{errors.dosage_pattern}</p>}
 
           {/* Multiple Dosage Separation Question */}
           {uniqueDoses.length > 1 && (
