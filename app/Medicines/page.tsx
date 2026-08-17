@@ -168,10 +168,6 @@ const MedicinePage = () => {
             <input className='w-full bg-black placeholder-[#03e9f4] rounded-md border-2 border-[#03e9f4] px-3 py-2' type='text' placeholder='Enter Medicine name' name='medicine_name' onBlur={handleBlur} value={values.medicine_name} onChange={handleChange} id='medicine_name' />
             {errors.medicine_name && touched.medicine_name && <p className='text-red-500'>{errors.medicine_name}</p>}
 
-            <label htmlFor="quantity" className='mt-3 font-bold'>Quantity:</label>
-            <input onChange={handleChange} value={values.quantity} onBlur={handleBlur} className='w-full bg-black placeholder-[#03e9f4] rounded-md border-2 border-[#03e9f4] px-3 py-2' type='number' id='quantity' min="0" max="99" maxLength={2} placeholder='30' name='quantity' />
-            {errors.quantity && touched.quantity && <p className='text-red-500'>{errors.quantity}</p>}
-
             <div className='flex items-center gap-2 mt-3'>
               <label htmlFor="frequency" className='mt-3 font-bold'>Frequency(Times Per Day)</label>
               <FaInfoCircle data-tooltip-id="my-tooltip-3" />
@@ -214,6 +210,10 @@ const MedicinePage = () => {
             </div>
             <input onChange={handleChange} onBlur={handleBlur} value={values.dosage_pattern} className='w-full bg-black placeholder-[#03e9f4] rounded-md border-2 border-[#03e9f4] px-3 py-2' name='dosage_pattern' id='dosage_pattern' type='text' placeholder='2,3,3' />
             {errors.dosage_pattern && touched.dosage_pattern && <p className='text-red-500'>{errors.dosage_pattern}</p>}
+
+            <label htmlFor="quantity" className='mt-3 font-bold'>Quantity:</label>
+            <input onChange={handleChange} value={values.quantity} onBlur={handleBlur} className='w-full bg-black placeholder-[#03e9f4] rounded-md border-2 border-[#03e9f4] px-3 py-2' type='number' id='quantity' min="0" max="99" maxLength={2} placeholder='30' name='quantity' />
+            {errors.quantity && touched.quantity && <p className='text-red-500'>{errors.quantity}</p>}
 
             <div className='flex items-center gap-2 mt-3'>
               <label htmlFor="times_days" className='mt-3 font-bold'>Time(e.g.,Evening,Morning,10:00AM):</label>
