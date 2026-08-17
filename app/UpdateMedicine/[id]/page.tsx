@@ -99,7 +99,7 @@ const UpdateMedicine = () => {
               </div>
             </ReactTooltip>
           </div>
-          <input onChange={handleChange} onBlur={handleBlur} value={values.frequency} className='bg-black placeholder-[#03e9f4]  rounded-md border-2 border-[#03e9f4]' pattern='^[0-9]+$' type='number' min="0" max="9" id='frequency' name='frequency' placeholder='1' />
+          <input onChange={handleChange} onBlur={handleBlur} value={values.frequency} className='w-full bg-black placeholder-[#03e9f4]  rounded-md border-2 border-[#03e9f4] px-3 py-2' pattern='^[0-9]+$' type='number' min="0" max="9" id='frequency' name='frequency' placeholder='1' />
           {errors.frequency && touched.frequency && <p className='text-red-500'>{errors.frequency}</p>}
 
           <div className='flex items-center gap-2 mt-3'>
@@ -125,7 +125,7 @@ const UpdateMedicine = () => {
               </div>
             </ReactTooltip>
           </div>
-          <input onChange={handleChange} onBlur={handleBlur} value={values.dosage_pattern} className='bg-black placeholder-[#03e9f4] rounded-md border-2 border-[#03e9f4]' name='dosage_pattern' id='dosage_pattern' type='text' placeholder='2,3,3' />
+          <input onChange={handleChange} onBlur={handleBlur} value={values.dosage_pattern} className='w-full bg-black placeholder-[#03e9f4] rounded-md border-2 border-[#03e9f4] px-3 py-2' name='dosage_pattern' id='dosage_pattern' type='text' placeholder='2,3,3' />
           {errors.dosage_pattern && touched.dosage_pattern && <p className='text-red-500'>{errors.dosage_pattern}</p>}
 
           <div className='flex items-center gap-2 mt-3'>
