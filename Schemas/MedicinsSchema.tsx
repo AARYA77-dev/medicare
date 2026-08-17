@@ -52,6 +52,20 @@ const MedicinesModel = new mongoose.Schema({
         type:String,
         required:true
     },
+    schedule_type: {
+        type: String,
+        enum: ['daily', 'alternate', 'weekly'],
+        default: 'daily'
+    },
+    weekly_default_dose: {
+        type: String
+    },
+    weekly_override_dose: {
+        type: String
+    },
+    weekly_days: [{
+        type: Number
+    }],
     schedule:[ScheduleEntryModel]
 }, { timestamps : true });
 

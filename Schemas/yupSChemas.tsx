@@ -23,6 +23,10 @@ export const MedicineSchema = Yup.object({
         .required("please enter Time of Day"),
     number_days: Yup.string().required("please enter no. of Days"),
     startdate: Yup.string().required("please enter Start Date"),
+    schedule_type: Yup.string().oneOf(['daily', 'alternate', 'weekly']).optional(),
+    weekly_default_dose: Yup.string().optional(),
+    weekly_override_dose: Yup.string().optional(),
+    weekly_days: Yup.array().of(Yup.number()).optional(),
 })
 
 export const ReminderSchema = Yup.object({

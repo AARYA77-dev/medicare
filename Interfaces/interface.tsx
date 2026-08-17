@@ -1,3 +1,5 @@
+export type ScheduleType = 'daily' | 'alternate' | 'weekly';
+
 export interface Medicines {
     _id?: string;
     medicine_name: string;
@@ -7,6 +9,10 @@ export interface Medicines {
     times_days: string;
     number_days: string;
     startdate: string;
+    schedule_type?: ScheduleType;
+    weekly_default_dose?: string;
+    weekly_override_dose?: string;
+    weekly_days?: number[];
 }
 
 export interface Dose {
