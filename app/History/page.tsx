@@ -325,18 +325,18 @@ export default function HistoryCalendarPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          <div className="lg:col-span-7 border border-white/10 rounded-3xl bg-white/5 backdrop-blur-xl p-6 shadow-[0_8px_32px_0_rgba(0,0,0,0.8)] border-b-[#03e9f4]/30">
-            <div className="flex items-center justify-between mb-6 px-2">
-              <h2 className="text-xl font-bold text-white tracking-wide">
+          <div className="lg:col-span-7 border border-white/10 rounded-2xl sm:rounded-3xl bg-white/5 backdrop-blur-xl p-3.5 sm:p-6 shadow-[0_8px_32px_0_rgba(0,0,0,0.8)] border-b-[#03e9f4]/30">
+            <div className="flex items-center justify-between mb-4 sm:mb-6 px-1 sm:px-2">
+              <h2 className="text-lg sm:text-xl font-bold text-white tracking-wide">
                 {Months[curMonth]} <span className="text-[#03e9f4]">{curYear}</span>
               </h2>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => handleMonthChange('prev')}
-                  className="p-2.5 bg-white/5 border border-white/10 rounded-xl text-[#03e9f4] hover:bg-[#03e9f4]/10 hover:border-[#03e9f4]/50 transition-all cursor-pointer"
+                  className="p-2 sm:p-2.5 bg-white/5 border border-white/10 rounded-xl text-[#03e9f4] hover:bg-[#03e9f4]/10 hover:border-[#03e9f4]/50 transition-all cursor-pointer"
                   title="Previous Month"
                 >
-                  <FaChevronLeft size={14} />
+                  <FaChevronLeft size={13} />
                 </button>
                 <button
                   onClick={() => {
@@ -345,31 +345,31 @@ export default function HistoryCalendarPage() {
                     setSelectedDate(today);
                     setActiveTab('selected');
                   }}
-                  className="px-3 py-1.5 text-xs font-semibold bg-white/5 border border-white/10 rounded-xl text-gray-300 hover:text-[#03e9f4] transition-colors"
+                  className="px-2.5 sm:px-3 py-1.5 text-xs font-semibold bg-white/5 border border-white/10 rounded-xl text-gray-300 hover:text-[#03e9f4] transition-colors"
                 >
                   Today
                 </button>
                 <button
                   onClick={() => handleMonthChange('next')}
-                  className="p-2.5 bg-white/5 border border-white/10 rounded-xl text-[#03e9f4] hover:bg-[#03e9f4]/10 hover:border-[#03e9f4]/50 transition-all cursor-pointer"
+                  className="p-2 sm:p-2.5 bg-white/5 border border-white/10 rounded-xl text-[#03e9f4] hover:bg-[#03e9f4]/10 hover:border-[#03e9f4]/50 transition-all cursor-pointer"
                   title="Next Month"
                 >
-                  <FaChevronRight size={14} />
+                  <FaChevronRight size={13} />
                 </button>
               </div>
             </div>
 
-            <div className="grid grid-cols-7 text-center mb-3 font-semibold text-xs text-gray-400 uppercase tracking-wider">
-              <span>Sun</span>
-              <span>Mon</span>
-              <span>Tue</span>
-              <span>Wed</span>
-              <span>Thu</span>
-              <span>Fri</span>
-              <span>Sat</span>
+            <div className="grid grid-cols-7 text-center mb-2 sm:mb-3 font-semibold text-[11px] sm:text-xs text-gray-400 uppercase tracking-wider">
+              <span><span className="hidden sm:inline">Sun</span><span className="sm:hidden">Su</span></span>
+              <span><span className="hidden sm:inline">Mon</span><span className="sm:hidden">Mo</span></span>
+              <span><span className="hidden sm:inline">Tue</span><span className="sm:hidden">Tu</span></span>
+              <span><span className="hidden sm:inline">Wed</span><span className="sm:hidden">We</span></span>
+              <span><span className="hidden sm:inline">Thu</span><span className="sm:hidden">Th</span></span>
+              <span><span className="hidden sm:inline">Fri</span><span className="sm:hidden">Fr</span></span>
+              <span><span className="hidden sm:inline">Sat</span><span className="sm:hidden">Sa</span></span>
             </div>
 
-            <div className="grid grid-cols-7 gap-2">
+            <div className="grid grid-cols-7 gap-1 sm:gap-2">
               {calendarGrid.map((cell, idx) => {
                 const isSelected = isSameDay(cell.dateObj, selectedDate);
                 const hasDoses = cell.doses.length > 0;
@@ -384,7 +384,7 @@ export default function HistoryCalendarPage() {
                       setSelectedDate(cell.dateObj);
                       setActiveTab('selected');
                     }}
-                    className={`min-h-[72px] p-2 rounded-2xl border transition-all flex flex-col justify-between items-center relative group cursor-pointer ${!cell.isCurrentMonth
+                    className={`min-h-[46px] sm:min-h-[72px] p-1 sm:p-2 rounded-xl sm:rounded-2xl border transition-all flex flex-col justify-between items-center relative group cursor-pointer ${!cell.isCurrentMonth
                         ? 'opacity-30 border-white/5 bg-transparent text-gray-500'
                         : isSelected
                           ? 'border-[#03e9f4] bg-[#03e9f4]/15 shadow-[0_0_15px_rgba(3,233,244,0.3)] text-white'
@@ -394,8 +394,8 @@ export default function HistoryCalendarPage() {
                       }`}
                   >
                     <span
-                      className={`text-xs font-bold ${cell.isToday
-                          ? 'w-6 h-6 rounded-full bg-[#03e9f4] text-black flex items-center justify-center'
+                      className={`text-xs sm:text-sm font-bold ${cell.isToday
+                          ? 'w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-[#03e9f4] text-black flex items-center justify-center text-[10px] sm:text-xs'
                           : ''
                         }`}
                     >
@@ -403,28 +403,28 @@ export default function HistoryCalendarPage() {
                     </span>
 
                     {hasDoses && (
-                      <div className="flex flex-col items-center gap-1 w-full mt-1">
-                        <div className="flex items-center justify-center gap-1">
+                      <div className="flex flex-col items-center gap-0.5 sm:gap-1 w-full mt-0.5 sm:mt-1">
+                        <div className="flex items-center justify-center gap-0.5 sm:gap-1">
                           {hasTodayDose && (
                             <span
-                              className="w-2 h-2 rounded-full bg-[#03e9f4] shadow-[0_0_6px_#03e9f4]"
+                              className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[#03e9f4] shadow-[0_0_6px_#03e9f4]"
                               title="Today's Dose"
                             />
                           )}
                           {hasUpcomingDose && (
                             <span
-                              className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_#34d399]"
+                              className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_#34d399]"
                               title="Upcoming Dose"
                             />
                           )}
                           {hasPreviousDose && (
                             <span
-                              className="w-2 h-2 rounded-full bg-purple-400 shadow-[0_0_6px_#c084fc]"
+                              className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-purple-400 shadow-[0_0_6px_#c084fc]"
                               title="Previous Dose"
                             />
                           )}
                         </div>
-                        <span className="text-[10px] font-semibold tracking-tighter opacity-80 scale-90">
+                        <span className="hidden sm:inline text-[10px] font-semibold tracking-tighter opacity-80 scale-90">
                           {cell.doses.length} {cell.doses.length === 1 ? 'dose' : 'doses'}
                         </span>
                       </div>
@@ -435,7 +435,7 @@ export default function HistoryCalendarPage() {
             </div>
           </div>
 
-          <div className="lg:col-span-5 border border-white/10 rounded-3xl bg-white/5 backdrop-blur-xl p-6 shadow-[0_8px_32px_0_rgba(0,0,0,0.8)] border-b-[#03e9f4]/30 flex flex-col">
+          <div className="lg:col-span-5 border border-white/10 rounded-2xl sm:rounded-3xl bg-white/5 backdrop-blur-xl p-4 sm:p-6 shadow-[0_8px_32px_0_rgba(0,0,0,0.8)] border-b-[#03e9f4]/30 flex flex-col">
             <div className="flex items-center gap-1.5 bg-black/40 p-1.5 pb-2.5 rounded-2xl border border-white/10 mb-6 overflow-x-auto theme-scrollbar scroll-smooth">
               <button
                 onClick={() => setActiveTab('selected')}
