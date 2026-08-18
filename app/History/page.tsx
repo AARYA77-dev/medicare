@@ -100,6 +100,11 @@ const parseSafeDate = (dateStr: string): Date | null => {
   return null;
 };
 
+const formatDisplayDate = (d: Date): string => {
+  if (!d) return '';
+  return `${Months[d.getMonth()].slice(0, 3)} ${d.getDate()}, ${d.getFullYear()}`;
+};
+
 const isSameDay = (d1: Date, d2: Date) => {
   return (
     d1.getFullYear() === d2.getFullYear() &&
@@ -488,11 +493,7 @@ export default function HistoryCalendarPage() {
               <h3 className="text-lg font-bold text-white flex items-center gap-2">
                 <FaCalendarDay className="text-[#03e9f4]" />
                 {activeTab === 'selected'
-                  ? `Doses for ${selectedDate.toLocaleDateString(undefined, {
-                    month: 'short',
-                    day: 'numeric',
-                    year: 'numeric',
-                  })}`
+                  ? `Doses for ${formatDisplayDate(selectedDate)}`
                   : activeTab === 'today'
                     ? "Today's Medication Doses"
                     : activeTab === 'upcoming'
