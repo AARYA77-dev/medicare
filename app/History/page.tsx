@@ -436,48 +436,48 @@ export default function HistoryCalendarPage() {
           </div>
 
           <div className="lg:col-span-5 border border-white/10 rounded-3xl bg-white/5 backdrop-blur-xl p-6 shadow-[0_8px_32px_0_rgba(0,0,0,0.8)] border-b-[#03e9f4]/30 flex flex-col">
-            <div className="flex items-center gap-1 bg-black/40 p-1.5 rounded-2xl border border-white/10 mb-6 overflow-x-auto">
+            <div className="flex items-center gap-1.5 bg-black/40 p-1.5 pb-2.5 rounded-2xl border border-white/10 mb-6 overflow-x-auto theme-scrollbar scroll-smooth">
               <button
                 onClick={() => setActiveTab('selected')}
-                className={`px-3 py-1.5 text-xs font-semibold rounded-xl transition-all whitespace-nowrap cursor-pointer ${activeTab === 'selected'
-                    ? 'bg-[#03e9f4] text-black shadow-md'
-                    : 'text-gray-400 hover:text-white'
+                className={`px-3.5 py-1.5 text-xs font-semibold rounded-xl transition-all whitespace-nowrap cursor-pointer shrink-0 ${activeTab === 'selected'
+                    ? 'bg-[#03e9f4] text-black shadow-md shadow-[#03e9f4]/20 font-bold'
+                    : 'text-gray-400 hover:text-white hover:bg-white/5'
                   }`}
               >
                 Selected Day
               </button>
               <button
                 onClick={() => setActiveTab('today')}
-                className={`px-3 py-1.5 text-xs font-semibold rounded-xl transition-all whitespace-nowrap cursor-pointer ${activeTab === 'today'
-                    ? 'bg-[#03e9f4] text-black shadow-md'
-                    : 'text-gray-400 hover:text-white'
+                className={`px-3.5 py-1.5 text-xs font-semibold rounded-xl transition-all whitespace-nowrap cursor-pointer shrink-0 ${activeTab === 'today'
+                    ? 'bg-[#03e9f4] text-black shadow-md shadow-[#03e9f4]/20 font-bold'
+                    : 'text-gray-400 hover:text-white hover:bg-white/5'
                   }`}
               >
                 Today ({todayDoses.length})
               </button>
               <button
                 onClick={() => setActiveTab('upcoming')}
-                className={`px-3 py-1.5 text-xs font-semibold rounded-xl transition-all whitespace-nowrap cursor-pointer ${activeTab === 'upcoming'
-                    ? 'bg-[#03e9f4] text-black shadow-md'
-                    : 'text-gray-400 hover:text-white'
+                className={`px-3.5 py-1.5 text-xs font-semibold rounded-xl transition-all whitespace-nowrap cursor-pointer shrink-0 ${activeTab === 'upcoming'
+                    ? 'bg-[#03e9f4] text-black shadow-md shadow-[#03e9f4]/20 font-bold'
+                    : 'text-gray-400 hover:text-white hover:bg-white/5'
                   }`}
               >
                 Upcoming ({upcomingDoses.length})
               </button>
               <button
                 onClick={() => setActiveTab('previous')}
-                className={`px-3 py-1.5 text-xs font-semibold rounded-xl transition-all whitespace-nowrap cursor-pointer ${activeTab === 'previous'
-                    ? 'bg-[#03e9f4] text-black shadow-md'
-                    : 'text-gray-400 hover:text-white'
+                className={`px-3.5 py-1.5 text-xs font-semibold rounded-xl transition-all whitespace-nowrap cursor-pointer shrink-0 ${activeTab === 'previous'
+                    ? 'bg-[#03e9f4] text-black shadow-md shadow-[#03e9f4]/20 font-bold'
+                    : 'text-gray-400 hover:text-white hover:bg-white/5'
                   }`}
               >
                 Previous ({previousDoses.length})
               </button>
               <button
                 onClick={() => setActiveTab('all')}
-                className={`px-3 py-1.5 text-xs font-semibold rounded-xl transition-all whitespace-nowrap cursor-pointer ${activeTab === 'all'
-                    ? 'bg-[#03e9f4] text-black shadow-md'
-                    : 'text-gray-400 hover:text-white'
+                className={`px-3.5 py-1.5 text-xs font-semibold rounded-xl transition-all whitespace-nowrap cursor-pointer shrink-0 ${activeTab === 'all'
+                    ? 'bg-[#03e9f4] text-black shadow-md shadow-[#03e9f4]/20 font-bold'
+                    : 'text-gray-400 hover:text-white hover:bg-white/5'
                   }`}
               >
                 All ({allDoses.length})
@@ -503,7 +503,7 @@ export default function HistoryCalendarPage() {
               </h3>
             </div>
 
-            <div className="flex-1 space-y-3 overflow-y-auto max-h-[480px] pr-1">
+            <div className="flex-1 space-y-3 overflow-y-auto max-h-[480px] pr-1 theme-scrollbar">
               {displayedDoses.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16 text-center text-gray-400 space-y-3">
                   <FaPills className="text-4xl text-gray-600" />
