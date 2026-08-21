@@ -68,6 +68,36 @@ export const deleteMedicine = createAsyncThunk(
   }
 );
 
+// Async Thunk: Resolve Missed Dose
+export const resolveMissedDose = createAsyncThunk(
+  'medicine/resolveMissedDose',
+  async (
+    {
+      medicineId,
+      doseId,
+      action,
+    }: {
+      medicineId: string;
+      doseId: string;
+      action: 'skip_and_continue' | 'carry_forward_shift';
+    },
+    { rejectWithValue }
+  ) => {
+    try {
+      const response = await axios.post('/api/medicareDB/missedDose', {
+        medicineId,
+        doseId,
+        action,
+      });
+      return response.data.result;
+    } catch (error: any) {
+      return rejectWithValue(
+        error.response?.data?.message || 'Failed to resolve missed dose'
+      );
+    }
+  }
+);
+
 const medicineSlice = createSlice({
   name: 'medicine',
   initialState,
@@ -130,6 +160,15 @@ const medicineSlice = createSlice({
       // Delete Medicine
       .addCase(deleteMedicine.fulfilled, (state, action: PayloadAction<string>) => {
         state.medicines = state.medicines.filter((med) => med._id !== action.payload);
+      })
+
+      // Resolve Missed Dose
+      .addCase(resolveMissedDose.fulfilled, (state, action) => {
+        if (action.payload && action.payload._id) {
+          state.medicines = state.medicines.map((med) =>
+            med._id === action.payload._id ? action.payload : med
+          );
+        }
       });
   },
 });

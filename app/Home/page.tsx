@@ -3,13 +3,14 @@
 import Header from "@/components/header";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
-import { Dose, LowStockItem } from "@/Interfaces/interface";
+import { Dose, LowStockItem, MedicineWithSchedule } from "@/Interfaces/interface";
 import Loading from "../loading";
 import Image from "next/image";
 import Link from "next/link";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { fetchMedicines, deleteDose } from "@/store/medicineSlice";
-import { FaExclamationTriangle, FaArrowRight, FaTimes, FaPills } from "react-icons/fa";
+import { fetchMedicines, deleteDose, resolveMissedDose } from "@/store/medicineSlice";
+import { FaExclamationTriangle, FaArrowRight, FaTimes, FaPills, FaCalendarTimes } from "react-icons/fa";
+import MissedDoseModal from "@/components/MissedDoseModal";
 
 
 export default function HomePage() {
@@ -18,6 +19,16 @@ export default function HomePage() {
   const [checkDoses, setCheckDoses] = useState<string[]>([]);
   const [buttonLoading, setButtonLoading] = useState<string | null>(null);
   const [alertDismissed, setAlertDismissed] = useState(false);
+  const [activeMissedModal, setActiveMissedModal] = useState<{
+    isOpen: boolean;
+    medicine: MedicineWithSchedule | null;
+    dose: Dose | null;
+  }>({
+    isOpen: false,
+    medicine: null,
+    dose: null,
+  });
+  const [modalLoading, setModalLoading] = useState(false);
 
   useEffect(() => {
     dispatch(fetchMedicines());
@@ -41,6 +52,38 @@ export default function HomePage() {
       toast.error("Failed to update Dose");
     } finally {
       setButtonLoading(null);
+    }
+  };
+
+  const handleOpenMissedModal = (medicine: MedicineWithSchedule, dose: Dose) => {
+    setActiveMissedModal({
+      isOpen: true,
+      medicine,
+      dose,
+    });
+  };
+
+  const handleConfirmMissedDose = async (action: 'skip_and_continue' | 'carry_forward_shift') => {
+    if (!activeMissedModal.medicine || !activeMissedModal.dose) return;
+    setModalLoading(true);
+    try {
+      await dispatch(
+        resolveMissedDose({
+          medicineId: activeMissedModal.medicine._id,
+          doseId: activeMissedModal.dose._id!,
+          action,
+        })
+      ).unwrap();
+      toast.success(
+        action === 'skip_and_continue'
+          ? "Dose skipped & appended to end of schedule (+1 day extended)!"
+          : "Dose carried forward to tomorrow (+1 day extended)!"
+      );
+      setActiveMissedModal({ isOpen: false, medicine: null, dose: null });
+    } catch (err: any) {
+      toast.error(typeof err === 'string' ? err : "Failed to update schedule");
+    } finally {
+      setModalLoading(false);
     }
   };
 
@@ -205,26 +248,49 @@ export default function HomePage() {
                     </div>
                   </div>
 
-                  {/* Footer: Done Button */}
-                  <button
-                    disabled={!isChecked || !!buttonLoading}
-                    onClick={() => handleDeleteDose(dose._id!, item._id)}
-                    className={`mt-6 w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold uppercase text-xs tracking-widest transition-all duration-200 
-                      ${isChecked
-                        ? "bg-[#03e9f4] text-black shadow-lg shadow-[#03e9f4]/20 hover:scale-[1.02] active:scale-95"
-                        : "bg-gray-800 text-gray-500 cursor-not-allowed"}`}
-                  >
-                    {buttonLoading === dose?._id && (
-                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-black border-t-transparent" />
-                    )}
-                    Mark Completed
-                  </button>
+                  {/* Footer: Done and Missed Buttons */}
+                  <div className="mt-6 flex items-center gap-2">
+                    <button
+                      disabled={!isChecked || !!buttonLoading}
+                      onClick={() => handleDeleteDose(dose._id!, item._id)}
+                      className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold uppercase text-[11px] sm:text-xs tracking-wider transition-all duration-200 
+                        ${isChecked
+                          ? "bg-[#03e9f4] text-black shadow-lg shadow-[#03e9f4]/20 hover:scale-[1.02] active:scale-95 cursor-pointer"
+                          : "bg-gray-800 text-gray-500 cursor-not-allowed"}`}
+                    >
+                      {buttonLoading === dose?._id && (
+                        <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-black border-t-transparent" />
+                      )}
+                      Mark Done
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={!!buttonLoading}
+                      onClick={() => handleOpenMissedModal(item, dose)}
+                      className="px-3 py-2.5 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20 hover:border-amber-500/60 font-semibold text-[11px] sm:text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
+                      title="Reschedule or skip this dose"
+                    >
+                      <FaCalendarTimes className="text-xs" />
+                      <span>Missed</span>
+                    </button>
+                  </div>
                 </div>
               );
             })
           )}
         </div>
       </main>
+
+      {/* Missed Dose Resolution Modal */}
+      <MissedDoseModal
+        isOpen={activeMissedModal.isOpen}
+        onClose={() => setActiveMissedModal({ isOpen: false, medicine: null, dose: null })}
+        medicine={activeMissedModal.medicine}
+        dose={activeMissedModal.dose}
+        onConfirm={handleConfirmMissedDose}
+        isLoading={modalLoading}
+      />
     </div>
   );
 }
