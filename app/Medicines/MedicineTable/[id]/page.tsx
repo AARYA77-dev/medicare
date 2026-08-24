@@ -75,12 +75,12 @@ const MedicineTablePage = () => {
                                 </span>
                             </div>
                             <div className="info-item">
-                                <span className="label">No. of Days of Your Schedule:</span>
-                                <span className="value">{medicineData.number_days} </span>
+                                <span className="label">Total Course:</span>
+                                <span className="value">{medicineData.number_days} Days</span>
                             </div>
                             <div className="info-item">
-                                <span className="label">Current No. of Days of Your Schedule:</span>
-                                <span className="value">{medicineData.schedule.length} </span>
+                                <span className="label">Remaining:</span>
+                                <span className="value">{medicineData.schedule.length} {medicineData.schedule.length === 1 ? 'Day' : 'Days'} Left</span>
                             </div>
                         </div>
 
@@ -89,7 +89,7 @@ const MedicineTablePage = () => {
                                 <thead>
                                     <tr>
                                         <th className='text-center'>Date</th>
-                                        <th className='text-center'>no of Days</th>
+                                        <th className='text-center'>Day</th>
                                         <th className='text-center'>Time</th>
                                         <th className='text-center'>Dose</th>
                                     </tr>
@@ -98,7 +98,7 @@ const MedicineTablePage = () => {
                                     {medicineData.schedule && medicineData.schedule.map((item, id: number) => (
                                         <tr key={id}>
                                             <td className='text-center '>{item.date}</td>
-                                            <td className='text-center '>{item.day}</td>
+                                            <td className='text-center '>Day {item.day}</td>
                                             <td className='text-center no-padding'>
                                                 {
                                                     item.doses.map((tim, idx: number) => (

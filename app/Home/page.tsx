@@ -133,38 +133,29 @@ export default function HomePage() {
 
         {/* Low Stock Alert Bar */}
         {lowStockMedicines.length > 0 && !alertDismissed && (
-          <div className="mb-8 relative overflow-hidden rounded-2xl border border-amber-500/50 bg-gradient-to-r from-amber-950/40 via-red-950/30 to-black/60 backdrop-blur-xl p-4 sm:p-5">
-            {/* Glowing Accent */}
-            <div className="absolute top-0 left-0 w-2 h-full bg-gradient-to-b from-amber-400 to-red-500" />
-
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pl-3">
-              <div className="flex items-start gap-3.5">
-                <div className="p-2.5 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-400 shrink-0 mt-0.5 animate-pulse">
-                  <FaExclamationTriangle className="text-lg sm:text-xl" />
-                </div>
+          <div className="mb-8 rounded-2xl border border-amber-500/25 bg-amber-500/10 backdrop-blur-md p-4 sm:p-4.5">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3.5">
+              <div className="flex items-start gap-3">
+                <FaExclamationTriangle className="text-amber-400 text-base sm:text-lg shrink-0 mt-0.5" />
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
-                      Low Stock Warning
-                      <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/40 uppercase">
-                        {lowStockMedicines.length} Medicine{lowStockMedicines.length > 1 ? 's' : ''} &lt; 4 Pills
-                      </span>
+                    <h3 className="text-sm sm:text-base font-semibold text-white">
+                      Low Stock Alert
                     </h3>
+                    <span className="text-[11px] font-medium px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                      {lowStockMedicines.length} {lowStockMedicines.length > 1 ? 'medicines' : 'medicine'} &lt; 4 pills
+                    </span>
                   </div>
 
-                  <p className="text-xs sm:text-sm text-gray-300 mt-1">
-                    The following medication stock is running critically low.
-                  </p>
-
-                  <div className="flex flex-wrap gap-2 mt-2.5">
+                  <div className="flex flex-wrap gap-1.5 mt-2">
                     {lowStockMedicines.map((item, idx) => (
                       <div
                         key={idx}
-                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-black/60 border border-amber-500/40 text-xs text-amber-200"
+                        className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-black/40 border border-white/10 text-xs text-gray-300"
                       >
-                        <FaPills className="text-amber-400 text-[11px]" />
-                        <span className="font-bold text-white">{item.name}</span>
-                        <span className="text-red-300 font-semibold">{item.details} left</span>
+                        <FaPills className="text-amber-400/80 text-[10px]" />
+                        <span className="font-medium text-white">{item.name}</span>
+                        <span className="text-amber-300/90 font-mono text-[11px]">({item.details})</span>
                       </div>
                     ))}
                   </div>
@@ -174,19 +165,19 @@ export default function HomePage() {
               <div className="flex items-center gap-2 shrink-0 self-end md:self-center">
                 <Link
                   href="/Medicines"
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-blue-500 to-[#03e9f4] text-black font-bold text-xs shadow-lg hover:opacity-90 active:scale-95 transition-all"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#03e9f4] hover:bg-[#02c4ce] text-black font-semibold text-xs transition-colors"
                 >
-                  Refill / Manage
-                  <FaArrowRight className="text-xs" />
+                  Manage
+                  <FaArrowRight className="text-[10px]" />
                 </Link>
                 <button
                   type="button"
                   onClick={() => setAlertDismissed(true)}
-                  className="p-2 rounded-xl text-gray-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                  className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
                   title="Dismiss alert"
                   aria-label="Dismiss alert"
                 >
-                  <FaTimes className="text-sm" />
+                  <FaTimes size={13} />
                 </button>
               </div>
             </div>

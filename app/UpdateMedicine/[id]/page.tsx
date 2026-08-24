@@ -886,7 +886,7 @@ const UpdateMedicine = () => {
 
           {/* Numbers of the Days & Start Date */}
           <div className="w-full mt-3">
-            <label htmlFor="number_days" className='font-bold block text-sm'>Numbers of the Days:</label>
+            <label htmlFor="number_days" className='font-bold block text-sm'>Course Duration (Days):</label>
             <input
               onChange={handleChange}
               onBlur={handleBlur}
