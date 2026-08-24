@@ -6,8 +6,11 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { FaBars, FaTimes, FaUserCircle, FaSignOutAlt, FaSignInAlt } from "react-icons/fa";
 import { useSession, signOut } from "next-auth/react";
+import { useAppDispatch } from "@/store/hooks";
+import { clearMedicines } from "@/store/medicineSlice";
 
 const Header = () => {
+  const dispatch = useAppDispatch();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const { data: session, status } = useSession();
@@ -62,7 +65,10 @@ const Header = () => {
                 <span className="max-w-[120px] truncate">{session.user.name || session.user.email}</span>
               </Link>
               <button
-                onClick={() => signOut({ callbackUrl: "/login" })}
+                onClick={() => {
+                  dispatch(clearMedicines());
+                  signOut({ callbackUrl: "/login" });
+                }}
                 className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 bg-red-500/20 text-red-400 border border-red-500/30 rounded-lg hover:bg-red-500/30 transition-all cursor-pointer"
                 title="Sign Out"
               >
@@ -122,6 +128,7 @@ const Header = () => {
                 <button
                   onClick={() => {
                     setOpen(false);
+                    dispatch(clearMedicines());
                     signOut({ callbackUrl: "/login" });
                   }}
                   className="w-full py-2 bg-red-500/20 text-red-400 border border-red-500/30 rounded-lg text-xs font-semibold hover:bg-red-500/30 transition-all flex items-center justify-center gap-2 cursor-pointer"

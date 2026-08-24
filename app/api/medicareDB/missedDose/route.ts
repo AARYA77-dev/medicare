@@ -1,8 +1,10 @@
 import { MedicineSchema } from "@/Schemas/MedicinsSchema";
 import mongoose, { Types } from "mongoose";
 import { NextRequest, NextResponse } from "next/server";
+import { getToken } from "next-auth/jwt";
 
 const MONGO_DB_URL = process.env.MONGO_URI;
+const SECRET = process.env.NEXTAUTH_SECRET || "medicare_secret_key_1234567890";
 
 function parseSafeDate(dateStr: string): Date {
   if (!dateStr) return new Date();
@@ -57,6 +59,11 @@ function addDays(date: Date, days: number): Date {
 }
 
 export async function POST(request: NextRequest) {
+  const token = await getToken({ req: request, secret: SECRET });
+  if (!token?.id) {
+    return NextResponse.json({ message: "Unauthorized", success: false }, { status: 401 });
+  }
+
   try {
     const body = await request.json();
     const { medicineId, doseId, action } = body;
@@ -77,7 +84,8 @@ export async function POST(request: NextRequest) {
 
     await mongoose.connect(MONGO_DB_URL!);
 
-    const medicine = await MedicineSchema.findById(medicineId);
+    // Only allow resolving missed doses for medicines owned by this user
+    const medicine = await MedicineSchema.findOne({ _id: medicineId, userId: token.id });
     if (!medicine) {
       return NextResponse.json(
         { success: false, message: "Medicine not found." },

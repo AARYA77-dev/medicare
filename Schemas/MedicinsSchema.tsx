@@ -24,6 +24,12 @@ const ScheduleEntryModel = new mongoose.Schema({
 })
 
 const MedicinesModel = new mongoose.Schema({
+    userId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: true,
+        index: true,
+    },
     medicine_name: {
         type:String,
         required:true

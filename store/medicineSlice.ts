@@ -132,6 +132,12 @@ const medicineSlice = createSlice({
     setMedicines(state, action: PayloadAction<MedicineWithSchedule[]>) {
       state.medicines = action.payload;
     },
+    clearMedicines(state) {
+      state.medicines = [];
+      state.loading = false;
+      state.actionLoading = false;
+      state.error = null;
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -217,5 +223,5 @@ const medicineSlice = createSlice({
   },
 });
 
-export const { setMedicines } = medicineSlice.actions;
+export const { setMedicines, clearMedicines } = medicineSlice.actions;
 export default medicineSlice.reducer;
