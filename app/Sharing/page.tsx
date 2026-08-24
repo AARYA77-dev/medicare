@@ -113,7 +113,7 @@ export default function SharingPage() {
     }
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { Promise.resolve().then(fetchData); }, []);
 
   const handleSendInvite = async (e: React.FormEvent) => {
     e.preventDefault();

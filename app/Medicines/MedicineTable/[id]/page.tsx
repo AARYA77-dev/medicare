@@ -18,22 +18,24 @@ const MedicineTablePage = () => {
     useEffect(() => {
         const existing = medicines.find((m) => m._id === id);
         if (existing) {
-            setMedicineData(existing);
+            Promise.resolve(existing).then(setMedicineData);
             return;
         }
 
-        setLoading(true);
-        axios.get(`/api/medicareDB/${id}`)
-            .then((response) => {
-                setMedicineData(response.data.result);
-            })
-            .catch((error) => {
-                console.log("Error:", error);
-                toast.error("Something went wrong");
-            })
-            .finally(() => {
-                setLoading(false);
-            });
+        Promise.resolve().then(() => {
+            setLoading(true);
+            axios.get(`/api/medicareDB/${id}`)
+                .then((response) => {
+                    setMedicineData(response.data.result);
+                })
+                .catch((error) => {
+                    console.log("Error:", error);
+                    toast.error("Something went wrong");
+                })
+                .finally(() => {
+                    setLoading(false);
+                });
+        });
     }, [id, medicines]);
 
     if (loading === true) {

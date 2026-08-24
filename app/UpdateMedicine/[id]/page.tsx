@@ -323,17 +323,21 @@ const UpdateMedicine = () => {
     if (scheduleType === "daily") {
       const freq = parseInt(values.frequency);
       if (!isNaN(freq) && freq > 0) {
-        setTimeDoseIndices((prev) => {
-          return Array.from({ length: freq }).map((_, idx) => {
-            if (prev[idx] !== undefined && prev[idx] < Math.max(1, dosageList.length)) {
-              return prev[idx];
-            }
-            return idx < dosageList.length ? idx : 0;
+        const dl = dosageList.length;
+        Promise.resolve({ freq, dl }).then(({ freq: f, dl: dLen }) => {
+          setTimeList((prev) => {
+            if (prev.length === f) return prev;
+            return Array.from({ length: f }).map((_, idx) => prev[idx] || "");
           });
-        });
-        setTimeList((prev) => {
-          if (prev.length === freq) return prev;
-          return Array.from({ length: freq }).map((_, idx) => prev[idx] || "");
+          setTimeDoseIndices((prev) => {
+            if (prev.length === f) return prev;
+            return Array.from({ length: f }).map((_, idx) => {
+              if (prev[idx] !== undefined && prev[idx] < Math.max(1, dLen)) {
+                return prev[idx];
+              }
+              return idx < dLen ? idx : 0;
+            });
+          });
         });
       }
     }
@@ -343,22 +347,24 @@ const UpdateMedicine = () => {
   useEffect(() => {
     const existing = medicines.find((m) => m._id === id);
     if (existing) {
-      applyMedicineData(existing);
+      Promise.resolve(existing).then(applyMedicineData);
       return;
     }
 
-    setLoading(true);
-    axios.get(`/api/medicareDB/${id}`)
-      .then((response) => {
-        const data = response.data.result;
-        applyMedicineData(data);
-      })
-      .catch((error) => {
-        console.log("Error:", error);
-        toast.error("something went wrong");
-      }).finally(() => {
-        setLoading(false);
-      });
+    Promise.resolve().then(() => {
+      setLoading(true);
+      axios.get(`/api/medicareDB/${id}`)
+        .then((response) => {
+          const data = response.data.result;
+          applyMedicineData(data);
+        })
+        .catch((error) => {
+          console.log("Error:", error);
+          toast.error("something went wrong");
+        }).finally(() => {
+          setLoading(false);
+        });
+    });
   }, [id, medicines, applyMedicineData]);
 
   if (loading) {

@@ -61,6 +61,12 @@ const MedicinePage = () => {
   const [weeklyOverrideDose, setWeeklyOverrideDose] = useState<string>("2");
   const [weeklyDays, setWeeklyDays] = useState<number[]>([1]); // default: Monday
 
+  // Ref holding the latest snapshot of values read by the scheduleType-sync effect.
+  // Using a ref lets the effect always see fresh values without those variables
+  // becoming dependencies (which would cause the sync to re-fire on every keystroke).
+  const syncValuesRef = useRef({ alternateCycle, singleTime, weeklyDefaultDose, weeklyOverrideDose, weeklyDays, setFieldValue });
+  syncValuesRef.current = { alternateCycle, singleTime, weeklyDefaultDose, weeklyOverrideDose, weeklyDays, setFieldValue };
+
   // Sync dosage_pattern and times_days when mode changes or values change
   const handleScheduleTypeChange = (type: ScheduleType) => {
     setScheduleType(type);
@@ -260,37 +266,44 @@ const MedicinePage = () => {
     if (scheduleType === "daily") {
       const freq = parseInt(values.frequency);
       if (!isNaN(freq) && freq > 0) {
-        setTimeDoseIndices((prev) => {
-          return Array.from({ length: freq }).map((_, idx) => {
-            if (prev[idx] !== undefined && prev[idx] < Math.max(1, dosageList.length)) {
-              return prev[idx];
-            }
-            return idx < dosageList.length ? idx : 0;
+        const dl = dosageList.length;
+        Promise.resolve({ freq, dl }).then(({ freq: f, dl: dLen }) => {
+          setTimeDoseIndices((prev) => {
+            if (prev.length === f) return prev;
+            return Array.from({ length: f }).map((_, idx) => {
+              if (prev[idx] !== undefined && prev[idx] < Math.max(1, dLen)) {
+                return prev[idx];
+              }
+              return idx < dLen ? idx : 0;
+            });
           });
-        });
-        setTimeList((prev) => {
-          if (prev.length === freq) return prev;
-          return Array.from({ length: freq }).map((_, idx) => prev[idx] || "");
+          setTimeList((prev) => {
+            if (prev.length === f) return prev;
+            return Array.from({ length: f }).map((_, idx) => prev[idx] || "");
+          });
         });
       }
     }
   }, [values.frequency, dosageList.length, scheduleType]);
 
-  // Synchronize initial times_days and dosage_pattern when switching to alternate or weekly
+  // Synchronize initial times_days and dosage_pattern when switching to alternate or weekly.
+  // Reads latest values from syncValuesRef so the effect only re-runs when scheduleType
+  // changes, not on every keystroke in dose/time fields.
   useEffect(() => {
+    const { alternateCycle: ac, singleTime: st, weeklyDefaultDose: wdd, weeklyOverrideDose: wod, weeklyDays: wd, setFieldValue: sfv } = syncValuesRef.current;
     if (scheduleType === "alternate") {
-      const combinedDose = alternateCycle.filter((d) => d.trim() !== "").join(",");
-      setFieldValue("dosage_pattern", combinedDose);
-      setFieldValue("times_days", singleTime || "08:00");
-      setFieldValue("frequency", "1");
+      const combinedDose = ac.filter((d) => d.trim() !== "").join(",");
+      sfv("dosage_pattern", combinedDose);
+      sfv("times_days", st || "08:00");
+      sfv("frequency", "1");
     } else if (scheduleType === "weekly") {
-      const doses = Array.from(new Set([weeklyDefaultDose, weeklyOverrideDose])).filter(Boolean);
-      setFieldValue("dosage_pattern", doses.join(","));
-      setFieldValue("times_days", singleTime || "08:00");
-      setFieldValue("frequency", "1");
-      setFieldValue("weekly_default_dose", weeklyDefaultDose);
-      setFieldValue("weekly_override_dose", weeklyOverrideDose);
-      setFieldValue("weekly_days", weeklyDays);
+      const doses = Array.from(new Set([wdd, wod])).filter(Boolean);
+      sfv("dosage_pattern", doses.join(","));
+      sfv("times_days", st || "08:00");
+      sfv("frequency", "1");
+      sfv("weekly_default_dose", wdd);
+      sfv("weekly_override_dose", wod);
+      sfv("weekly_days", wd);
     }
   }, [scheduleType]);
 

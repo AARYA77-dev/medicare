@@ -2,7 +2,7 @@
 
 import Header from '@/components/header';
 import ViewAsSelector from '@/components/ViewAsSelector';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import Loading from '../loading';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { fetchMedicines } from '@/store/medicineSlice';
@@ -124,19 +124,18 @@ export default function HistoryCalendarPage() {
     dispatch(fetchMedicines(viewingOwnerId ? { ownerId: viewingOwnerId } : undefined));
   }, [dispatch, viewingOwnerId]);
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const today = useMemo(() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }, []);
 
   const [curYear, setCurYear] = useState(today.getFullYear());
   const [curMonth, setCurMonth] = useState(today.getMonth());
-  const [allDoses, setAllDoses] = useState<DoseDetail[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date>(today);
   const [activeTab, setActiveTab] = useState<'selected' | 'all' | 'today' | 'upcoming' | 'previous'>('selected');
 
-
-
-
-  useEffect(() => {
+  const allDoses = useMemo<DoseDetail[]>(() => {
     const extractedDoses: DoseDetail[] = [];
 
     medicines.forEach((med) => {
@@ -179,8 +178,8 @@ export default function HistoryCalendarPage() {
     });
 
     extractedDoses.sort((a, b) => a.dateObj.getTime() - b.dateObj.getTime());
-    setAllDoses(extractedDoses);
-  }, [medicines]);
+    return extractedDoses;
+  }, [medicines, today]);
 
   // Build calendar grid days
   const buildCalendarGrid = (): CalendarDayCell[] => {
