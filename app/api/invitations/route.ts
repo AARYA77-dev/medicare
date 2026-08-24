@@ -5,7 +5,7 @@ import dbConnect from "@/lib/dbConnect";
 import { getToken } from "next-auth/jwt";
 import { NextRequest, NextResponse } from "next/server";
 
-const SECRET = process.env.NEXTAUTH_SECRET || "medicare_secret_key_1234567890";
+const SECRET = process.env.NEXTAUTH_SECRET;
 
 // GET — list pending invitations received by the logged-in user
 export async function GET(request: NextRequest) {

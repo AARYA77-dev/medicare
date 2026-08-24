@@ -4,7 +4,7 @@ import dbConnect from "@/lib/dbConnect";
 import { getToken } from "next-auth/jwt";
 import { NextRequest, NextResponse } from "next/server";
 
-const SECRET = process.env.NEXTAUTH_SECRET || "medicare_secret_key_1234567890";
+const SECRET = process.env.NEXTAUTH_SECRET;
 type Context = { params: Promise<{ accessId: string }> };
 
 // DELETE — owner removes a collaborator's active access

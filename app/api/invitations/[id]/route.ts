@@ -6,7 +6,7 @@ import { Types } from "mongoose";
 import { NextRequest, NextResponse } from "next/server";
 import { InvitationContext } from "@/Interfaces/interface";
 
-const SECRET = process.env.NEXTAUTH_SECRET || "medicare_secret_key_1234567890";
+const SECRET = process.env.NEXTAUTH_SECRET;
 
 // PUT — invitee accepts or declines an invitation
 export async function PUT(request: NextRequest, context: InvitationContext) {

@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 import dbConnect from "@/lib/dbConnect";
 
-const SECRET = process.env.NEXTAUTH_SECRET || "medicare_secret_key_1234567890";
+const SECRET = process.env.NEXTAUTH_SECRET;
 
 type Context = {
   params: Promise<{ id: string }>;

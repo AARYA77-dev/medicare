@@ -5,7 +5,7 @@ import { getToken } from "next-auth/jwt";
 import dbConnect from "@/lib/dbConnect";
 import { ScheduleDose, ScheduleEntryData } from "@/Interfaces/interface";
 
-const SECRET = process.env.NEXTAUTH_SECRET || "medicare_secret_key_1234567890";
+const SECRET = process.env.NEXTAUTH_SECRET;
 
 function parseSafeDate(dateStr: string): Date {
   if (!dateStr) return new Date();
@@ -191,7 +191,7 @@ export async function POST(request: NextRequest) {
       // 2. Carry Forward / Shift Sequence
       // Flatten all doses starting from the missed dose
       const allDosesInOrder: { time: string; dosage: string }[] = [];
-      
+
       currentSchedule.forEach((sch) => {
         sch.doses.forEach((d) => {
           allDosesInOrder.push({
@@ -204,7 +204,7 @@ export async function POST(request: NextRequest) {
       // Today's date has passed. Shift all remaining schedule entry dates by +1 day.
       // If we remove today's entry (or the first entry), we create dates starting from tomorrow
       const startDate = parseSafeDate(currentSchedule[0]?.date || new Date().toISOString());
-      
+
       // Determine doses per day structure
       // For each day from tomorrow onwards, we assign the doses in sequence
       const updatedSchedule: typeof currentSchedule = [];
@@ -235,7 +235,7 @@ export async function POST(request: NextRequest) {
       // If any doses remain (e.g. if the last day needs an extra slot), add extended day
       if (dosePointer < allDosesInOrder.length) {
         const remainingDoses = allDosesInOrder.slice(dosePointer);
-        const lastEntryDate = updatedSchedule.length > 0 
+        const lastEntryDate = updatedSchedule.length > 0
           ? parseSafeDate(updatedSchedule[updatedSchedule.length - 1].date)
           : startDate;
         const extendedDate = addDays(lastEntryDate, 1);
