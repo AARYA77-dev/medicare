@@ -138,6 +138,25 @@ const UpdateMedicine = () => {
     }
   };
 
+  const handleWeeklyDefaultChange = (val: string) => {
+    setWeeklyDefaultDose(val);
+    setFieldValue("weekly_default_dose", val);
+    const doses = Array.from(new Set([val, weeklyOverrideDose])).filter(Boolean);
+    setFieldValue("dosage_pattern", doses.join(","));
+  };
+
+  const handleWeeklyOverrideChange = (val: string) => {
+    setWeeklyOverrideDose(val);
+    setFieldValue("weekly_override_dose", val);
+    const doses = Array.from(new Set([weeklyDefaultDose, val])).filter(Boolean);
+    setFieldValue("dosage_pattern", doses.join(","));
+  };
+
+  const handleSingleTimeChange = (val: string) => {
+    setSingleTime(val);
+    setFieldValue("times_days", val);
+  };
+
   const parseDoses = () => {
     if (scheduleType === "alternate") {
       return alternateCycle.filter((d) => d.trim() !== "").map((d) => `${d} mg`);
@@ -382,7 +401,7 @@ const UpdateMedicine = () => {
 
       <form onSubmit={handleSubmit} className='flex justify-center px-3 my-6'>
         <div className='flex flex-col border border-white/10 rounded-2xl bg-white/5 backdrop-blur-md w-full sm:w-[90%] md:w-[70%] lg:w-[48%] xl:w-[32%] items-center shadow-2xl px-4 sm:px-8 py-6'>
-          
+
           <h2 className="text-xl font-bold text-[#03e9f4] mb-2">Edit Medicine Schedule</h2>
 
           {/* Medicine Name */}
@@ -408,33 +427,30 @@ const UpdateMedicine = () => {
               <button
                 type="button"
                 onClick={() => handleScheduleTypeChange('daily')}
-                className={`py-2 px-1 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1 cursor-pointer ${
-                  scheduleType === 'daily'
+                className={`py-2 px-1 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1 cursor-pointer ${scheduleType === 'daily'
                     ? 'bg-[#03e9f4] text-black font-bold shadow-md'
                     : 'text-gray-400 hover:text-white hover:bg-white/5'
-                }`}
+                  }`}
               >
                 <span>📅 Daily</span>
               </button>
               <button
                 type="button"
                 onClick={() => handleScheduleTypeChange('alternate')}
-                className={`py-2 px-1 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1 cursor-pointer ${
-                  scheduleType === 'alternate'
+                className={`py-2 px-1 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1 cursor-pointer ${scheduleType === 'alternate'
                     ? 'bg-[#03e9f4] text-black font-bold shadow-md'
                     : 'text-gray-400 hover:text-white hover:bg-white/5'
-                }`}
+                  }`}
               >
                 <span>🔄 Alternate</span>
               </button>
               <button
                 type="button"
                 onClick={() => handleScheduleTypeChange('weekly')}
-                className={`py-2 px-1 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1 cursor-pointer ${
-                  scheduleType === 'weekly'
+                className={`py-2 px-1 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1 cursor-pointer ${scheduleType === 'weekly'
                     ? 'bg-[#03e9f4] text-black font-bold shadow-md'
                     : 'text-gray-400 hover:text-white hover:bg-white/5'
-                }`}
+                  }`}
               >
                 <span>🗓️ Weekdays</span>
               </button>
@@ -690,11 +706,10 @@ const UpdateMedicine = () => {
                         key={wd.day}
                         type="button"
                         onClick={() => toggleWeekday(wd.day)}
-                        className={`py-2 text-xs font-bold rounded-lg border transition-all cursor-pointer ${
-                          isSelected
+                        className={`py-2 text-xs font-bold rounded-lg border transition-all cursor-pointer ${isSelected
                             ? 'bg-[#03e9f4] border-[#03e9f4] text-black shadow-md scale-102'
                             : 'bg-black/50 border-white/20 text-gray-400 hover:border-[#03e9f4]/60 hover:text-white'
-                        }`}
+                          }`}
                         title={wd.full}
                       >
                         {wd.label}
