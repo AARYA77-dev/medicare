@@ -276,7 +276,7 @@ const UpdateMedicine = () => {
     },
   });
 
-  const applyMedicineData = useCallback((data: any) => {
+  const applyMedicineData = useCallback((data: Medicines & { schedule?: ScheduleEntry[] }) => {
     setMedicineData(data);
     if (data) {
       const mode: ScheduleType = data.schedule_type || "daily";
@@ -306,7 +306,7 @@ const UpdateMedicine = () => {
           setTimeList(splitTimes.length > 0 ? splitTimes : [""]);
         }
         if (data.schedule && data.schedule[0] && data.schedule[0].doses && splitDoses.length > 0) {
-          const initialIndices = data.schedule[0].doses.map((d: any) => {
+          const initialIndices = data.schedule[0].doses.map((d: Dose) => {
             const dNum = parseFloat(d.dosage);
             const foundIdx = splitDoses.findIndex((sd: string) => parseFloat(sd) === dNum);
             return foundIdx >= 0 ? foundIdx : 0;

@@ -1,5 +1,9 @@
 export type ScheduleType = 'daily' | 'alternate' | 'weekly';
 
+export type InvitationContext = {
+    params: Promise<{ id: string }>;
+};
+
 export interface Medicines {
     _id?: string;
     medicine_name: string;
@@ -21,6 +25,18 @@ export interface Dose {
     _id?: string;
 }
 
+export type ScheduleDose = {
+    _id?: unknown;
+    time: string;
+    dosage: string;
+};
+
+export type ScheduleEntryData = {
+    day: number;
+    date: string;
+    doses: ScheduleDose[];
+};
+
 export interface ScheduleEntry {
     day: number;
     date: string;
@@ -37,6 +53,11 @@ export interface Reminder {
 export interface MedicineWithSchedule extends Medicines {
     _id: string;
     schedule: ScheduleEntry[];
+}
+
+export interface MedicinePayload extends Medicines {
+    schedule: ScheduleEntry[];
+    _ownerId?: string;
 }
 
 export interface Days {

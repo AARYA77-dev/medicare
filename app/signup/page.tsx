@@ -65,8 +65,8 @@ export default function SignupPage() {
         router.push("/User");
         router.refresh();
       }
-    } catch (err: any) {
-      toast.error(err?.message || "An unexpected error occurred");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "An unexpected error occurred");
     } finally {
       setLoading(false);
     }

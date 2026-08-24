@@ -1,11 +1,10 @@
 import { MedicineSchema } from "@/Schemas/MedicinsSchema";
 import { AccessSchema } from "@/Schemas/AccessSchema";
-import mongoose, { Types } from "mongoose";
 import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 import dbConnect from "@/lib/dbConnect";
+import { ScheduleDose, ScheduleEntryData } from "@/Interfaces/interface";
 
-const MONGO_DB_URL = process.env.MONGO_URI;
 const SECRET = process.env.NEXTAUTH_SECRET || "medicare_secret_key_1234567890";
 
 function parseSafeDate(dateStr: string): Date {
@@ -22,7 +21,8 @@ function parseSafeDate(dateStr: string): Date {
   // 2. Delimited: DD/MM/YYYY or MM/DD/YYYY
   const parts = str.split(/[\/\-\.]/).map((p) => p.trim());
   if (parts.length === 3) {
-    let [p1, p2, p3] = parts.map(Number);
+    const [p1, p2] = parts.map(Number);
+    let p3 = Number(parts[2]);
     if (p3 < 100) p3 += 2000;
 
     if (p3 >= 1900 && p3 <= 2100) {
@@ -114,12 +114,12 @@ export async function POST(request: NextRequest) {
     // Locate the dose and its schedule entry
     let foundEntryIndex = -1;
     let foundDoseIndex = -1;
-    let missedDose: any = null;
+    let missedDose: { time: string; dosage: string } | null = null;
 
     for (let i = 0; i < medicine.schedule.length; i++) {
       const entry = medicine.schedule[i];
       const dIdx = entry.doses.findIndex(
-        (d: any) => String(d._id) === String(doseId)
+        (d: ScheduleDose) => String(d._id) === String(doseId)
       );
       if (dIdx !== -1) {
         foundEntryIndex = i;
@@ -139,7 +139,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const currentSchedule = JSON.parse(JSON.stringify(medicine.schedule));
+    const currentSchedule = JSON.parse(JSON.stringify(medicine.schedule)) as ScheduleEntryData[];
 
     if (action === 'skip_and_continue') {
       // 1. Remove the missed dose from today's schedule entry
@@ -147,7 +147,7 @@ export async function POST(request: NextRequest) {
 
       // If entry has no more doses, remove entry
       let filteredSchedule = currentSchedule.filter(
-        (sch: any) => sch.doses && sch.doses.length > 0
+        (sch) => sch.doses && sch.doses.length > 0
       );
 
       if (filteredSchedule.length === 0) {
@@ -178,7 +178,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Re-number days sequentially
-      filteredSchedule = filteredSchedule.map((sch: any, idx: number) => ({
+      filteredSchedule = filteredSchedule.map((sch, idx: number) => ({
         ...sch,
         day: idx + 1,
       }));
@@ -192,8 +192,8 @@ export async function POST(request: NextRequest) {
       // Flatten all doses starting from the missed dose
       const allDosesInOrder: { time: string; dosage: string }[] = [];
       
-      currentSchedule.forEach((sch: any) => {
-        sch.doses.forEach((d: any) => {
+      currentSchedule.forEach((sch) => {
+        sch.doses.forEach((d) => {
           allDosesInOrder.push({
             time: d.time,
             dosage: d.dosage,
@@ -207,13 +207,13 @@ export async function POST(request: NextRequest) {
       
       // Determine doses per day structure
       // For each day from tomorrow onwards, we assign the doses in sequence
-      const updatedSchedule: any[] = [];
+      const updatedSchedule: typeof currentSchedule = [];
       let dosePointer = 0;
 
       // Calculate how many days we need to distribute all remaining doses
       // We look at original schedule's daily dose counts
       const dailyDoseCounts: number[] = currentSchedule.map(
-        (s: any) => s.doses.length
+        (s) => s.doses.length
       );
 
       // Shift dates by +1 day
@@ -248,7 +248,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Re-number days sequentially
-      const finalSchedule = updatedSchedule.map((sch: any, idx: number) => ({
+      const finalSchedule = updatedSchedule.map((sch, idx: number) => ({
         ...sch,
         day: idx + 1,
       }));
@@ -268,7 +268,7 @@ export async function POST(request: NextRequest) {
           : "Missed dose carried forward to tomorrow and schedule shifted (+1 day extended).",
       result: medicine,
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("Error resolving missed dose:", err);
     return NextResponse.json(
       { success: false, message: "Failed to resolve missed dose", error: String(err) },

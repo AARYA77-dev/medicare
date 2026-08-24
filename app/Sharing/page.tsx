@@ -6,7 +6,7 @@ import axios from "axios";
 import toast from "react-hot-toast";
 import {
   FaEnvelope, FaUserPlus, FaUsers, FaInbox, FaTrash,
-  FaCheck, FaTimes, FaCrown, FaEye, FaHandshake, FaCog,
+  FaCheck, FaTimes, FaEye, FaHandshake, FaCog,
   FaSpinner, FaLink, FaUserShield,
 } from "react-icons/fa";
 
@@ -124,8 +124,9 @@ export default function SharingPage() {
       toast.success(`Invitation sent to ${inviteEmail}!`);
       setInviteEmail("");
       await fetchData();
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || "Failed to send invitation");
+    } catch (err: unknown) {
+      const message = axios.isAxiosError(err) ? err.response?.data?.message : undefined;
+      toast.error(message || "Failed to send invitation");
     } finally {
       setSending(false);
     }

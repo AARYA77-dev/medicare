@@ -1,6 +1,13 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import axios from 'axios';
-import { MedicineWithSchedule } from '@/Interfaces/interface';
+import { MedicinePayload, MedicineWithSchedule } from '@/Interfaces/interface';
+
+const getErrorMessage = (error: unknown, fallback: string): string => {
+  if (axios.isAxiosError(error)) {
+    return error.response?.data?.message || fallback;
+  }
+  return fallback;
+};
 
 export interface MedicineState {
   medicines: MedicineWithSchedule[];
@@ -27,17 +34,17 @@ export const fetchMedicines = createAsyncThunk<
   'medicine/fetchMedicines',
   async (params, { rejectWithValue }) => {
     try {
-      const ownerId = (params as any)?.ownerId;
+      const ownerId = params?.ownerId;
       const url = ownerId ? `/api/medicareDB?ownerId=${ownerId}` : '/api/medicareDB';
       const response = await axios.get(url);
       return response.data.result || [];
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to fetch medicines');
+    } catch (error: unknown) {
+      return rejectWithValue(getErrorMessage(error, 'Failed to fetch medicines'));
     }
   },
   {
     condition: (params, { getState }) => {
-      const forceReload = (params as any)?.forceReload;
+      const forceReload = params?.forceReload;
       if (forceReload) return true;
       const { medicine } = getState();
       // Skip API request if data is already loaded or currently loading
@@ -49,27 +56,27 @@ export const fetchMedicines = createAsyncThunk<
 );
 
 // Async Thunk: Add new medicine schedule
-export const addMedicineSchedule = createAsyncThunk(
+export const addMedicineSchedule = createAsyncThunk<MedicineWithSchedule, MedicinePayload>(
   'medicine/addMedicineSchedule',
-  async (payload: any, { rejectWithValue }) => {
+  async (payload, { rejectWithValue }) => {
     try {
       const response = await axios.post('/api/medicareDB', payload);
       return response.data.result;
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to create schedule');
+    } catch (error: unknown) {
+      return rejectWithValue(getErrorMessage(error, 'Failed to create schedule'));
     }
   }
 );
 
 // Async Thunk: Update existing medicine schedule
-export const updateMedicineSchedule = createAsyncThunk(
+export const updateMedicineSchedule = createAsyncThunk<MedicineWithSchedule, { id: string; payload: MedicinePayload }>(
   'medicine/updateMedicineSchedule',
-  async ({ id, payload }: { id: string; payload: any }, { rejectWithValue }) => {
+  async ({ id, payload }, { rejectWithValue }) => {
     try {
       const response = await axios.put(`/api/medicareDB/${id}`, payload);
       return response.data.result;
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to update schedule');
+    } catch (error: unknown) {
+      return rejectWithValue(getErrorMessage(error, 'Failed to update schedule'));
     }
   }
 );
@@ -81,8 +88,8 @@ export const deleteDose = createAsyncThunk(
     try {
       await axios.delete(`/api/medicareDB/${doseId}`);
       return { doseId, medicineId };
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to update dose');
+    } catch (error: unknown) {
+      return rejectWithValue(getErrorMessage(error, 'Failed to update dose'));
     }
   }
 );
@@ -94,8 +101,8 @@ export const deleteMedicine = createAsyncThunk(
     try {
       await axios.delete(`/api/medicareDB/${medicineId}`);
       return medicineId;
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to delete medicine');
+    } catch (error: unknown) {
+      return rejectWithValue(getErrorMessage(error, 'Failed to delete medicine'));
     }
   }
 );
@@ -122,9 +129,9 @@ export const resolveMissedDose = createAsyncThunk(
         action,
       });
       return response.data.result;
-    } catch (error: any) {
+    } catch (error: unknown) {
       return rejectWithValue(
-        error.response?.data?.message || 'Failed to resolve missed dose'
+        getErrorMessage(error, 'Failed to resolve missed dose')
       );
     }
   }

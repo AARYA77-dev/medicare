@@ -2,13 +2,14 @@ import { InvitationSchema } from "@/Schemas/InvitationSchema";
 import { AccessSchema } from "@/Schemas/AccessSchema";
 import dbConnect from "@/lib/dbConnect";
 import { getToken } from "next-auth/jwt";
+import { Types } from "mongoose";
 import { NextRequest, NextResponse } from "next/server";
+import { InvitationContext } from "@/Interfaces/interface";
 
 const SECRET = process.env.NEXTAUTH_SECRET || "medicare_secret_key_1234567890";
-type Context = { params: Promise<{ id: string }> };
 
 // PUT — invitee accepts or declines an invitation
-export async function PUT(request: NextRequest, context: Context) {
+export async function PUT(request: NextRequest, context: InvitationContext) {
   const token = await getToken({ req: request, secret: SECRET });
   if (!token?.id) {
     return NextResponse.json({ message: "Unauthorized", success: false }, { status: 401 });
@@ -39,7 +40,7 @@ export async function PUT(request: NextRequest, context: Context) {
 
   if (action === 'accept') {
     invitation.status = 'accepted';
-    invitation.inviteeId = token.id as any;
+    invitation.inviteeId = new Types.ObjectId(token.id as string);
     await invitation.save();
 
     // Create or update the Access record
@@ -62,7 +63,7 @@ export async function PUT(request: NextRequest, context: Context) {
 }
 
 // DELETE — owner revokes/cancels an invitation
-export async function DELETE(request: NextRequest, context: Context) {
+export async function DELETE(request: NextRequest, context: InvitationContext) {
   const token = await getToken({ req: request, secret: SECRET });
   if (!token?.id) {
     return NextResponse.json({ message: "Unauthorized", success: false }, { status: 401 });

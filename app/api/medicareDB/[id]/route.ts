@@ -1,6 +1,6 @@
 import { MedicineSchema } from "@/Schemas/MedicinsSchema";
 import { AccessSchema } from "@/Schemas/AccessSchema";
-import mongoose, { Types } from "mongoose";
+import { Types } from "mongoose";
 import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 import dbConnect from "@/lib/dbConnect";
@@ -14,7 +14,7 @@ type Context = {
 /** Returns null if no access, or the role ('owner' | 'readonly' | 'collaborator' | 'admin') */
 async function getEffectiveRole(
   requesterId: string,
-  medicine: any
+  medicine: { userId: Types.ObjectId | string }
 ): Promise<string | null> {
   const ownerId = String(medicine.userId);
   if (ownerId === requesterId) return 'owner';

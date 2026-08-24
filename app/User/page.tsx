@@ -4,7 +4,7 @@ import Header from "@/components/header";
 import React from "react";
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
-import { FaUserCircle, FaEnvelope, FaSignOutAlt, FaShieldAlt } from "react-icons/fa";
+import { FaUserCircle, FaSignOutAlt, FaShieldAlt } from "react-icons/fa";
 
 const UserPage = () => {
   const { data: session, status } = useSession();

@@ -67,7 +67,8 @@ const parseSafeDate = (dateStr: string): Date | null => {
   // 2. Delimited formats: DD/MM/YYYY, D/M/YYYY, DD-MM-YYYY, etc.
   const parts = str.split(/[\/\-\.]/).map((p) => p.trim());
   if (parts.length === 3) {
-    let [p1, p2, p3] = parts.map(Number);
+    const [p1, p2] = parts.map(Number);
+    let p3 = Number(parts[2]);
 
     // If 2-digit year (e.g. "26" -> 2026)
     if (p3 < 100) {

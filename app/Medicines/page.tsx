@@ -8,7 +8,7 @@ import Link from 'next/link';
 import React, { useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { FaEdit, FaEllipsisV, FaPlus, FaTrash } from 'react-icons/fa';
-import { ScheduleEntry, Medicines, Dose, ScheduleType } from '@/Interfaces/interface';
+import { MedicinePayload, ScheduleEntry, Medicines, Dose, ScheduleType } from '@/Interfaces/interface';
 import Loading from '../loading';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { fetchMedicines, addMedicineSchedule, deleteMedicine } from '@/store/medicineSlice';
@@ -225,7 +225,7 @@ const MedicinePage = () => {
         return;
       }
       const result = getSchedule();
-      const payload: any = {
+      const payload: MedicinePayload = {
         ...formValues,
         schedule_type: scheduleType,
         weekly_default_dose: scheduleType === 'weekly' ? weeklyDefaultDose : undefined,

@@ -84,7 +84,7 @@ export default function HomePage() {
           : "Dose carried forward to tomorrow (+1 day extended)!"
       );
       setActiveMissedModal({ isOpen: false, medicine: null, dose: null });
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.error(typeof err === 'string' ? err : "Failed to update schedule");
     } finally {
       setModalLoading(false);

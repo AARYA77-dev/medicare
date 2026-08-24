@@ -24,6 +24,12 @@ export interface SharingState {
   loading: boolean;
 }
 
+interface CollaborationResponse {
+  _id: string;
+  ownerId: string | { _id: string; name?: string; email?: string };
+  role: CollabRole;
+}
+
 const initialState: SharingState = {
   viewingOwnerId: null,
   viewingOwnerName: null,
@@ -44,16 +50,17 @@ export const fetchMyCollaborations = createAsyncThunk<
   async (_, { rejectWithValue }) => {
     try {
       const response = await axios.get('/api/sharing');
-      const raw = response.data.result?.myCollaborations || [];
-      return raw.map((item: any) => ({
+      const raw = (response.data.result?.myCollaborations || []) as CollaborationResponse[];
+      return raw.map((item) => ({
         accessId: item._id,
-        ownerId: item.ownerId?._id || item.ownerId,
-        ownerName: item.ownerId?.name || 'Unknown',
-        ownerEmail: item.ownerId?.email || '',
+        ownerId: typeof item.ownerId === 'string' ? item.ownerId : item.ownerId._id,
+        ownerName: typeof item.ownerId === 'string' ? 'Unknown' : item.ownerId.name || 'Unknown',
+        ownerEmail: typeof item.ownerId === 'string' ? '' : item.ownerId.email || '',
         role: item.role,
       }));
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to fetch collaborations');
+    } catch (error: unknown) {
+      const message = axios.isAxiosError(error) ? error.response?.data?.message : undefined;
+      return rejectWithValue(message || 'Failed to fetch collaborations');
     }
   },
   {

@@ -7,7 +7,7 @@ export const MedicineSchema = Yup.object({
             if (value === undefined || value === null) return false;
             if (typeof value === "string") return value.trim().length > 0;
             if (typeof value === "object") {
-                const vals = Object.values(value as Record<string, any>);
+                const vals = Object.values(value as Record<string, unknown>);
                 return vals.length > 0 && vals.every(v => v !== undefined && v !== null && String(v).trim().length > 0);
             }
             return false;
