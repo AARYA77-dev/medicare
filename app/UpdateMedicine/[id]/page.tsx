@@ -39,6 +39,7 @@ const WEEKDAYS = [
 const UpdateMedicine = () => {
   const dispatch = useAppDispatch();
   const { medicines } = useAppSelector((state) => state.medicine);
+  const { viewingOwnerId, role } = useAppSelector((state) => state.sharing);
   const [medicineData, setMedicineData] = useState<Medicines>();
   const [loading, setLoading] = useState(false);
   const [buttonLoading, setButtonLoading] = useState(false);
@@ -62,6 +63,14 @@ const UpdateMedicine = () => {
 
   const { id } = useParams();
   const route = useRouter();
+
+  // Redirect if collaborator doesn't have co-manager (admin) role
+  useEffect(() => {
+    if (viewingOwnerId && role !== 'admin') {
+      toast.error("Co-Manager role required to edit medicines.");
+      route.push('/Medicines');
+    }
+  }, [viewingOwnerId, role, route]);
 
   // Mode changer
   const handleScheduleTypeChange = (type: ScheduleType) => {

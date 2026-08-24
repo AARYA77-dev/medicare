@@ -16,23 +16,28 @@ const initialState: MedicineState = {
   error: null,
 };
 
+export type FetchMedicinesParams = { forceReload?: boolean; ownerId?: string } | void;
+
 // Async Thunk: Fetch all medicines (with Redux cache guard)
 export const fetchMedicines = createAsyncThunk<
   MedicineWithSchedule[],
-  boolean | void,
+  FetchMedicinesParams,
   { state: { medicine: MedicineState } }
 >(
   'medicine/fetchMedicines',
-  async (_, { rejectWithValue }) => {
+  async (params, { rejectWithValue }) => {
     try {
-      const response = await axios.get('/api/medicareDB');
+      const ownerId = (params as any)?.ownerId;
+      const url = ownerId ? `/api/medicareDB?ownerId=${ownerId}` : '/api/medicareDB';
+      const response = await axios.get(url);
       return response.data.result || [];
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Failed to fetch medicines');
     }
   },
   {
-    condition: (forceReload, { getState }) => {
+    condition: (params, { getState }) => {
+      const forceReload = (params as any)?.forceReload;
       if (forceReload) return true;
       const { medicine } = getState();
       // Skip API request if data is already loaded or currently loading

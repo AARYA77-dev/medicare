@@ -1,7 +1,9 @@
 import { MedicineSchema } from "@/Schemas/MedicinsSchema";
+import { AccessSchema } from "@/Schemas/AccessSchema";
 import mongoose, { Types } from "mongoose";
 import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
+import dbConnect from "@/lib/dbConnect";
 
 const MONGO_DB_URL = process.env.MONGO_URI;
 const SECRET = process.env.NEXTAUTH_SECRET || "medicare_secret_key_1234567890";
@@ -82,15 +84,31 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    await mongoose.connect(MONGO_DB_URL!);
+    await dbConnect();
 
-    // Only allow resolving missed doses for medicines owned by this user
-    const medicine = await MedicineSchema.findOne({ _id: medicineId, userId: token.id });
+    // Allow owner OR collaborator/admin to resolve missed doses
+    const medicine = await MedicineSchema.findById(medicineId);
     if (!medicine) {
       return NextResponse.json(
         { success: false, message: "Medicine not found." },
         { status: 404 }
       );
+    }
+
+    const ownerId = String(medicine.userId);
+    const requesterId = String(token.id);
+    if (ownerId !== requesterId) {
+      const access = await AccessSchema.findOne({
+        ownerId,
+        collaboratorId: requesterId,
+        role: { $in: ['collaborator', 'admin'] },
+      });
+      if (!access) {
+        return NextResponse.json(
+          { success: false, message: "Access denied. Care Partner or Co-Manager role required." },
+          { status: 403 }
+        );
+      }
     }
 
     // Locate the dose and its schedule entry

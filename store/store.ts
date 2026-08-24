@@ -1,9 +1,11 @@
 import { configureStore } from '@reduxjs/toolkit';
 import medicineReducer from './medicineSlice';
+import sharingReducer from './sharingSlice';
 
 export const store = configureStore({
   reducer: {
     medicine: medicineReducer,
+    sharing: sharingReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

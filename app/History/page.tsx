@@ -1,6 +1,7 @@
 'use client';
 
 import Header from '@/components/header';
+import ViewAsSelector from '@/components/ViewAsSelector';
 import React, { useEffect, useState } from 'react';
 import Loading from '../loading';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
@@ -116,6 +117,11 @@ const isSameDay = (d1: Date, d2: Date) => {
 export default function HistoryCalendarPage() {
   const dispatch = useAppDispatch();
   const { medicines, loading } = useAppSelector((state) => state.medicine);
+  const { viewingOwnerId } = useAppSelector((state) => state.sharing);
+
+  useEffect(() => {
+    dispatch(fetchMedicines(viewingOwnerId ? { ownerId: viewingOwnerId } : undefined));
+  }, [dispatch, viewingOwnerId]);
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -126,9 +132,8 @@ export default function HistoryCalendarPage() {
   const [selectedDate, setSelectedDate] = useState<Date>(today);
   const [activeTab, setActiveTab] = useState<'selected' | 'all' | 'today' | 'upcoming' | 'previous'>('selected');
 
-  useEffect(() => {
-    dispatch(fetchMedicines());
-  }, [dispatch]);
+
+
 
   useEffect(() => {
     const extractedDoses: DoseDetail[] = [];
@@ -292,6 +297,7 @@ export default function HistoryCalendarPage() {
     <div className="min-h-screen text-white flex flex-col relative overflow-hidden">
       <Header />
       <main className="max-w-7xl mx-auto px-4 py-8 space-y-8">
+        <ViewAsSelector />
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-white/10 pb-6">
           <div>
             <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-white via-gray-200 to-[#03e9f4] flex items-center gap-3">

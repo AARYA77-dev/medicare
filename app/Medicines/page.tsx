@@ -1,6 +1,7 @@
 "use client";
 
 import Header from '@/components/header';
+import ViewAsSelector from '@/components/ViewAsSelector';
 import { MedicineSchema } from '@/Schemas/yupSChemas';
 import { useFormik } from 'formik';
 import Link from 'next/link';
@@ -39,6 +40,9 @@ const WEEKDAYS = [
 const MedicinePage = () => {
   const dispatch = useAppDispatch();
   const { medicines: medicineData, loading, actionLoading } = useAppSelector((state) => state.medicine);
+  const { viewingOwnerId, role } = useAppSelector((state) => state.sharing);
+  // canEdit = owner or co-manager. Viewers and care partners cannot add/edit/delete.
+  const canEdit = !viewingOwnerId || role === 'admin';
 
   const [scheduleType, setScheduleType] = useState<ScheduleType>("daily");
   const [separateQuantity, setSeparateQuantity] = useState(false);
@@ -216,17 +220,24 @@ const MedicinePage = () => {
     validationSchema: MedicineSchema,
     initialValues,
     onSubmit: async (formValues, { resetForm }) => {
+      if (!canEdit) {
+        toast.error("You don't have permission to add medicines.");
+        return;
+      }
       const result = getSchedule();
+      const payload: any = {
+        ...formValues,
+        schedule_type: scheduleType,
+        weekly_default_dose: scheduleType === 'weekly' ? weeklyDefaultDose : undefined,
+        weekly_override_dose: scheduleType === 'weekly' ? weeklyOverrideDose : undefined,
+        weekly_days: scheduleType === 'weekly' ? weeklyDays : undefined,
+        schedule: result,
+      };
+      // If co-manager, attach the owner's id so the API creates under their account
+      if (viewingOwnerId) payload._ownerId = viewingOwnerId;
       try {
-        await dispatch(addMedicineSchedule({
-          ...formValues,
-          schedule_type: scheduleType,
-          weekly_default_dose: scheduleType === 'weekly' ? weeklyDefaultDose : undefined,
-          weekly_override_dose: scheduleType === 'weekly' ? weeklyOverrideDose : undefined,
-          weekly_days: scheduleType === 'weekly' ? weeklyDays : undefined,
-          schedule: result
-        })).unwrap();
-        toast.success("Your schedule generated");
+        await dispatch(addMedicineSchedule(payload)).unwrap();
+        toast.success("Schedule created!");
         resetForm();
         setSeparateQuantity(false);
         setScheduleType("daily");
@@ -377,8 +388,8 @@ const MedicinePage = () => {
   };
 
   useEffect(() => {
-    dispatch(fetchMedicines());
-  }, [dispatch]);
+    dispatch(fetchMedicines(viewingOwnerId ? { ownerId: viewingOwnerId } : undefined));
+  }, [dispatch, viewingOwnerId]);
 
   if (loading) {
     return <Loading />;
@@ -464,6 +475,7 @@ const MedicinePage = () => {
       <Header />
       <form onSubmit={handleSubmit}>
         <div className="flex flex-col lg:flex-row gap-6 px-3 sm:px-6">
+          {canEdit ? (
           <div className="flex flex-col border border-white/10 rounded-2xl bg-white/5 backdrop-blur-md w-full lg:w-[48%] xl:w-[32%] mx-auto items-center shadow-2xl px-4 sm:px-8 py-4">
 
             {/* Medicine Name */}
@@ -961,12 +973,22 @@ const MedicinePage = () => {
               Generate Schedule
             </button>
           </div>
+          ) : (
+            <div className="flex flex-col border border-white/10 rounded-2xl bg-white/5 backdrop-blur-md w-full lg:w-[48%] xl:w-[32%] mx-auto items-center justify-center shadow-2xl px-8 py-12 text-center">
+              <div className="text-4xl mb-4">👁️</div>
+              <h3 className="text-lg font-bold text-white mb-2">View Only Access</h3>
+              <p className="text-sm text-gray-400">You can browse the medicine list and schedule but cannot add, edit or delete medicines.</p>
+            </div>
+          )}
 
           {/* Medicines List Sidebar */}
           <div className="flex flex-col w-full h-[fit-content] lg:w-[35%] xl:w-[22%] mx-auto border border-white/10 rounded-2xl bg-white/5 backdrop-blur-md items-center rounded-2xl p-3">
-            <div className='border border-white/10 rounded-xl bg-white/5 backdrop-blur-md py-2.5 mb-2 text-center rounded-xl w-full font-bold'>
-              <h1>Your Medicines</h1>
+            <div className="flex items-center justify-between w-full mb-2">
+              <div className='border border-white/10 rounded-xl bg-white/5 backdrop-blur-md py-2.5 text-center rounded-xl flex-1 font-bold'>
+                <h1>Your Medicines</h1>
+              </div>
             </div>
+            <ViewAsSelector />
             {medicineData.length === 0 ? (
               <h1 className='grid place-items-center my-6 font-mono text-sm text-gray-400'>No medicines found</h1>
             ) : (
@@ -976,7 +998,7 @@ const MedicinePage = () => {
                     <p className="font-bold text-sm text-white truncate flex-1">
                       {item.medicine_name}
                     </p>
-                    <MedicineMenu id={item._id!} />
+                    {canEdit && <MedicineMenu id={item._id!} />}
                   </div>
 
                   <Link
@@ -988,6 +1010,7 @@ const MedicinePage = () => {
                 </div>
               ))
             )}
+
           </div>
         </div>
       </form>

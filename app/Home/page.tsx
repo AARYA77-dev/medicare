@@ -1,6 +1,7 @@
 "use client";
 
 import Header from "@/components/header";
+import ViewAsSelector from "@/components/ViewAsSelector";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { Dose, LowStockItem, MedicineWithSchedule } from "@/Interfaces/interface";
@@ -16,6 +17,9 @@ import MissedDoseModal from "@/components/MissedDoseModal";
 export default function HomePage() {
   const dispatch = useAppDispatch();
   const { medicines: medicineData, loading } = useAppSelector((state) => state.medicine);
+  const { viewingOwnerId, role } = useAppSelector((state) => state.sharing);
+  // Can interact (mark done, missed) if own schedule OR care partner/co-manager
+  const canInteract = !viewingOwnerId || role === 'collaborator' || role === 'admin';
   const [checkDoses, setCheckDoses] = useState<string[]>([]);
   const [buttonLoading, setButtonLoading] = useState<string | null>(null);
   const [alertDismissed, setAlertDismissed] = useState(false);
@@ -31,8 +35,8 @@ export default function HomePage() {
   const [modalLoading, setModalLoading] = useState(false);
 
   useEffect(() => {
-    dispatch(fetchMedicines());
-  }, [dispatch]);
+    dispatch(fetchMedicines(viewingOwnerId ? { ownerId: viewingOwnerId } : undefined));
+  }, [dispatch, viewingOwnerId]);
 
   const handleCheckbox = (doseId: string) => {
     setCheckDoses((prev) =>
@@ -130,6 +134,7 @@ export default function HomePage() {
     <div className="min-h-screen text-white">
       <Header />
       <main className="max-w-7xl mx-auto px-4 py-8">
+        <ViewAsSelector />
 
         {/* Low Stock Alert Bar */}
         {lowStockMedicines.length > 0 && !alertDismissed && (
@@ -241,30 +246,38 @@ export default function HomePage() {
 
                   {/* Footer: Done and Missed Buttons */}
                   <div className="mt-6 flex items-center gap-2">
-                    <button
-                      disabled={!isChecked || !!buttonLoading}
-                      onClick={() => handleDeleteDose(dose._id!, item._id)}
-                      className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold uppercase text-[11px] sm:text-xs tracking-wider transition-all duration-200 
-                        ${isChecked
-                          ? "bg-[#03e9f4] text-black shadow-lg shadow-[#03e9f4]/20 hover:scale-[1.02] active:scale-95 cursor-pointer"
-                          : "bg-gray-800 text-gray-500 cursor-not-allowed"}`}
-                    >
-                      {buttonLoading === dose?._id && (
-                        <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-black border-t-transparent" />
-                      )}
-                      Mark Done
-                    </button>
+                    {canInteract ? (
+                      <>
+                        <button
+                          disabled={!isChecked || !!buttonLoading}
+                          onClick={() => handleDeleteDose(dose._id!, item._id)}
+                          className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold uppercase text-[11px] sm:text-xs tracking-wider transition-all duration-200 
+                            ${isChecked
+                              ? "bg-[#03e9f4] text-black shadow-lg shadow-[#03e9f4]/20 hover:scale-[1.02] active:scale-95 cursor-pointer"
+                              : "bg-gray-800 text-gray-500 cursor-not-allowed"}`}
+                        >
+                          {buttonLoading === dose?._id && (
+                            <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-black border-t-transparent" />
+                          )}
+                          Mark Done
+                        </button>
 
-                    <button
-                      type="button"
-                      disabled={!!buttonLoading}
-                      onClick={() => handleOpenMissedModal(item, dose)}
-                      className="px-3 py-2.5 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20 hover:border-amber-500/60 font-semibold text-[11px] sm:text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
-                      title="Reschedule or skip this dose"
-                    >
-                      <FaCalendarTimes className="text-xs" />
-                      <span>Missed</span>
-                    </button>
+                        <button
+                          type="button"
+                          disabled={!!buttonLoading}
+                          onClick={() => handleOpenMissedModal(item, dose)}
+                          className="px-3 py-2.5 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20 hover:border-amber-500/60 font-semibold text-[11px] sm:text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
+                          title="Reschedule or skip this dose"
+                        >
+                          <FaCalendarTimes className="text-xs" />
+                          <span>Missed</span>
+                        </button>
+                      </>
+                    ) : (
+                      <div className="w-full py-2.5 rounded-xl bg-white/5 border border-white/10 text-center text-xs text-gray-500 font-medium">
+                        👁️ View only — no interactions
+                      </div>
+                    )}
                   </div>
                 </div>
               );

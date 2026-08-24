@@ -8,6 +8,7 @@ import { FaBars, FaTimes, FaUserCircle, FaSignOutAlt, FaSignInAlt } from "react-
 import { useSession, signOut } from "next-auth/react";
 import { useAppDispatch } from "@/store/hooks";
 import { clearMedicines } from "@/store/medicineSlice";
+import { clearCollaborations, clearViewAs } from "@/store/sharingSlice";
 
 const Header = () => {
   const dispatch = useAppDispatch();
@@ -21,6 +22,7 @@ const Header = () => {
     { name: "Medicines", path: "/Medicines" },
     // { name: "Caring", path: "/Caring" },
     { name: "Calendar", path: "/History" },
+    { name: "Sharing", path: "/Sharing" },
   ];
 
   return (
@@ -67,6 +69,8 @@ const Header = () => {
               <button
                 onClick={() => {
                   dispatch(clearMedicines());
+                  dispatch(clearViewAs());
+                  dispatch(clearCollaborations());
                   signOut({ callbackUrl: "/login" });
                 }}
                 className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 bg-red-500/20 text-red-400 border border-red-500/30 rounded-lg hover:bg-red-500/30 transition-all cursor-pointer"
@@ -129,6 +133,8 @@ const Header = () => {
                   onClick={() => {
                     setOpen(false);
                     dispatch(clearMedicines());
+                  dispatch(clearViewAs());
+                  dispatch(clearCollaborations());
                     signOut({ callbackUrl: "/login" });
                   }}
                   className="w-full py-2 bg-red-500/20 text-red-400 border border-red-500/30 rounded-lg text-xs font-semibold hover:bg-red-500/30 transition-all flex items-center justify-center gap-2 cursor-pointer"
