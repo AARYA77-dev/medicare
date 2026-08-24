@@ -61,11 +61,7 @@ const MedicinePage = () => {
   const [weeklyOverrideDose, setWeeklyOverrideDose] = useState<string>("2");
   const [weeklyDays, setWeeklyDays] = useState<number[]>([1]); // default: Monday
 
-  // Ref holding the latest snapshot of values read by the scheduleType-sync effect.
-  // Using a ref lets the effect always see fresh values without those variables
-  // becoming dependencies (which would cause the sync to re-fire on every keystroke).
-  const syncValuesRef = useRef({ alternateCycle, singleTime, weeklyDefaultDose, weeklyOverrideDose, weeklyDays, setFieldValue });
-  syncValuesRef.current = { alternateCycle, singleTime, weeklyDefaultDose, weeklyOverrideDose, weeklyDays, setFieldValue };
+  const syncValuesRef = useRef({ alternateCycle, singleTime, weeklyDefaultDose, weeklyOverrideDose, weeklyDays, setFieldValue: (_f: string, _v: unknown) => { } });
 
   // Sync dosage_pattern and times_days when mode changes or values change
   const handleScheduleTypeChange = (type: ScheduleType) => {
@@ -223,6 +219,7 @@ const MedicinePage = () => {
   const uniqueDoses = getUniqueDoses();
 
   const { errors, values, handleBlur, touched, handleChange, handleSubmit, setFieldValue } = useFormik<Medicines>({
+
     validationSchema: MedicineSchema,
     initialValues,
     onSubmit: async (formValues, { resetForm }) => {
@@ -260,6 +257,9 @@ const MedicinePage = () => {
       }
     }
   });
+
+  syncValuesRef.current = { alternateCycle, singleTime, weeklyDefaultDose, weeklyOverrideDose, weeklyDays, setFieldValue };
+
 
   // Keep daily time slots synchronized with frequency
   useEffect(() => {
@@ -489,503 +489,499 @@ const MedicinePage = () => {
       <form onSubmit={handleSubmit}>
         <div className="flex flex-col lg:flex-row gap-6 px-3 sm:px-6">
           {canEdit ? (
-          <div className="flex flex-col border border-white/10 rounded-2xl bg-white/5 backdrop-blur-md w-full lg:w-[48%] xl:w-[32%] mx-auto items-center shadow-2xl px-4 sm:px-8 py-4">
+            <div className="flex flex-col border border-white/10 rounded-2xl bg-white/5 backdrop-blur-md w-full lg:w-[48%] xl:w-[32%] mx-auto items-center shadow-2xl px-4 sm:px-8 py-4">
 
-            {/* Medicine Name */}
-            <div className="w-full">
-              <label htmlFor="medicine_name" className='mt-2 font-bold block text-sm'>Medicine Name:</label>
-              <input
-                className='w-full bg-black placeholder-[#03e9f4] rounded-md border-2 border-[#03e9f4] px-3 py-2 mt-1'
-                type='text'
-                placeholder='Enter Medicine name'
-                name='medicine_name'
-                onBlur={handleBlur}
-                value={values.medicine_name}
-                onChange={handleChange}
-                id='medicine_name'
-              />
-              {errors.medicine_name && touched.medicine_name && <p className='text-red-500 text-xs mt-1'>{errors.medicine_name}</p>}
-            </div>
-
-            {/* Schedule Pattern Selector */}
-            <div className="w-full mt-4">
-              <label className="font-bold block text-sm mb-1.5">Schedule Pattern:</label>
-              <div className="grid grid-cols-3 gap-1.5 bg-black/60 p-1.5 rounded-xl border border-white/10">
-                <button
-                  type="button"
-                  onClick={() => handleScheduleTypeChange('daily')}
-                  className={`py-2 px-1 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1 cursor-pointer ${
-                    scheduleType === 'daily'
-                      ? 'bg-[#03e9f4] text-black font-bold shadow-md'
-                      : 'text-gray-400 hover:text-white hover:bg-white/5'
-                  }`}
-                >
-                  <span>📅 Daily</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleScheduleTypeChange('alternate')}
-                  className={`py-2 px-1 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1 cursor-pointer ${
-                    scheduleType === 'alternate'
-                      ? 'bg-[#03e9f4] text-black font-bold shadow-md'
-                      : 'text-gray-400 hover:text-white hover:bg-white/5'
-                  }`}
-                >
-                  <span>🔄 Alternate</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleScheduleTypeChange('weekly')}
-                  className={`py-2 px-1 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1 cursor-pointer ${
-                    scheduleType === 'weekly'
-                      ? 'bg-[#03e9f4] text-black font-bold shadow-md'
-                      : 'text-gray-400 hover:text-white hover:bg-white/5'
-                  }`}
-                >
-                  <span>🗓️ Weekdays</span>
-                </button>
+              {/* Medicine Name */}
+              <div className="w-full">
+                <label htmlFor="medicine_name" className='mt-2 font-bold block text-sm'>Medicine Name:</label>
+                <input
+                  className='w-full bg-black placeholder-[#03e9f4] rounded-md border-2 border-[#03e9f4] px-3 py-2 mt-1'
+                  type='text'
+                  placeholder='Enter Medicine name'
+                  name='medicine_name'
+                  onBlur={handleBlur}
+                  value={values.medicine_name}
+                  onChange={handleChange}
+                  id='medicine_name'
+                />
+                {errors.medicine_name && touched.medicine_name && <p className='text-red-500 text-xs mt-1'>{errors.medicine_name}</p>}
               </div>
-            </div>
 
-            {/* -------------------- MODE 1: DAILY / EVERY DAY -------------------- */}
-            {scheduleType === "daily" && (
-              <div className="w-full mt-3 space-y-3">
-                <div>
-                  <label htmlFor="frequency" className='font-bold block text-sm'>Frequency (Times Per Day):</label>
-                  <input
-                    onChange={handleChange}
-                    onBlur={handleBlur}
-                    value={values.frequency}
-                    className='w-full bg-black placeholder-[#03e9f4] rounded-md border-2 border-[#03e9f4] px-3 py-2 mt-1'
-                    pattern='^[0-9]+$'
-                    type='number'
-                    min="1"
-                    max="9"
-                    id='frequency'
-                    name='frequency'
-                    placeholder='1'
-                  />
-                  {errors.frequency && touched.frequency && <p className='text-red-500 text-xs mt-1'>{errors.frequency}</p>}
+              {/* Schedule Pattern Selector */}
+              <div className="w-full mt-4">
+                <label className="font-bold block text-sm mb-1.5">Schedule Pattern:</label>
+                <div className="grid grid-cols-3 gap-1.5 bg-black/60 p-1.5 rounded-xl border border-white/10">
+                  <button
+                    type="button"
+                    onClick={() => handleScheduleTypeChange('daily')}
+                    className={`py-2 px-1 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1 cursor-pointer ${scheduleType === 'daily'
+                      ? 'bg-[#03e9f4] text-black font-bold shadow-md'
+                      : 'text-gray-400 hover:text-white hover:bg-white/5'
+                      }`}
+                  >
+                    <span>📅 Daily</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleScheduleTypeChange('alternate')}
+                    className={`py-2 px-1 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1 cursor-pointer ${scheduleType === 'alternate'
+                      ? 'bg-[#03e9f4] text-black font-bold shadow-md'
+                      : 'text-gray-400 hover:text-white hover:bg-white/5'
+                      }`}
+                  >
+                    <span>🔄 Alternate</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleScheduleTypeChange('weekly')}
+                    className={`py-2 px-1 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1 cursor-pointer ${scheduleType === 'weekly'
+                      ? 'bg-[#03e9f4] text-black font-bold shadow-md'
+                      : 'text-gray-400 hover:text-white hover:bg-white/5'
+                      }`}
+                  >
+                    <span>🗓️ Weekdays</span>
+                  </button>
                 </div>
+              </div>
 
-                <div>
-                  <label className='font-bold block text-sm'>Dosage Strength (mg):</label>
-                  <div className="space-y-2 mt-1.5">
-                    {dosageList.map((dose, idx) => (
-                      <div key={idx} className="flex items-center gap-2">
-                        {dosageList.length > 1 && (
-                          <span className="text-xs text-gray-400 font-mono min-w-[50px]">
-                            Dose {idx + 1}:
-                          </span>
-                        )}
-                        <div className="relative flex-1">
-                          <input
-                            type="number"
-                            min="0.1"
-                            step="any"
-                            placeholder={idx === 0 ? "e.g. 5" : "e.g. 10"}
-                            value={dose}
-                            onChange={(e) => handleDosageChange(idx, e.target.value)}
-                            onBlur={handleBlur}
-                            className="w-full bg-black placeholder-gray-500 rounded-md border-2 border-[#03e9f4] px-3 py-2 pr-10 text-sm"
-                          />
-                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#03e9f4] font-semibold">
-                            mg
-                          </span>
+              {/* -------------------- MODE 1: DAILY / EVERY DAY -------------------- */}
+              {scheduleType === "daily" && (
+                <div className="w-full mt-3 space-y-3">
+                  <div>
+                    <label htmlFor="frequency" className='font-bold block text-sm'>Frequency (Times Per Day):</label>
+                    <input
+                      onChange={handleChange}
+                      onBlur={handleBlur}
+                      value={values.frequency}
+                      className='w-full bg-black placeholder-[#03e9f4] rounded-md border-2 border-[#03e9f4] px-3 py-2 mt-1'
+                      pattern='^[0-9]+$'
+                      type='number'
+                      min="1"
+                      max="9"
+                      id='frequency'
+                      name='frequency'
+                      placeholder='1'
+                    />
+                    {errors.frequency && touched.frequency && <p className='text-red-500 text-xs mt-1'>{errors.frequency}</p>}
+                  </div>
+
+                  <div>
+                    <label className='font-bold block text-sm'>Dosage Strength (mg):</label>
+                    <div className="space-y-2 mt-1.5">
+                      {dosageList.map((dose, idx) => (
+                        <div key={idx} className="flex items-center gap-2">
+                          {dosageList.length > 1 && (
+                            <span className="text-xs text-gray-400 font-mono min-w-[50px]">
+                              Dose {idx + 1}:
+                            </span>
+                          )}
+                          <div className="relative flex-1">
+                            <input
+                              type="number"
+                              min="0.1"
+                              step="any"
+                              placeholder={idx === 0 ? "e.g. 5" : "e.g. 10"}
+                              value={dose}
+                              onChange={(e) => handleDosageChange(idx, e.target.value)}
+                              onBlur={handleBlur}
+                              className="w-full bg-black placeholder-gray-500 rounded-md border-2 border-[#03e9f4] px-3 py-2 pr-10 text-sm"
+                            />
+                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#03e9f4] font-semibold">
+                              mg
+                            </span>
+                          </div>
+                          {dosageList.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveDosage(idx)}
+                              className="text-red-400 hover:text-red-300 p-2 rounded hover:bg-red-500/10 cursor-pointer transition-colors"
+                              title="Remove this dose"
+                            >
+                              <FaTrash className="text-xs" />
+                            </button>
+                          )}
                         </div>
-                        {dosageList.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveDosage(idx)}
-                            className="text-red-400 hover:text-red-300 p-2 rounded hover:bg-red-500/10 cursor-pointer transition-colors"
-                            title="Remove this dose"
-                          >
-                            <FaTrash className="text-xs" />
-                          </button>
-                        )}
-                      </div>
-                    ))}
+                      ))}
 
-                    {isMultiFreq && (
+                      {isMultiFreq && (
+                        <button
+                          type="button"
+                          onClick={handleAddDosage}
+                          className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg border border-dashed border-[#03e9f4]/60 text-[#03e9f4] text-xs font-semibold hover:bg-[#03e9f4]/15 transition-colors cursor-pointer active:scale-98"
+                        >
+                          <FaPlus className="text-xs" />
+                          Add Variant Dosage Strength
+                        </button>
+                      )}
+                    </div>
+                    {errors.dosage_pattern && touched.dosage_pattern && <p className='text-red-500 text-xs mt-1'>{errors.dosage_pattern}</p>}
+                  </div>
+
+                  {/* Daily Time Slots */}
+                  <div>
+                    <div className='flex items-center justify-between mb-1.5'>
+                      <label className='font-bold text-sm'>Dose Time{parseInt(values.frequency) > 1 ? 's' : ''}:</label>
+                      <span className='text-xs text-gray-400'>
+                        ({values.frequency ? `${values.frequency} time${parseInt(values.frequency) > 1 ? 's' : ''}/day` : '1 time/day'})
+                      </span>
+                    </div>
+
+                    <div className="space-y-2.5">
+                      {Array.from({ length: Math.max(1, parseInt(values.frequency) || 1) }).map((_, idx) => {
+                        const selectedDoseIdx = timeDoseIndices[idx] ?? (idx % Math.max(1, dosageList.length));
+
+                        return (
+                          <div
+                            key={idx}
+                            className="p-2.5 bg-black/40 border border-[#03e9f4]/40 rounded-lg space-y-2 transition-all hover:border-[#03e9f4]"
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-bold text-[#03e9f4] uppercase tracking-wider">
+                                Time Slot #{idx + 1}
+                              </span>
+                              {timeList[idx] && (
+                                <span className="text-xs text-[#03e9f4] font-mono">
+                                  {(() => {
+                                    const [h, m] = (timeList[idx] || "00:00").split(":");
+                                    const hr = parseInt(h);
+                                    const ampm = hr >= 12 ? "PM" : "AM";
+                                    const hr12 = hr % 12 || 12;
+                                    return `${hr12}:${m} ${ampm}`;
+                                  })()}
+                                </span>
+                              )}
+                            </div>
+
+                            <div className={`grid ${showDoseSelector ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'} gap-2 items-center`}>
+                              <div>
+                                <label className="block text-[11px] text-gray-400 mb-1">Time:</label>
+                                <input
+                                  type="time"
+                                  value={timeList[idx] ?? ""}
+                                  onChange={(e) => handleTimeChange(idx, e.target.value)}
+                                  onBlur={handleBlur}
+                                  className="w-full bg-black text-white rounded-md border-2 border-[#03e9f4] px-3 py-1.5 text-sm [color-scheme:dark]"
+                                />
+                              </div>
+
+                              {/* NOTE: "Which Dose?" dropdown only renders if multi-frequency AND multi-dose */}
+                              {showDoseSelector && (
+                                <div>
+                                  <label className="block text-[11px] text-gray-400 mb-1">Which Dose?</label>
+                                  <select
+                                    value={selectedDoseIdx}
+                                    onChange={(e) => handleTimeDoseChange(idx, Number(e.target.value))}
+                                    className="w-full bg-black text-white rounded-md border-2 border-[#03e9f4] px-2.5 py-2 text-sm cursor-pointer"
+                                  >
+                                    {dosageList.map((dose, dIdx) => (
+                                      <option key={dIdx} value={dIdx} className="bg-black text-white">
+                                        Dose {dIdx + 1}: {dose ? `${dose}mg` : "(empty)"}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    {errors.times_days && touched.times_days && <p className='text-red-500 text-xs mt-1'>{errors.times_days}</p>}
+                  </div>
+                </div>
+              )}
+
+              {/* -------------------- MODE 2: ALTERNATING DAYS -------------------- */}
+              {scheduleType === "alternate" && (
+                <div className="w-full mt-3 space-y-3">
+                  <div className="p-2.5 bg-[#03e9f4]/10 border border-[#03e9f4]/30 rounded-lg text-xs text-gray-300">
+                    <p className="font-semibold text-[#03e9f4] mb-0.5">🔄 Alternating Day Cycle</p>
+                    <p>Takes 1 dose per day, automatically alternating doses across consecutive days.</p>
+                  </div>
+
+                  <div>
+                    <label className="font-bold block text-sm mb-1.5">Cycle Dosage Sequence (mg):</label>
+                    <div className="space-y-2">
+                      {alternateCycle.map((dose, idx) => (
+                        <div key={idx} className="flex items-center gap-2">
+                          <span className="text-xs text-[#03e9f4] font-mono min-w-[55px] font-bold">
+                            Day {idx + 1}:
+                          </span>
+                          <div className="relative flex-1">
+                            <input
+                              type="number"
+                              min="0.1"
+                              step="any"
+                              placeholder={`e.g. ${idx % 2 === 0 ? "2" : "3"}`}
+                              value={dose}
+                              onChange={(e) => handleAlternateCycleChange(idx, e.target.value)}
+                              className="w-full bg-black placeholder-gray-500 rounded-md border-2 border-[#03e9f4] px-3 py-2 pr-10 text-sm"
+                            />
+                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#03e9f4] font-semibold">
+                              mg
+                            </span>
+                          </div>
+                          {alternateCycle.length > 2 && (
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveAlternateDay(idx)}
+                              className="text-red-400 hover:text-red-300 p-2 rounded hover:bg-red-500/10 cursor-pointer transition-colors"
+                              title="Remove cycle day"
+                            >
+                              <FaTrash className="text-xs" />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+
                       <button
                         type="button"
-                        onClick={handleAddDosage}
+                        onClick={handleAddAlternateDay}
                         className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg border border-dashed border-[#03e9f4]/60 text-[#03e9f4] text-xs font-semibold hover:bg-[#03e9f4]/15 transition-colors cursor-pointer active:scale-98"
                       >
                         <FaPlus className="text-xs" />
-                        Add Variant Dosage Strength
+                        Add More Days in Cycle
                       </button>
-                    )}
-                  </div>
-                  {errors.dosage_pattern && touched.dosage_pattern && <p className='text-red-500 text-xs mt-1'>{errors.dosage_pattern}</p>}
-                </div>
-
-                {/* Daily Time Slots */}
-                <div>
-                  <div className='flex items-center justify-between mb-1.5'>
-                    <label className='font-bold text-sm'>Dose Time{parseInt(values.frequency) > 1 ? 's' : ''}:</label>
-                    <span className='text-xs text-gray-400'>
-                      ({values.frequency ? `${values.frequency} time${parseInt(values.frequency) > 1 ? 's' : ''}/day` : '1 time/day'})
-                    </span>
+                    </div>
                   </div>
 
-                  <div className="space-y-2.5">
-                    {Array.from({ length: Math.max(1, parseInt(values.frequency) || 1) }).map((_, idx) => {
-                      const selectedDoseIdx = timeDoseIndices[idx] ?? (idx % Math.max(1, dosageList.length));
-
-                      return (
-                        <div
-                          key={idx}
-                          className="p-2.5 bg-black/40 border border-[#03e9f4]/40 rounded-lg space-y-2 transition-all hover:border-[#03e9f4]"
-                        >
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs font-bold text-[#03e9f4] uppercase tracking-wider">
-                              Time Slot #{idx + 1}
-                            </span>
-                            {timeList[idx] && (
-                              <span className="text-xs text-[#03e9f4] font-mono">
-                                {(() => {
-                                  const [h, m] = (timeList[idx] || "00:00").split(":");
-                                  const hr = parseInt(h);
-                                  const ampm = hr >= 12 ? "PM" : "AM";
-                                  const hr12 = hr % 12 || 12;
-                                  return `${hr12}:${m} ${ampm}`;
-                                })()}
-                              </span>
-                            )}
-                          </div>
-
-                          <div className={`grid ${showDoseSelector ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'} gap-2 items-center`}>
-                            <div>
-                              <label className="block text-[11px] text-gray-400 mb-1">Time:</label>
-                              <input
-                                type="time"
-                                value={timeList[idx] ?? ""}
-                                onChange={(e) => handleTimeChange(idx, e.target.value)}
-                                onBlur={handleBlur}
-                                className="w-full bg-black text-white rounded-md border-2 border-[#03e9f4] px-3 py-1.5 text-sm [color-scheme:dark]"
-                              />
-                            </div>
-
-                            {/* NOTE: "Which Dose?" dropdown only renders if multi-frequency AND multi-dose */}
-                            {showDoseSelector && (
-                              <div>
-                                <label className="block text-[11px] text-gray-400 mb-1">Which Dose?</label>
-                                <select
-                                  value={selectedDoseIdx}
-                                  onChange={(e) => handleTimeDoseChange(idx, Number(e.target.value))}
-                                  className="w-full bg-black text-white rounded-md border-2 border-[#03e9f4] px-2.5 py-2 text-sm cursor-pointer"
-                                >
-                                  {dosageList.map((dose, dIdx) => (
-                                    <option key={dIdx} value={dIdx} className="bg-black text-white">
-                                      Dose {dIdx + 1}: {dose ? `${dose}mg` : "(empty)"}
-                                    </option>
-                                  ))}
-                                </select>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                  {errors.times_days && touched.times_days && <p className='text-red-500 text-xs mt-1'>{errors.times_days}</p>}
-                </div>
-              </div>
-            )}
-
-            {/* -------------------- MODE 2: ALTERNATING DAYS -------------------- */}
-            {scheduleType === "alternate" && (
-              <div className="w-full mt-3 space-y-3">
-                <div className="p-2.5 bg-[#03e9f4]/10 border border-[#03e9f4]/30 rounded-lg text-xs text-gray-300">
-                  <p className="font-semibold text-[#03e9f4] mb-0.5">🔄 Alternating Day Cycle</p>
-                  <p>Takes 1 dose per day, automatically alternating doses across consecutive days.</p>
-                </div>
-
-                <div>
-                  <label className="font-bold block text-sm mb-1.5">Cycle Dosage Sequence (mg):</label>
-                  <div className="space-y-2">
-                    {alternateCycle.map((dose, idx) => (
-                      <div key={idx} className="flex items-center gap-2">
-                        <span className="text-xs text-[#03e9f4] font-mono min-w-[55px] font-bold">
-                          Day {idx + 1}:
-                        </span>
-                        <div className="relative flex-1">
-                          <input
-                            type="number"
-                            min="0.1"
-                            step="any"
-                            placeholder={`e.g. ${idx % 2 === 0 ? "2" : "3"}`}
-                            value={dose}
-                            onChange={(e) => handleAlternateCycleChange(idx, e.target.value)}
-                            className="w-full bg-black placeholder-gray-500 rounded-md border-2 border-[#03e9f4] px-3 py-2 pr-10 text-sm"
-                          />
-                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#03e9f4] font-semibold">
-                            mg
-                          </span>
-                        </div>
-                        {alternateCycle.length > 2 && (
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveAlternateDay(idx)}
-                            className="text-red-400 hover:text-red-300 p-2 rounded hover:bg-red-500/10 cursor-pointer transition-colors"
-                            title="Remove cycle day"
-                          >
-                            <FaTrash className="text-xs" />
-                          </button>
-                        )}
-                      </div>
-                    ))}
-
-                    <button
-                      type="button"
-                      onClick={handleAddAlternateDay}
-                      className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg border border-dashed border-[#03e9f4]/60 text-[#03e9f4] text-xs font-semibold hover:bg-[#03e9f4]/15 transition-colors cursor-pointer active:scale-98"
-                    >
-                      <FaPlus className="text-xs" />
-                      Add More Days in Cycle
-                    </button>
-                  </div>
-                </div>
-
-                {/* Time of Dose */}
-                <div>
-                  <label className="block text-sm font-bold mb-1">Time of Dose:</label>
-                  <input
-                    type="time"
-                    value={singleTime}
-                    onChange={(e) => handleSingleTimeChange(e.target.value)}
-                    className="w-full bg-black text-white rounded-md border-2 border-[#03e9f4] px-3 py-2 text-sm [color-scheme:dark]"
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* -------------------- MODE 3: SPECIFIC WEEKDAYS -------------------- */}
-            {scheduleType === "weekly" && (
-              <div className="w-full mt-3 space-y-3">
-                <div className="p-2.5 bg-[#03e9f4]/10 border border-[#03e9f4]/30 rounded-lg text-xs text-gray-300">
-                  <p className="font-semibold text-[#03e9f4] mb-0.5">🗓️ Specific Weekdays Schedule</p>
-                  <p>Takes a different dosage strength on selected days of the week (e.g. 2mg on Monday, 3mg other days).</p>
-                </div>
-
-                {/* Default Dose */}
-                <div>
-                  <label className="block text-sm font-bold mb-1">Default Daily Dose (mg):</label>
-                  <div className="relative">
+                  {/* Time of Dose */}
+                  <div>
+                    <label className="block text-sm font-bold mb-1">Time of Dose:</label>
                     <input
-                      type="number"
-                      min="0.1"
-                      step="any"
-                      placeholder="e.g. 3"
-                      value={weeklyDefaultDose}
-                      onChange={(e) => handleWeeklyDefaultChange(e.target.value)}
-                      className="w-full bg-black placeholder-gray-500 rounded-md border-2 border-[#03e9f4] px-3 py-2 pr-10 text-sm"
+                      type="time"
+                      value={singleTime}
+                      onChange={(e) => handleSingleTimeChange(e.target.value)}
+                      className="w-full bg-black text-white rounded-md border-2 border-[#03e9f4] px-3 py-2 text-sm [color-scheme:dark]"
                     />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#03e9f4] font-semibold">
-                      mg
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-gray-400 mt-1">Applied to regular / unselected days.</p>
-                </div>
-
-                {/* Weekday Selector */}
-                <div>
-                  <label className="block text-sm font-bold mb-1.5">Select Custom Dose Days:</label>
-                  <div className="grid grid-cols-7 gap-1">
-                    {WEEKDAYS.map((wd) => {
-                      const isSelected = weeklyDays.includes(wd.day);
-                      return (
-                        <button
-                          key={wd.day}
-                          type="button"
-                          onClick={() => toggleWeekday(wd.day)}
-                          className={`py-2 text-xs font-bold rounded-lg border transition-all cursor-pointer ${
-                            isSelected
-                              ? 'bg-[#03e9f4] border-[#03e9f4] text-black shadow-md scale-102'
-                              : 'bg-black/50 border-white/20 text-gray-400 hover:border-[#03e9f4]/60 hover:text-white'
-                          }`}
-                          title={wd.full}
-                        >
-                          {wd.label}
-                        </button>
-                      );
-                    })}
                   </div>
                 </div>
+              )}
 
-                {/* Override Dose */}
-                <div>
-                  <label className="block text-sm font-bold mb-1">
-                    Dose on Selected Days ({weeklyDays.map(d => WEEKDAYS.find(w => w.day === d)?.label).join(", ")}):
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="number"
-                      min="0.1"
-                      step="any"
-                      placeholder="e.g. 2"
-                      value={weeklyOverrideDose}
-                      onChange={(e) => handleWeeklyOverrideChange(e.target.value)}
-                      className="w-full bg-black placeholder-gray-500 rounded-md border-2 border-[#03e9f4] px-3 py-2 pr-10 text-sm"
-                    />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#03e9f4] font-semibold">
-                      mg
-                    </span>
+              {/* -------------------- MODE 3: SPECIFIC WEEKDAYS -------------------- */}
+              {scheduleType === "weekly" && (
+                <div className="w-full mt-3 space-y-3">
+                  <div className="p-2.5 bg-[#03e9f4]/10 border border-[#03e9f4]/30 rounded-lg text-xs text-gray-300">
+                    <p className="font-semibold text-[#03e9f4] mb-0.5">🗓️ Specific Weekdays Schedule</p>
+                    <p>Takes a different dosage strength on selected days of the week (e.g. 2mg on Monday, 3mg other days).</p>
                   </div>
-                </div>
 
-                {/* Time of Dose */}
-                <div>
-                  <label className="block text-sm font-bold mb-1">Time of Dose:</label>
-                  <input
-                    type="time"
-                    value={singleTime}
-                    onChange={(e) => handleSingleTimeChange(e.target.value)}
-                    className="w-full bg-black text-white rounded-md border-2 border-[#03e9f4] px-3 py-2 text-sm [color-scheme:dark]"
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* Multiple Dosage Separation Question */}
-            {uniqueDoses.length > 1 && (
-              <div className="w-full mt-4 p-3 bg-white/5 border border-[#03e9f4]/40 rounded-lg transition-all">
-                <label className="flex items-start gap-2.5 cursor-pointer text-xs sm:text-sm font-semibold text-white">
-                  <input
-                    type="checkbox"
-                    checked={separateQuantity}
-                    onChange={(e) => {
-                      const checked = e.target.checked;
-                      setSeparateQuantity(checked);
-                      if (checked) {
-                        const initialQuantities: Record<string, string> = {};
-                        uniqueDoses.forEach((dose) => {
-                          initialQuantities[dose] =
-                            typeof values.quantity === 'object' && values.quantity !== null && (values.quantity as Record<string, string>)[dose]
-                              ? String((values.quantity as Record<string, string>)[dose])
-                              : (typeof values.quantity === 'string' ? values.quantity : "");
-                        });
-                        setFieldValue("quantity", initialQuantities);
-                      } else {
-                        const firstVal =
-                          typeof values.quantity === 'object' && values.quantity !== null
-                            ? Object.values(values.quantity as Record<string, string>)[0] || ""
-                            : (typeof values.quantity === 'string' ? values.quantity : "");
-                        setFieldValue("quantity", firstVal);
-                      }
-                    }}
-                    className="mt-0.5 w-4 h-4 rounded cursor-pointer accent-[#03e9f4]"
-                  />
-                  <span>
-                    Separate quantity for each dosage packet ({uniqueDoses.join(", ")})
-                  </span>
-                </label>
-                <p className="text-[11px] text-gray-400 mt-1 pl-6">
-                  Check this if different dosage strengths come in separate medicine packets/bottles.
-                </p>
-              </div>
-            )}
-
-            {/* Quantity Inputs */}
-            {uniqueDoses.length > 1 && separateQuantity ? (
-              <div className="w-full mt-3 space-y-2">
-                <label className="font-bold block text-sm">Quantity per Dosage Variant:</label>
-                {uniqueDoses.map((dose) => {
-                  const qtyMap = (typeof values.quantity === 'object' && values.quantity !== null ? values.quantity : {}) as Record<string, string>;
-                  const qtyVal = qtyMap[dose] ?? "";
-                  return (
-                    <div key={dose} className="flex items-center gap-2">
-                      <span className="min-w-[70px] text-xs font-mono bg-[#03e9f4]/20 border border-[#03e9f4] text-white px-2 py-2 rounded text-center font-bold">
-                        {dose}
-                      </span>
+                  {/* Default Dose */}
+                  <div>
+                    <label className="block text-sm font-bold mb-1">Default Daily Dose (mg):</label>
+                    <div className="relative">
                       <input
                         type="number"
-                        min="0"
-                        max="999"
-                        placeholder={`Pills for ${dose}`}
-                        value={qtyVal}
-                        onChange={(e) => {
-                          const newMap = { ...qtyMap, [dose]: e.target.value };
-                          setFieldValue("quantity", newMap);
-                        }}
-                        onBlur={handleBlur}
-                        name={`quantity_${dose}`}
-                        className="w-full bg-black placeholder-gray-500 rounded-md border-2 border-[#03e9f4] px-3 py-2 text-sm"
+                        min="0.1"
+                        step="any"
+                        placeholder="e.g. 3"
+                        value={weeklyDefaultDose}
+                        onChange={(e) => handleWeeklyDefaultChange(e.target.value)}
+                        className="w-full bg-black placeholder-gray-500 rounded-md border-2 border-[#03e9f4] px-3 py-2 pr-10 text-sm"
                       />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#03e9f4] font-semibold">
+                        mg
+                      </span>
                     </div>
-                  );
-                })}
-                {errors.quantity && touched.quantity && (
-                  <p className="text-red-500 text-xs">
-                    {typeof errors.quantity === 'string' ? errors.quantity : "Please enter quantity for each dosage"}
-                  </p>
-                )}
-              </div>
-            ) : (
-              <div className="w-full mt-3">
-                <label htmlFor="quantity" className="font-bold block text-sm">
-                  {uniqueDoses.length === 1 ? `Quantity (${uniqueDoses[0]}):` : "Quantity (Total Pills):"}
-                </label>
-                <input
-                  onChange={(e) => setFieldValue("quantity", e.target.value)}
-                  value={typeof values.quantity === 'string' ? values.quantity : (Object.values(values.quantity || {})[0] ?? "")}
-                  onBlur={handleBlur}
-                  className="w-full bg-black placeholder-[#03e9f4] rounded-md border-2 border-[#03e9f4] px-3 py-2 mt-1"
-                  type="number"
-                  id="quantity"
-                  min="0"
-                  max="999"
-                  placeholder="30"
-                  name="quantity"
-                />
-                {errors.quantity && touched.quantity && (
-                  <p className="text-red-500 text-xs mt-1">{typeof errors.quantity === 'string' ? errors.quantity : "please enter Quantity"}</p>
-                )}
-              </div>
-            )}
+                    <p className="text-[11px] text-gray-400 mt-1">Applied to regular / unselected days.</p>
+                  </div>
 
-            {/* Total Schedule Days & Start Date */}
-            <div className="w-full mt-3">
-              <label htmlFor="number_days" className='font-bold block text-sm'>Course Duration (Days):</label>
-              <input
-                onChange={handleChange}
-                onBlur={handleBlur}
-                value={values.number_days}
-                className='w-full bg-black placeholder-[#03e9f4] rounded-md border-2 border-[#03e9f4] px-3 py-2 mt-1'
-                name='number_days'
-                id='number_days'
-                type='number'
-                placeholder='15'
-              />
-              {errors.number_days && touched.number_days && <p className='text-red-500 text-xs mt-1'>{errors.number_days}</p>}
-            </div>
+                  {/* Weekday Selector */}
+                  <div>
+                    <label className="block text-sm font-bold mb-1.5">Select Custom Dose Days:</label>
+                    <div className="grid grid-cols-7 gap-1">
+                      {WEEKDAYS.map((wd) => {
+                        const isSelected = weeklyDays.includes(wd.day);
+                        return (
+                          <button
+                            key={wd.day}
+                            type="button"
+                            onClick={() => toggleWeekday(wd.day)}
+                            className={`py-2 text-xs font-bold rounded-lg border transition-all cursor-pointer ${isSelected
+                              ? 'bg-[#03e9f4] border-[#03e9f4] text-black shadow-md scale-102'
+                              : 'bg-black/50 border-white/20 text-gray-400 hover:border-[#03e9f4]/60 hover:text-white'
+                              }`}
+                            title={wd.full}
+                          >
+                            {wd.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
 
-            <div className="w-full mt-3">
-              <label htmlFor="startdate" className='font-bold block text-sm'>Start Date:</label>
-              <input
-                onChange={handleChange}
-                value={values.startdate}
-                onBlur={handleBlur}
-                className='w-full bg-black placeholder-[#03e9f4] rounded-md border-2 border-[#03e9f4] px-3 py-2 mt-1'
-                name='startdate'
-                id='startdate'
-                type='date'
-              />
-              {errors.startdate && touched.startdate && <p className='text-red-500 text-xs mt-1'>{errors.startdate}</p>}
-            </div>
+                  {/* Override Dose */}
+                  <div>
+                    <label className="block text-sm font-bold mb-1">
+                      Dose on Selected Days ({weeklyDays.map(d => WEEKDAYS.find(w => w.day === d)?.label).join(", ")}):
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        min="0.1"
+                        step="any"
+                        placeholder="e.g. 2"
+                        value={weeklyOverrideDose}
+                        onChange={(e) => handleWeeklyOverrideChange(e.target.value)}
+                        className="w-full bg-black placeholder-gray-500 rounded-md border-2 border-[#03e9f4] px-3 py-2 pr-10 text-sm"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#03e9f4] font-semibold">
+                        mg
+                      </span>
+                    </div>
+                  </div>
 
-            <button
-              type="submit"
-              disabled={actionLoading}
-              className="w-full flex cursor-pointer justify-center items-center gap-2 bg-[#03e9f4] text-black font-semibold px-4 py-2.5 my-5 rounded-lg shadow-lg active:scale-95 disabled:opacity-50 transition-all hover:bg-[#00c5cf]"
-            >
-              {actionLoading && (
-                <div className="h-[20px] w-[20px] animate-spin rounded-full border-3 border-solid border-black border-r-transparent" />
+                  {/* Time of Dose */}
+                  <div>
+                    <label className="block text-sm font-bold mb-1">Time of Dose:</label>
+                    <input
+                      type="time"
+                      value={singleTime}
+                      onChange={(e) => handleSingleTimeChange(e.target.value)}
+                      className="w-full bg-black text-white rounded-md border-2 border-[#03e9f4] px-3 py-2 text-sm [color-scheme:dark]"
+                    />
+                  </div>
+                </div>
               )}
-              Generate Schedule
-            </button>
-          </div>
+
+              {/* Multiple Dosage Separation Question */}
+              {uniqueDoses.length > 1 && (
+                <div className="w-full mt-4 p-3 bg-white/5 border border-[#03e9f4]/40 rounded-lg transition-all">
+                  <label className="flex items-start gap-2.5 cursor-pointer text-xs sm:text-sm font-semibold text-white">
+                    <input
+                      type="checkbox"
+                      checked={separateQuantity}
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        setSeparateQuantity(checked);
+                        if (checked) {
+                          const initialQuantities: Record<string, string> = {};
+                          uniqueDoses.forEach((dose) => {
+                            initialQuantities[dose] =
+                              typeof values.quantity === 'object' && values.quantity !== null && (values.quantity as Record<string, string>)[dose]
+                                ? String((values.quantity as Record<string, string>)[dose])
+                                : (typeof values.quantity === 'string' ? values.quantity : "");
+                          });
+                          setFieldValue("quantity", initialQuantities);
+                        } else {
+                          const firstVal =
+                            typeof values.quantity === 'object' && values.quantity !== null
+                              ? Object.values(values.quantity as Record<string, string>)[0] || ""
+                              : (typeof values.quantity === 'string' ? values.quantity : "");
+                          setFieldValue("quantity", firstVal);
+                        }
+                      }}
+                      className="mt-0.5 w-4 h-4 rounded cursor-pointer accent-[#03e9f4]"
+                    />
+                    <span>
+                      Separate quantity for each dosage packet ({uniqueDoses.join(", ")})
+                    </span>
+                  </label>
+                  <p className="text-[11px] text-gray-400 mt-1 pl-6">
+                    Check this if different dosage strengths come in separate medicine packets/bottles.
+                  </p>
+                </div>
+              )}
+
+              {/* Quantity Inputs */}
+              {uniqueDoses.length > 1 && separateQuantity ? (
+                <div className="w-full mt-3 space-y-2">
+                  <label className="font-bold block text-sm">Quantity per Dosage Variant:</label>
+                  {uniqueDoses.map((dose) => {
+                    const qtyMap = (typeof values.quantity === 'object' && values.quantity !== null ? values.quantity : {}) as Record<string, string>;
+                    const qtyVal = qtyMap[dose] ?? "";
+                    return (
+                      <div key={dose} className="flex items-center gap-2">
+                        <span className="min-w-[70px] text-xs font-mono bg-[#03e9f4]/20 border border-[#03e9f4] text-white px-2 py-2 rounded text-center font-bold">
+                          {dose}
+                        </span>
+                        <input
+                          type="number"
+                          min="0"
+                          max="999"
+                          placeholder={`Pills for ${dose}`}
+                          value={qtyVal}
+                          onChange={(e) => {
+                            const newMap = { ...qtyMap, [dose]: e.target.value };
+                            setFieldValue("quantity", newMap);
+                          }}
+                          onBlur={handleBlur}
+                          name={`quantity_${dose}`}
+                          className="w-full bg-black placeholder-gray-500 rounded-md border-2 border-[#03e9f4] px-3 py-2 text-sm"
+                        />
+                      </div>
+                    );
+                  })}
+                  {errors.quantity && touched.quantity && (
+                    <p className="text-red-500 text-xs">
+                      {typeof errors.quantity === 'string' ? errors.quantity : "Please enter quantity for each dosage"}
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <div className="w-full mt-3">
+                  <label htmlFor="quantity" className="font-bold block text-sm">
+                    {uniqueDoses.length === 1 ? `Quantity (${uniqueDoses[0]}):` : "Quantity (Total Pills):"}
+                  </label>
+                  <input
+                    onChange={(e) => setFieldValue("quantity", e.target.value)}
+                    value={typeof values.quantity === 'string' ? values.quantity : (Object.values(values.quantity || {})[0] ?? "")}
+                    onBlur={handleBlur}
+                    className="w-full bg-black placeholder-[#03e9f4] rounded-md border-2 border-[#03e9f4] px-3 py-2 mt-1"
+                    type="number"
+                    id="quantity"
+                    min="0"
+                    max="999"
+                    placeholder="30"
+                    name="quantity"
+                  />
+                  {errors.quantity && touched.quantity && (
+                    <p className="text-red-500 text-xs mt-1">{typeof errors.quantity === 'string' ? errors.quantity : "please enter Quantity"}</p>
+                  )}
+                </div>
+              )}
+
+              {/* Total Schedule Days & Start Date */}
+              <div className="w-full mt-3">
+                <label htmlFor="number_days" className='font-bold block text-sm'>Course Duration (Days):</label>
+                <input
+                  onChange={handleChange}
+                  onBlur={handleBlur}
+                  value={values.number_days}
+                  className='w-full bg-black placeholder-[#03e9f4] rounded-md border-2 border-[#03e9f4] px-3 py-2 mt-1'
+                  name='number_days'
+                  id='number_days'
+                  type='number'
+                  placeholder='15'
+                />
+                {errors.number_days && touched.number_days && <p className='text-red-500 text-xs mt-1'>{errors.number_days}</p>}
+              </div>
+
+              <div className="w-full mt-3">
+                <label htmlFor="startdate" className='font-bold block text-sm'>Start Date:</label>
+                <input
+                  onChange={handleChange}
+                  value={values.startdate}
+                  onBlur={handleBlur}
+                  className='w-full bg-black placeholder-[#03e9f4] rounded-md border-2 border-[#03e9f4] px-3 py-2 mt-1'
+                  name='startdate'
+                  id='startdate'
+                  type='date'
+                />
+                {errors.startdate && touched.startdate && <p className='text-red-500 text-xs mt-1'>{errors.startdate}</p>}
+              </div>
+
+              <button
+                type="submit"
+                disabled={actionLoading}
+                className="w-full flex cursor-pointer justify-center items-center gap-2 bg-[#03e9f4] text-black font-semibold px-4 py-2.5 my-5 rounded-lg shadow-lg active:scale-95 disabled:opacity-50 transition-all hover:bg-[#00c5cf]"
+              >
+                {actionLoading && (
+                  <div className="h-[20px] w-[20px] animate-spin rounded-full border-3 border-solid border-black border-r-transparent" />
+                )}
+                Generate Schedule
+              </button>
+            </div>
           ) : (
             <div className="flex flex-col border border-white/10 rounded-2xl bg-white/5 backdrop-blur-md w-full lg:w-[48%] xl:w-[32%] mx-auto items-center justify-center shadow-2xl px-8 py-12 text-center">
               <div className="text-4xl mb-4">👁️</div>
