@@ -2,13 +2,15 @@
 
 import { MedicineSchema } from '@/Schemas/yupSChemas';
 import { useFormik } from 'formik';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { FaArrowLeft, FaPlus, FaTrash } from 'react-icons/fa';
 import axios from 'axios';
 import { Medicines, ScheduleType, Dose, ScheduleEntry } from '@/Interfaces/interface';
 import { useParams, useRouter } from 'next/navigation';
 import Loading from '@/app/loading';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { updateMedicineSchedule } from '@/store/medicineSlice';
 
 const initialValues: Medicines = {
   medicine_name: "",
@@ -35,6 +37,8 @@ const WEEKDAYS = [
 ];
 
 const UpdateMedicine = () => {
+  const dispatch = useAppDispatch();
+  const { medicines } = useAppSelector((state) => state.medicine);
   const [medicineData, setMedicineData] = useState<Medicines>();
   const [loading, setLoading] = useState(false);
   const [buttonLoading, setButtonLoading] = useState(false);
@@ -63,27 +67,6 @@ const UpdateMedicine = () => {
   const handleScheduleTypeChange = (type: ScheduleType) => {
     setScheduleType(type);
     setFieldValue("schedule_type", type);
-
-    if (type === "daily") {
-      const combinedDose = dosageList.filter((d) => d.trim() !== "").join(",");
-      setFieldValue("dosage_pattern", combinedDose);
-      const combinedTime = timeList.filter((t) => t.trim() !== "").join(",");
-      setFieldValue("times_days", combinedTime || "08:00");
-      setFieldValue("frequency", String(timeList.length || 1));
-    } else if (type === "alternate") {
-      const combinedDose = alternateCycle.filter((d) => d.trim() !== "").join(",");
-      setFieldValue("dosage_pattern", combinedDose);
-      setFieldValue("times_days", singleTime || "08:00");
-      setFieldValue("frequency", "1");
-    } else if (type === "weekly") {
-      const doses = Array.from(new Set([weeklyDefaultDose, weeklyOverrideDose])).filter(Boolean);
-      setFieldValue("dosage_pattern", doses.join(","));
-      setFieldValue("times_days", singleTime || "08:00");
-      setFieldValue("frequency", "1");
-      setFieldValue("weekly_default_dose", weeklyDefaultDose);
-      setFieldValue("weekly_override_dose", weeklyOverrideDose);
-      setFieldValue("weekly_days", weeklyDays);
-    }
   };
 
   // Daily Handlers
@@ -91,8 +74,6 @@ const UpdateMedicine = () => {
     const updated = [...dosageList];
     updated[index] = val;
     setDosageList(updated);
-    const combined = updated.filter((d) => d.trim() !== "").join(",");
-    setFieldValue("dosage_pattern", combined);
   };
 
   const handleAddDosage = () => {
@@ -103,9 +84,6 @@ const UpdateMedicine = () => {
     if (dosageList.length <= 1) return;
     const updated = dosageList.filter((_, i) => i !== index);
     setDosageList(updated);
-    const combined = updated.filter((d) => d.trim() !== "").join(",");
-    setFieldValue("dosage_pattern", combined);
-
     setTimeDoseIndices((prev) =>
       prev.map((dIdx) => {
         if (dIdx === index) return 0;
@@ -119,8 +97,6 @@ const UpdateMedicine = () => {
     const updated = [...timeList];
     updated[index] = val;
     setTimeList(updated);
-    const combined = updated.filter((t) => t.trim() !== "").join(",");
-    setFieldValue("times_days", combined);
   };
 
   const handleTimeDoseChange = (timeIndex: number, doseIndex: number) => {
@@ -129,13 +105,11 @@ const UpdateMedicine = () => {
     setTimeDoseIndices(updated);
   };
 
-  // Alternate Handlers
+  // Alternate Mode Handlers
   const handleAlternateCycleChange = (index: number, val: string) => {
     const updated = [...alternateCycle];
     updated[index] = val;
     setAlternateCycle(updated);
-    const combined = updated.filter((d) => d.trim() !== "").join(",");
-    setFieldValue("dosage_pattern", combined);
   };
 
   const handleAddAlternateDay = () => {
@@ -149,46 +123,224 @@ const UpdateMedicine = () => {
     }
     const updated = alternateCycle.filter((_, i) => i !== index);
     setAlternateCycle(updated);
-    const combined = updated.filter((d) => d.trim() !== "").join(",");
-    setFieldValue("dosage_pattern", combined);
   };
 
-  // Weekday Handlers
+  // Weekday Mode Handlers
   const toggleWeekday = (day: number) => {
-    let updated: number[];
     if (weeklyDays.includes(day)) {
       if (weeklyDays.length <= 1) {
         toast.error("Please select at least 1 day for custom dosage");
         return;
       }
-      updated = weeklyDays.filter((d) => d !== day);
+      setWeeklyDays(weeklyDays.filter((d) => d !== day));
     } else {
-      updated = [...weeklyDays, day];
+      setWeeklyDays([...weeklyDays, day]);
     }
-    setWeeklyDays(updated);
-    setFieldValue("weekly_days", updated);
   };
 
-  const handleWeeklyDefaultChange = (val: string) => {
-    setWeeklyDefaultDose(val);
-    setFieldValue("weekly_default_dose", val);
-    const doses = Array.from(new Set([val, weeklyOverrideDose])).filter(Boolean);
-    setFieldValue("dosage_pattern", doses.join(","));
+  const parseDoses = () => {
+    if (scheduleType === "alternate") {
+      return alternateCycle.filter((d) => d.trim() !== "").map((d) => `${d} mg`);
+    }
+    if (scheduleType === "weekly") {
+      return Array.from(new Set([weeklyDefaultDose, weeklyOverrideDose])).filter(Boolean).map((d) => `${d} mg`);
+    }
+    return dosageList.filter((d) => d.trim() !== "").map((d) => `${d} mg`);
   };
 
-  const handleWeeklyOverrideChange = (val: string) => {
-    setWeeklyOverrideDose(val);
-    setFieldValue("weekly_override_dose", val);
-    const doses = Array.from(new Set([weeklyDefaultDose, val])).filter(Boolean);
-    setFieldValue("dosage_pattern", doses.join(","));
+  const parseTimes = () => {
+    if (scheduleType === "alternate" || scheduleType === "weekly") {
+      return [singleTime || "08:00"];
+    }
+    return timeList.filter((t) => t.trim() !== "");
   };
 
-  const handleSingleTimeChange = (val: string) => {
-    setSingleTime(val);
-    setFieldValue("times_days", val);
+  function addDays(date: Date, days: number): Date {
+    const result = new Date(date);
+    result.setDate(result.getDate() + days);
+    return result;
+  }
+
+  const getSchedule = (): ScheduleEntry[] => {
+    const validDoses = parseDoses();
+    const validTimes = parseTimes();
+    const numDays = parseInt(values.number_days) || 1;
+    const start = values.startdate ? new Date(values.startdate) : new Date();
+
+    const result: ScheduleEntry[] = [];
+
+    if (scheduleType === "daily") {
+      for (let i = 0; i < numDays; i++) {
+        const currentDate = addDays(start, i);
+        const dayDoses: Dose[] = validTimes.map((t, tIdx) => {
+          const dIdx = timeDoseIndices[tIdx] !== undefined ? timeDoseIndices[tIdx] : 0;
+          const assignedDose = validDoses[dIdx] || validDoses[0] || "5 mg";
+          return { time: t, dosage: assignedDose };
+        });
+
+        result.push({
+          day: i + 1,
+          date: currentDate.toLocaleDateString(),
+          doses: dayDoses,
+        });
+      }
+    } else if (scheduleType === "alternate") {
+      const cycleLength = validDoses.length || 2;
+      const t = validTimes[0] || "08:00";
+
+      for (let i = 0; i < numDays; i++) {
+        const currentDate = addDays(start, i);
+        const doseForDay = validDoses[i % cycleLength] || "5 mg";
+
+        result.push({
+          day: i + 1,
+          date: currentDate.toLocaleDateString(),
+          doses: [{ time: t, dosage: doseForDay }],
+        });
+      }
+    } else if (scheduleType === "weekly") {
+      const t = validTimes[0] || "08:00";
+      const overrideVal = `${weeklyOverrideDose || "2"} mg`;
+      const defaultVal = `${weeklyDefaultDose || "3"} mg`;
+
+      for (let i = 0; i < numDays; i++) {
+        const currentDate = addDays(start, i);
+        const dayOfWeek = currentDate.getDay();
+        const doseForDay = weeklyDays.includes(dayOfWeek) ? overrideVal : defaultVal;
+
+        result.push({
+          day: i + 1,
+          date: currentDate.toLocaleDateString(),
+          doses: [{ time: t, dosage: doseForDay }],
+        });
+      }
+    }
+
+    return result;
   };
 
-  // Calculate Unique Doses for Quantity
+  const { values, errors, touched, handleBlur, handleChange, handleSubmit, setFieldValue } = useFormik({
+    validationSchema: MedicineSchema,
+    enableReinitialize: true,
+    initialValues: medicineData ?? initialValues,
+    onSubmit: async (formValues) => {
+      setButtonLoading(true);
+      const result = getSchedule();
+      const payload = {
+        ...formValues,
+        schedule_type: scheduleType,
+        weekly_default_dose: scheduleType === 'weekly' ? weeklyDefaultDose : undefined,
+        weekly_override_dose: scheduleType === 'weekly' ? weeklyOverrideDose : undefined,
+        weekly_days: scheduleType === 'weekly' ? weeklyDays : undefined,
+        schedule: result,
+      };
+
+      try {
+        await dispatch(updateMedicineSchedule({ id: id as string, payload })).unwrap();
+        toast.success("Your schedule updated successfully");
+        route.push("/Medicines");
+      } catch (error) {
+        console.log("Error:", error);
+        toast.error("Something went wrong");
+      } finally {
+        setButtonLoading(false);
+      }
+    },
+  });
+
+  const applyMedicineData = useCallback((data: any) => {
+    setMedicineData(data);
+    if (data) {
+      const mode: ScheduleType = data.schedule_type || "daily";
+      setScheduleType(mode);
+
+      if (typeof data.quantity === 'object' && data.quantity !== null) {
+        setSeparateQuantity(true);
+      }
+
+      let splitDoses: string[] = [];
+      if (data.dosage_pattern) {
+        splitDoses = data.dosage_pattern.split(',').map((s: string) => s.trim()).filter(Boolean);
+      }
+
+      if (mode === "alternate") {
+        if (splitDoses.length > 0) setAlternateCycle(splitDoses);
+        if (data.times_days) setSingleTime(data.times_days.split(',')[0] || "08:00");
+      } else if (mode === "weekly") {
+        if (data.weekly_default_dose) setWeeklyDefaultDose(data.weekly_default_dose);
+        if (data.weekly_override_dose) setWeeklyOverrideDose(data.weekly_override_dose);
+        if (data.weekly_days && Array.isArray(data.weekly_days)) setWeeklyDays(data.weekly_days);
+        if (data.times_days) setSingleTime(data.times_days.split(',')[0] || "08:00");
+      } else {
+        setDosageList(splitDoses.length > 0 ? splitDoses : [""]);
+        if (data.times_days) {
+          const splitTimes = data.times_days.split(',').map((s: string) => s.trim()).filter(Boolean);
+          setTimeList(splitTimes.length > 0 ? splitTimes : [""]);
+        }
+        if (data.schedule && data.schedule[0] && data.schedule[0].doses && splitDoses.length > 0) {
+          const initialIndices = data.schedule[0].doses.map((d: any) => {
+            const dNum = parseFloat(d.dosage);
+            const foundIdx = splitDoses.findIndex((sd: string) => parseFloat(sd) === dNum);
+            return foundIdx >= 0 ? foundIdx : 0;
+          });
+          if (initialIndices.length > 0) {
+            setTimeDoseIndices(initialIndices);
+          }
+        }
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (scheduleType === "daily") {
+      const freq = parseInt(values.frequency);
+      if (!isNaN(freq) && freq > 0) {
+        setTimeDoseIndices((prev) => {
+          return Array.from({ length: freq }).map((_, idx) => {
+            if (prev[idx] !== undefined && prev[idx] < Math.max(1, dosageList.length)) {
+              return prev[idx];
+            }
+            return idx < dosageList.length ? idx : 0;
+          });
+        });
+        setTimeList((prev) => {
+          if (prev.length === freq) return prev;
+          return Array.from({ length: freq }).map((_, idx) => prev[idx] || "");
+        });
+      }
+    }
+  }, [values.frequency, dosageList.length, scheduleType]);
+
+  // Load existing medicine data
+  useEffect(() => {
+    const existing = medicines.find((m) => m._id === id);
+    if (existing) {
+      applyMedicineData(existing);
+      return;
+    }
+
+    setLoading(true);
+    axios.get(`/api/medicareDB/${id}`)
+      .then((response) => {
+        const data = response.data.result;
+        applyMedicineData(data);
+      })
+      .catch((error) => {
+        console.log("Error:", error);
+        toast.error("something went wrong");
+      }).finally(() => {
+        setLoading(false);
+      });
+  }, [id, medicines, applyMedicineData]);
+
+  if (loading) {
+    return <Loading />;
+  }
+
+  if (!medicineData) {
+    return null;
+  }
+
   const getUniqueDoses = (): string[] => {
     let doses: string[] = [];
     if (scheduleType === "daily") {
@@ -213,209 +365,6 @@ const UpdateMedicine = () => {
   };
 
   const uniqueDoses = getUniqueDoses();
-
-  const getSchedule = () => {
-    const { frequency, dosage_pattern, times_days, number_days, startdate } = values;
-    const noOFDays = parseInt(number_days) || 1;
-    const [sYear, sMonth, sDay] = startdate.split('-').map(Number);
-    const startDate = new Date(sYear, (sMonth || 1) - 1, sDay || 1);
-    const result: ScheduleEntry[] = [];
-
-    if (scheduleType === "alternate") {
-      const cycle = alternateCycle.map((p) => parseFloat(p.trim())).filter((n) => !isNaN(n));
-      const activeCycle = cycle.length > 0 ? cycle : [parseFloat(dosage_pattern) || 0];
-      const timeVal = singleTime || "08:00";
-
-      for (let i = 0; i < noOFDays; i++) {
-        const currentDate = new Date(startDate);
-        currentDate.setDate(startDate.getDate() + i);
-        const doseVal = activeCycle[i % activeCycle.length] ?? 0;
-        result.push({
-          day: i + 1,
-          date: currentDate.toLocaleDateString(),
-          doses: [
-            {
-              time: timeVal,
-              dosage: `${doseVal}mg`
-            }
-          ]
-        });
-      }
-      return result;
-    }
-
-    if (scheduleType === "weekly") {
-      const defDose = parseFloat(weeklyDefaultDose) || 0;
-      const overDose = parseFloat(weeklyOverrideDose) || defDose;
-      const timeVal = singleTime || "08:00";
-
-      for (let i = 0; i < noOFDays; i++) {
-        const currentDate = new Date(startDate);
-        currentDate.setDate(startDate.getDate() + i);
-        const dayOfWeek = currentDate.getDay(); // 0 = Sun, 1 = Mon, ..., 6 = Sat
-        const isOverride = weeklyDays.includes(dayOfWeek);
-        const doseVal = isOverride ? overDose : defDose;
-
-        result.push({
-          day: i + 1,
-          date: currentDate.toLocaleDateString(),
-          doses: [
-            {
-              time: timeVal,
-              dosage: `${doseVal}mg`
-            }
-          ]
-        });
-      }
-      return result;
-    }
-
-    // Daily Mode
-    const dosagePattern = dosage_pattern.split(",").map((p) => parseFloat(p.trim())).filter((n) => !isNaN(n));
-    const timesOfDays = times_days.split(",").map((p) => p.trim()).filter(Boolean);
-    const freq = parseInt(frequency) || 1;
-
-    for (let i = 0; i < noOFDays; i++) {
-      const currentDate = new Date(startDate);
-      currentDate.setDate(startDate.getDate() + i);
-      let doses: Dose[] = [];
-
-      if (freq === 1) {
-        const doseVal = dosagePattern[0] ?? 0;
-        doses.push({
-          time: timesOfDays[0] || "08:00",
-          dosage: `${doseVal}mg`
-        });
-      } else {
-        doses = timesOfDays.map((time, j) => {
-          const selectedDoseIdx = timeDoseIndices[j] !== undefined ? timeDoseIndices[j] : (j % (dosagePattern.length || 1));
-          const doseVal = dosagePattern[selectedDoseIdx] ?? dosagePattern[0] ?? 0;
-          return {
-            time: time,
-            dosage: `${doseVal}mg`
-          };
-        });
-      }
-
-      result.push({
-        day: i + 1,
-        date: currentDate.toLocaleDateString(),
-        doses
-      });
-    }
-    return result;
-  };
-
-  const { errors, values, handleBlur, touched, handleChange, handleSubmit, setFieldValue } = useFormik<Medicines>({
-    validationSchema: MedicineSchema,
-    enableReinitialize: true,
-    initialValues: medicineData ?? initialValues,
-    onSubmit: (values) => {
-      setButtonLoading(true);
-      const result = getSchedule();
-      axios.put(`/api/medicareDB/${id}`, {
-        ...values,
-        schedule_type: scheduleType,
-        weekly_default_dose: scheduleType === 'weekly' ? weeklyDefaultDose : undefined,
-        weekly_override_dose: scheduleType === 'weekly' ? weeklyOverrideDose : undefined,
-        weekly_days: scheduleType === 'weekly' ? weeklyDays : undefined,
-        schedule: result
-      })
-        .then(() => {
-          toast.success("Your schedule updated successfully");
-          route.push("/Medicines");
-        }).catch((error) => {
-          console.log("Error:", error);
-          toast.error("Something went wrong");
-        }).finally(() => {
-          setButtonLoading(false);
-        });
-    }
-  });
-
-  useEffect(() => {
-    if (scheduleType === "daily") {
-      const freq = parseInt(values.frequency);
-      if (!isNaN(freq) && freq > 0) {
-        setTimeDoseIndices((prev) => {
-          return Array.from({ length: freq }).map((_, idx) => {
-            if (prev[idx] !== undefined && prev[idx] < Math.max(1, dosageList.length)) {
-              return prev[idx];
-            }
-            return idx < dosageList.length ? idx : 0;
-          });
-        });
-        setTimeList((prev) => {
-          if (prev.length === freq) return prev;
-          return Array.from({ length: freq }).map((_, idx) => prev[idx] || "");
-        });
-      }
-    }
-  }, [values.frequency, dosageList.length, scheduleType]);
-
-  // Load existing medicine data
-  useEffect(() => {
-    setLoading(true);
-    axios.get(`/api/medicareDB/${id}`)
-      .then((response) => {
-        const data = response.data.result;
-        setMedicineData(data);
-        if (data) {
-          const mode: ScheduleType = data.schedule_type || "daily";
-          setScheduleType(mode);
-
-          if (typeof data.quantity === 'object' && data.quantity !== null) {
-            setSeparateQuantity(true);
-          }
-
-          let splitDoses: string[] = [];
-          if (data.dosage_pattern) {
-            splitDoses = data.dosage_pattern.split(',').map((s: string) => s.trim()).filter(Boolean);
-          }
-
-          if (mode === "alternate") {
-            if (splitDoses.length > 0) setAlternateCycle(splitDoses);
-            if (data.times_days) setSingleTime(data.times_days.split(',')[0] || "08:00");
-          } else if (mode === "weekly") {
-            if (data.weekly_default_dose) setWeeklyDefaultDose(data.weekly_default_dose);
-            if (data.weekly_override_dose) setWeeklyOverrideDose(data.weekly_override_dose);
-            if (data.weekly_days && Array.isArray(data.weekly_days)) setWeeklyDays(data.weekly_days);
-            if (data.times_days) setSingleTime(data.times_days.split(',')[0] || "08:00");
-          } else {
-            setDosageList(splitDoses.length > 0 ? splitDoses : [""]);
-            if (data.times_days) {
-              const splitTimes = data.times_days.split(',').map((s: string) => s.trim()).filter(Boolean);
-              setTimeList(splitTimes.length > 0 ? splitTimes : [""]);
-            }
-            if (data.schedule && data.schedule[0] && data.schedule[0].doses && splitDoses.length > 0) {
-              const initialIndices = data.schedule[0].doses.map((d: any) => {
-                const dNum = parseFloat(d.dosage);
-                const foundIdx = splitDoses.findIndex((sd: string) => parseFloat(sd) === dNum);
-                return foundIdx >= 0 ? foundIdx : 0;
-              });
-              if (initialIndices.length > 0) {
-                setTimeDoseIndices(initialIndices);
-              }
-            }
-          }
-        }
-      })
-      .catch((error) => {
-        console.log("Error:", error);
-        toast.error("something went wrong");
-      }).finally(() => {
-        setLoading(false);
-      });
-  }, [id]);
-
-  if (loading) {
-    return <Loading />;
-  }
-
-  if (!medicineData) {
-    return null;
-  }
-
   const isMultiFreq = (parseInt(values.frequency) || 1) > 1;
   const isMultiDose = dosageList.length > 1;
   const showDoseSelector = isMultiFreq && isMultiDose;

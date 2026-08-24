@@ -16,8 +16,12 @@ const initialState: MedicineState = {
   error: null,
 };
 
-// Async Thunk: Fetch all medicines
-export const fetchMedicines = createAsyncThunk(
+// Async Thunk: Fetch all medicines (with Redux cache guard)
+export const fetchMedicines = createAsyncThunk<
+  MedicineWithSchedule[],
+  boolean | void,
+  { state: { medicine: MedicineState } }
+>(
   'medicine/fetchMedicines',
   async (_, { rejectWithValue }) => {
     try {
@@ -26,6 +30,16 @@ export const fetchMedicines = createAsyncThunk(
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Failed to fetch medicines');
     }
+  },
+  {
+    condition: (forceReload, { getState }) => {
+      if (forceReload) return true;
+      const { medicine } = getState();
+      // Skip API request if data is already loaded or currently loading
+      if (medicine.medicines.length > 0 || medicine.loading) {
+        return false;
+      }
+    },
   }
 );
 
@@ -38,6 +52,19 @@ export const addMedicineSchedule = createAsyncThunk(
       return response.data.result;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Failed to create schedule');
+    }
+  }
+);
+
+// Async Thunk: Update existing medicine schedule
+export const updateMedicineSchedule = createAsyncThunk(
+  'medicine/updateMedicineSchedule',
+  async ({ id, payload }: { id: string; payload: any }, { rejectWithValue }) => {
+    try {
+      const response = await axios.put(`/api/medicareDB/${id}`, payload);
+      return response.data.result;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to update schedule');
     }
   }
 );
@@ -133,6 +160,23 @@ const medicineSlice = createSlice({
         }
       })
       .addCase(addMedicineSchedule.rejected, (state, action) => {
+        state.actionLoading = false;
+        state.error = action.payload as string;
+      })
+
+      // Update Medicine Schedule
+      .addCase(updateMedicineSchedule.pending, (state) => {
+        state.actionLoading = true;
+      })
+      .addCase(updateMedicineSchedule.fulfilled, (state, action) => {
+        state.actionLoading = false;
+        if (action.payload && action.payload._id) {
+          state.medicines = state.medicines.map((med) =>
+            med._id === action.payload._id ? action.payload : med
+          );
+        }
+      })
+      .addCase(updateMedicineSchedule.rejected, (state, action) => {
         state.actionLoading = false;
         state.error = action.payload as string;
       })

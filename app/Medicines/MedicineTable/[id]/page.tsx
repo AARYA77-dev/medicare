@@ -7,27 +7,34 @@ import { useParams } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import Image from "next/image";
+import { useAppSelector } from '@/store/hooks';
 
 const MedicineTablePage = () => {
+    const { medicines } = useAppSelector((state) => state.medicine);
     const [medicineData, setMedicineData] = useState<MedicineWithSchedule>();
     const [loading, setLoading] = useState(false);
-    const { id } = useParams()
-    console.log(id)
+    const { id } = useParams();
+
     useEffect(() => {
+        const existing = medicines.find((m) => m._id === id);
+        if (existing) {
+            setMedicineData(existing);
+            return;
+        }
+
         setLoading(true);
         axios.get(`/api/medicareDB/${id}`)
             .then((response) => {
-                setMedicineData(response.data.result)
-                console.log(response.data.result, "data collected")
-            }
-            ).catch((error) => {
-                console.log("Error:", error)
-                toast.error("something went wrong")
-            }).finally(() => {
-                setLoading(false);
+                setMedicineData(response.data.result);
             })
-
-    }, [id])
+            .catch((error) => {
+                console.log("Error:", error);
+                toast.error("Something went wrong");
+            })
+            .finally(() => {
+                setLoading(false);
+            });
+    }, [id, medicines]);
 
     if (loading === true) {
         return (<Loading />)
