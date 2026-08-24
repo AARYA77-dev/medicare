@@ -61,7 +61,7 @@ const MedicinePage = () => {
   const [weeklyOverrideDose, setWeeklyOverrideDose] = useState<string>("2");
   const [weeklyDays, setWeeklyDays] = useState<number[]>([1]); // default: Monday
 
-  const syncValuesRef = useRef({ alternateCycle, singleTime, weeklyDefaultDose, weeklyOverrideDose, weeklyDays, setFieldValue: (_f: string, _v: unknown) => { } });
+  const syncValuesRef = useRef({ alternateCycle, singleTime, weeklyDefaultDose, weeklyOverrideDose, weeklyDays, setFieldValue: (() => { }) as (f: string, v: unknown) => void });
 
   // Sync dosage_pattern and times_days when mode changes or values change
   const handleScheduleTypeChange = (type: ScheduleType) => {
@@ -258,8 +258,10 @@ const MedicinePage = () => {
     }
   });
 
-  syncValuesRef.current = { alternateCycle, singleTime, weeklyDefaultDose, weeklyOverrideDose, weeklyDays, setFieldValue };
 
+  useEffect(() => {
+    syncValuesRef.current = { alternateCycle, singleTime, weeklyDefaultDose, weeklyOverrideDose, weeklyDays, setFieldValue };
+  });
 
   // Keep daily time slots synchronized with frequency
   useEffect(() => {
