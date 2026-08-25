@@ -85,7 +85,7 @@ export async function DELETE(request: NextRequest, context: Context) {
       return NextResponse.json({ message: "Dose not found", success: false }, { status: 404 });
     }
     const role = await getEffectiveRole(String(token.id), ownerMed);
-    if (!role || (role !== 'owner' && role !== 'admin')) {
+    if (!role || !['owner', 'admin', 'collaborator'].includes(role)) {
       return NextResponse.json({ message: "Access denied.", success: false }, { status: 403 });
     }
 
