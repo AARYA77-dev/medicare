@@ -63,7 +63,7 @@ export default function ViewAsSelector() {
       <button
         type="button"
         onClick={() => setOpen((p) => !p)}
-        className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl border border-white/10 bg-white/5 backdrop-blur-md hover:border-[#03e9f4]/40 transition-all text-sm font-medium text-white cursor-pointer shadow-lg"
+        className="flex max-w-full min-w-0 items-center gap-2.5 px-4 py-2.5 rounded-xl border border-white/10 bg-white/5 backdrop-blur-md hover:border-[#03e9f4]/40 transition-all text-sm font-medium text-white cursor-pointer shadow-lg"
         aria-label="Switch schedule view"
       >
         {isViewingOwn ? (
@@ -74,18 +74,19 @@ export default function ViewAsSelector() {
         ) : (
           <>
             <FaUsers className="text-amber-400 text-xs" />
-            <span className="text-amber-300 font-semibold">
+            <span className="min-w-0 truncate text-amber-300 font-semibold">
               {viewingOwnerName}&apos;s Schedule
             </span>
             {roleMeta && (
-              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${roleMeta.color}`}>
-                <roleMeta.Icon aria-hidden="true" /> {roleMeta.label}
+              <span className={`inline-flex min-w-0 max-w-[40%] shrink items-center gap-1 overflow-hidden whitespace-nowrap text-[10px] font-bold px-2 py-0.5 rounded-full border ${roleMeta.color}`}>
+                <roleMeta.Icon className="shrink-0" aria-hidden="true" />
+                <span className="truncate">{roleMeta.label}</span>
               </span>
             )}
           </>
         )}
         <FaChevronDown
-          className={`text-gray-400 text-xs ml-auto transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+          className={`ml-auto shrink-0 text-gray-400 text-xs transition-transform duration-200 ${open ? "rotate-180" : ""}`}
         />
       </button>
 
