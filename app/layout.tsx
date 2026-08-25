@@ -32,9 +32,21 @@ export default function RootLayout({
         <StoreProvider>
           <AuthProvider>
             {children}
-            <Toaster toastOptions={{
-              duration: 5000,
-            }} />
+            <Toaster
+              toastOptions={{
+                duration: 5000,
+                style: {
+                  maxWidth: '90vw',
+                  width: 'auto',
+                  whiteSpace: 'normal',
+                  wordBreak: 'break-word',
+                  lineHeight: '1.5',
+                  fontSize: '14px',
+                  padding: '12px 14px',
+                },
+                className: 'sm:max-w-md !whitespace-normal !break-words !text-sm !leading-6',
+              }}
+            />
           </AuthProvider>
         </StoreProvider>
       </body>
