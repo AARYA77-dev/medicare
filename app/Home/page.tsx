@@ -10,7 +10,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchMedicines, deleteDose, resolveMissedDose } from "@/store/medicineSlice";
-import { FaExclamationTriangle, FaArrowRight, FaTimes, FaPills, FaCalendarTimes } from "react-icons/fa";
+import { FaArrowRight, FaCalendarTimes, FaExclamationTriangle, FaEye, FaPills, FaTimes } from "react-icons/fa";
 import MissedDoseModal from "@/components/MissedDoseModal";
 
 
@@ -275,7 +275,7 @@ export default function HomePage() {
                       </>
                     ) : (
                       <div className="w-full py-2.5 rounded-xl bg-white/5 border border-white/10 text-center text-xs text-gray-500 font-medium">
-                        👁️ View only — no interactions
+                        <span className="flex items-center justify-center gap-1"><FaEye aria-hidden="true" /> View only — no interactions</span>
                       </div>
                     )}
                   </div>

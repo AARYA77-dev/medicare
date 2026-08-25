@@ -7,7 +7,7 @@ import { useFormik } from 'formik';
 import Link from 'next/link';
 import React, { useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
-import { FaEdit, FaEllipsisV, FaPlus, FaTrash, FaEye } from 'react-icons/fa';
+import { FaCalendarAlt, FaEdit, FaEllipsisV, FaEye, FaPlus, FaSyncAlt, FaTrash } from 'react-icons/fa';
 import { MedicinePayload, ScheduleEntry, Medicines, Dose, ScheduleType } from '@/Interfaces/interface';
 import Loading from '../loading';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
@@ -521,7 +521,7 @@ const MedicinePage = () => {
                       : 'text-gray-400 hover:text-white hover:bg-white/5'
                       }`}
                   >
-                    <span>📅 Daily</span>
+                    <span className="flex items-center justify-center gap-1"><FaCalendarAlt aria-hidden="true" /> Daily</span>
                   </button>
                   <button
                     type="button"
@@ -531,7 +531,7 @@ const MedicinePage = () => {
                       : 'text-gray-400 hover:text-white hover:bg-white/5'
                       }`}
                   >
-                    <span>🔄 Alternate</span>
+                    <span className="flex items-center justify-center gap-1"><FaSyncAlt aria-hidden="true" /> Alternate</span>
                   </button>
                   <button
                     type="button"
@@ -541,7 +541,7 @@ const MedicinePage = () => {
                       : 'text-gray-400 hover:text-white hover:bg-white/5'
                       }`}
                   >
-                    <span>🗓️ Weekdays</span>
+                    <span className="flex items-center justify-center gap-1"><FaCalendarAlt aria-hidden="true" /> Weekdays</span>
                   </button>
                 </div>
               </div>
@@ -697,7 +697,7 @@ const MedicinePage = () => {
               {scheduleType === "alternate" && (
                 <div className="w-full mt-3 space-y-3">
                   <div className="p-2.5 bg-[#03e9f4]/10 border border-[#03e9f4]/30 rounded-lg text-xs text-gray-300">
-                    <p className="font-semibold text-[#03e9f4] mb-0.5">🔄 Alternating Day Cycle</p>
+                    <p className="flex items-center gap-1 font-semibold text-[#03e9f4] mb-0.5"><FaSyncAlt aria-hidden="true" /> Alternating Day Cycle</p>
                     <p>Takes 1 dose per day, automatically alternating doses across consecutive days.</p>
                   </div>
 
@@ -764,7 +764,7 @@ const MedicinePage = () => {
               {scheduleType === "weekly" && (
                 <div className="w-full mt-3 space-y-3">
                   <div className="p-2.5 bg-[#03e9f4]/10 border border-[#03e9f4]/30 rounded-lg text-xs text-gray-300">
-                    <p className="font-semibold text-[#03e9f4] mb-0.5">🗓️ Specific Weekdays Schedule</p>
+                    <p className="flex items-center gap-1 font-semibold text-[#03e9f4] mb-0.5"><FaCalendarAlt aria-hidden="true" /> Specific Weekdays Schedule</p>
                     <p>Takes a different dosage strength on selected days of the week (e.g. 2mg on Monday, 3mg other days).</p>
                   </div>
 

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import { FaChevronDown, FaUser, FaUsers } from "react-icons/fa";
+import { FaChevronDown, FaCog, FaEye, FaHandshake, FaUser, FaUsers } from "react-icons/fa";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
   fetchMyCollaborations,
@@ -11,10 +11,10 @@ import {
 } from "@/store/sharingSlice";
 import { clearMedicines, fetchMedicines } from "@/store/medicineSlice";
 
-const ROLE_META: Record<CollabRole, { label: string; color: string; emoji: string }> = {
-  readonly: { label: "Viewer", color: "text-blue-400 bg-blue-500/10 border-blue-500/30", emoji: "👁️" },
-  collaborator: { label: "Care Partner", color: "text-emerald-400 bg-emerald-500/10 border-emerald-500/30", emoji: "🤝" },
-  admin: { label: "Co-Manager", color: "text-violet-400 bg-violet-500/10 border-violet-500/30", emoji: "⚙️" },
+const ROLE_META: Record<CollabRole, { label: string; color: string; Icon: typeof FaEye }> = {
+  readonly: { label: "Viewer", color: "text-blue-400 bg-blue-500/10 border-blue-500/30", Icon: FaEye },
+  collaborator: { label: "Care Partner", color: "text-emerald-400 bg-emerald-500/10 border-emerald-500/30", Icon: FaHandshake },
+  admin: { label: "Co-Manager", color: "text-violet-400 bg-violet-500/10 border-violet-500/30", Icon: FaCog },
 };
 
 export default function ViewAsSelector() {
@@ -78,7 +78,7 @@ export default function ViewAsSelector() {
             </span>
             {roleMeta && (
               <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${roleMeta.color}`}>
-                {roleMeta.emoji} {roleMeta.label}
+                <roleMeta.Icon aria-hidden="true" /> {roleMeta.label}
               </span>
             )}
           </>
@@ -121,7 +121,7 @@ export default function ViewAsSelector() {
                   <p className="text-xs text-gray-500 truncate">{c.ownerEmail}</p>
                 </div>
                 <span className={`shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full border ${meta.color}`}>
-                  {meta.emoji} {meta.label}
+                  <meta.Icon aria-hidden="true" /> {meta.label}
                 </span>
                 {isActive && <span className="ml-1 text-[10px] text-amber-400 font-bold">ACTIVE</span>}
               </button>

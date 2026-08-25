@@ -5,7 +5,7 @@ import { ReminderSchema } from "@/Schemas/yupSChemas";
 import { useFormik } from "formik";
 import Link from 'next/link'
 import { useEffect, useRef, useState } from "react";
-import { FaEllipsisV } from "react-icons/fa";
+import { FaChevronDown, FaEllipsisV } from "react-icons/fa";
 
 const initialValues: Reminder = {
     reminder: "",
@@ -50,7 +50,7 @@ const Caring = () => {
                     <div className="dropdown" ref={dropDownRef}>
                         <div className="select-btn" onClick={() => setOpen(!open)}>
                             <span className="selected">{values.ChoiceTypeOfReminder || "Select an option"}</span>
-                            <span className={`arrow ${open ? "rotate" : ""}`}>▼</span>
+                            <FaChevronDown aria-hidden="true" className={`arrow ${open ? "rotate" : ""}`} />
                             <div className={`options ${open ? "show" : ""}`}>
                                 {["day", "date"].map((opt) => (
                                     <div key={opt} className="option" onClick={() => {

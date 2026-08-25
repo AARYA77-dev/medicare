@@ -7,7 +7,7 @@ import toast from "react-hot-toast";
 import {
   FaEnvelope, FaUserPlus, FaUsers, FaInbox, FaTrash,
   FaCheck, FaTimes, FaEye, FaHandshake, FaCog,
-  FaSpinner, FaLink, FaUserShield,
+  FaSpinner, FaLink, FaUserShield, FaArrowsAltV,
 } from "react-icons/fa";
 
 type CollabRole = "readonly" | "collaborator" | "admin";
@@ -215,7 +215,7 @@ export default function SharingPage() {
                 </div>
               ))}
             </div>
-            <p className="text-[11px] text-gray-500 mt-2">Switch between schedules using the ↕ dropdown on any page.</p>
+            <p className="flex items-center gap-1 text-[11px] text-gray-500 mt-2"><FaArrowsAltV aria-hidden="true" /> Switch between schedules using the dropdown on any page.</p>
           </div>
         )}
 
