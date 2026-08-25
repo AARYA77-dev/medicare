@@ -49,33 +49,7 @@ export default function RootLayout({
                 },
                 className: 'sm:max-w-md !whitespace-normal !break-words !text-sm !leading-6',
               }}
-            >
-              {/* {(t) => (
-                <div className="relative flex max-w-[90vw] items-start gap-3 rounded-xl border border-white/10 bg-[#1a1a1a] px-3.5 py-2.5 pr-9 text-sm leading-5 text-white shadow-lg sm:max-w-md">
-                  <div className="flex-1 whitespace-normal break-words">{t.message}</div>
-                  <button
-                    type="button"
-                    onClick={() => toast.dismiss(t.id)}
-                    className="absolute right-2 top-2 rounded-md p-1 text-gray-300 transition hover:text-white"
-                    aria-label="Dismiss notification"
-                  >
-                    <FaTimes size={12} />
-                  </button>
-                </div>
-              )} */}
-
-                 {(t) => (
-                  <button
-                    type="button"
-                    onClick={() => toast.dismiss(t.id)}
-                    className="absolute right-2 top-2 rounded-md p-1 text-gray-300 transition hover:text-white"
-                    aria-label="Dismiss notification"
-                  >
-                    <FaTimes size={12} />
-                  </button>
-              )}
-            </Toaster>
-            
+            />          
           </AuthProvider>
         </StoreProvider>
       </body>
