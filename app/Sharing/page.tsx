@@ -7,7 +7,7 @@ import toast from "react-hot-toast";
 import {
   FaEnvelope, FaUserPlus, FaUsers, FaInbox, FaTrash,
   FaCheck, FaTimes, FaEye, FaHandshake, FaCog,
-  FaSpinner, FaLink, FaUserShield, FaArrowsAltV,
+  FaSpinner, FaLink, FaUserShield, FaArrowsAltV, FaChevronDown,
 } from "react-icons/fa";
 
 type CollabRole = "readonly" | "collaborator" | "admin";
@@ -373,7 +373,7 @@ export default function SharingPage() {
                     const user = c.collaboratorId;
                     const meta = ROLE_META[c.role];
                     return (
-                      <div key={c._id} className="flex items-center gap-4 p-4 border border-white/10 rounded-2xl bg-white/5 backdrop-blur-md hover:border-white/20 transition-all">
+                      <div key={c._id} className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3 p-4 border border-white/10 rounded-2xl bg-white/5 backdrop-blur-md hover:border-white/20 transition-all sm:flex sm:gap-4 sm:p-5">
                         {/* Avatar */}
                         <div className={`w-11 h-11 rounded-full flex items-center justify-center text-base font-bold shrink-0 ${meta.bg} border ${meta.color}`}>
                           {user?.name?.[0]?.toUpperCase() || "?"}
@@ -381,26 +381,35 @@ export default function SharingPage() {
                         <div className="flex-1 min-w-0">
                           <p className="font-semibold text-white truncate">{user?.name}</p>
                           <p className="text-xs text-gray-400 truncate">{user?.email}</p>
-                          <div className="flex flex-wrap items-center gap-2 mt-1.5">
-                            <RoleBadge role={c.role} />
+                          <div className="flex flex-col items-stretch gap-2 mt-2 sm:flex-row sm:flex-wrap sm:items-center">
+                            <div className="flex items-center gap-2">
+                              <RoleBadge role={c.role} />
+                              <span className="text-[10px] text-gray-500 sm:hidden">Access level</span>
+                            </div>
                             <label className="sr-only" htmlFor={`role-${c._id}`}>Change role for {user?.name}</label>
-                            <select
-                              id={`role-${c._id}`}
-                              value={c.role}
-                              onChange={(e) => handleChangeRole(c._id, e.target.value as CollabRole, user?.name || "User")}
-                              disabled={actionId === c._id}
-                              className="bg-black/60 border border-white/20 rounded-lg px-2 py-1 text-[11px] text-gray-200 cursor-pointer disabled:opacity-50"
-                            >
-                              <option value="readonly">Viewer</option>
-                              <option value="collaborator">Care Partner</option>
-                              <option value="admin">Co-Manager</option>
-                            </select>
+                            <div className={`relative w-full sm:w-auto rounded-lg border bg-black/60 transition-colors focus-within:ring-1 focus-within:ring-[#03e9f4]/60 ${meta.color}`}>
+                              <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[11px]" aria-hidden="true">
+                                {meta.icon}
+                              </span>
+                              <select
+                                id={`role-${c._id}`}
+                                value={c.role}
+                                onChange={(e) => handleChangeRole(c._id, e.target.value as CollabRole, user?.name || "User")}
+                                disabled={actionId === c._id}
+                                className="w-full appearance-none cursor-pointer bg-transparent py-2 pl-7 pr-8 text-[11px] font-semibold text-gray-100 outline-none disabled:cursor-not-allowed disabled:opacity-50 sm:w-[135px]"
+                              >
+                                <option className="bg-[#12051a] text-white" value="readonly">Viewer</option>
+                                <option className="bg-[#12051a] text-white" value="collaborator">Care Partner</option>
+                                <option className="bg-[#12051a] text-white" value="admin">Co-Manager</option>
+                              </select>
+                              <FaChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-[#03e9f4]" aria-hidden="true" />
+                            </div>
                           </div>
                         </div>
                         <button
                           onClick={() => handleRemoveCollaborator(c._id, user?.name || "User")}
                           disabled={actionId === c._id}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500/20 text-xs font-semibold transition-all cursor-pointer"
+                          className="col-span-2 flex w-full items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg border border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500/20 text-xs font-semibold transition-all cursor-pointer sm:col-span-1 sm:w-auto sm:shrink-0 sm:py-1.5"
                         >
                           {actionId === c._id ? <FaSpinner className="animate-spin text-xs" /> : <FaTimes className="text-xs" />}
                           Remove
