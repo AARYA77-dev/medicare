@@ -261,8 +261,8 @@ export async function POST(request: NextRequest) {
       success: true,
       message:
         action === 'skip_and_continue'
-          ? "Missed dose skipped for today and appended to the end of schedule (+1 day extended)."
-          : "Missed dose carried forward to tomorrow and schedule shifted (+1 day extended).",
+          ? "Today's missed dose was skipped, and it will be added to the end of the schedule."
+          : "Today's missed dose was moved to tomorrow, and the rest of the schedule was shifted forward by one day.",
       result: medicine,
     });
   } catch (err: unknown) {
