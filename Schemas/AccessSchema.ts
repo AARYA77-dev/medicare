@@ -1,5 +1,6 @@
 import mongoose, { Schema, Document, Model } from "mongoose";
 import { InvitationRole } from "./InvitationSchema";
+import { UserSchema } from "./UserSchema";
 
 export interface IAccess extends Document {
   ownerId: mongoose.Types.ObjectId;
@@ -12,8 +13,8 @@ export interface IAccess extends Document {
 
 const AccessSchemaInternal = new Schema<IAccess>(
   {
-    ownerId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
-    collaboratorId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+    ownerId: { type: Schema.Types.ObjectId, ref: UserSchema, required: true, index: true },
+    collaboratorId: { type: Schema.Types.ObjectId, ref: UserSchema, required: true, index: true },
     role: {
       type: String,
       enum: ['readonly', 'collaborator', 'admin'],

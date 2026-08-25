@@ -1,4 +1,5 @@
 import mongoose, { Schema, Document, Model } from "mongoose";
+import { UserSchema } from "./UserSchema";
 
 export type InvitationRole = 'readonly' | 'collaborator' | 'admin';
 export type InvitationStatus = 'pending' | 'accepted' | 'declined';
@@ -15,9 +16,9 @@ export interface IInvitation extends Document {
 
 const InvitationSchemaInternal = new Schema<IInvitation>(
   {
-    ownerId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+    ownerId: { type: Schema.Types.ObjectId, ref: UserSchema, required: true, index: true },
     inviteeEmail: { type: String, required: true, lowercase: true, trim: true },
-    inviteeId: { type: Schema.Types.ObjectId, ref: 'User', default: null },
+    inviteeId: { type: Schema.Types.ObjectId, ref: UserSchema, default: null },
     role: {
       type: String,
       enum: ['readonly', 'collaborator', 'admin'],
