@@ -34,13 +34,6 @@ const UserPage = () => {
             </div>
 
             <div className="border-t border-white/10 pt-6 space-y-4">
-              <div className="bg-white/5 p-4 rounded-xl border border-white/5">
-                <p className="text-xs text-gray-400 font-medium">Shared Application Access</p>
-                <p className="text-xs text-gray-300 mt-1">
-                  You are logged into the shared Medicare database. All medicines and schedule data are synced across users.
-                </p>
-              </div>
-
               <button
                 onClick={() => signOut({ callbackUrl: "/login" })}
                 className="w-full py-3 px-4 bg-red-500/20 text-red-400 border border-red-500/30 font-semibold rounded-xl hover:bg-red-500/30 transition-all flex items-center justify-center gap-2 text-sm cursor-pointer shadow-lg"
