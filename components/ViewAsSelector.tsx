@@ -61,6 +61,7 @@ export default function ViewAsSelector() {
   return (
     <div ref={ref} className="relative mb-6">
       <button
+        type="button"
         onClick={() => setOpen((p) => !p)}
         className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl border border-white/10 bg-white/5 backdrop-blur-md hover:border-[#03e9f4]/40 transition-all text-sm font-medium text-white cursor-pointer shadow-lg"
         aria-label="Switch schedule view"
@@ -92,6 +93,7 @@ export default function ViewAsSelector() {
         <div className="absolute left-0 top-full mt-2 min-w-[260px] bg-[#0a0a0a]/95 backdrop-blur-2xl border border-[#03e9f4]/20 rounded-xl shadow-2xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
           {/* Own schedule */}
           <button
+            type="button"
             onClick={handleSwitchToOwn}
             className={`w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors text-left cursor-pointer border-b border-white/5
               ${isViewingOwn ? "bg-[#03e9f4]/10 text-[#03e9f4]" : "text-gray-300 hover:bg-white/5"}`}
@@ -111,6 +113,7 @@ export default function ViewAsSelector() {
             return (
               <button
                 key={c.accessId}
+                type="button"
                 onClick={() => handleSwitchTo(c)}
                 className={`w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors text-left cursor-pointer border-b border-white/5 last:border-0
                   ${isActive ? "bg-amber-500/10 text-amber-300" : "text-gray-300 hover:bg-white/5"}`}
