@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { FaChevronDown, FaCog, FaEye, FaHandshake, FaUser, FaUsers } from "react-icons/fa";
+import { useSession } from "next-auth/react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
   fetchMyCollaborations,
@@ -19,6 +20,7 @@ const ROLE_META: Record<CollabRole, { label: string; color: string; Icon: typeof
 
 export default function ViewAsSelector() {
   const dispatch = useAppDispatch();
+  const { status } = useSession();
   const { collaborations, collaborationsLoaded, viewingOwnerId, viewingOwnerName, role } =
     useAppSelector((state) => state.sharing);
 
@@ -26,8 +28,9 @@ export default function ViewAsSelector() {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (status !== "authenticated") return;
     dispatch(fetchMyCollaborations());
-  }, [dispatch]);
+  }, [dispatch, status]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
