@@ -106,8 +106,9 @@ export default function SharingPage() {
         setPendingInvitations(data.result.pendingInvitations || []);
         setMyCollaborations(data.result.myCollaborations || []);
       }
-    } catch {
-      toast.error("Failed to load sharing data");
+    } catch (err: unknown) {
+      const message = axios.isAxiosError(err) ? err.response?.data?.message : undefined;
+      toast.error(message || "Failed to load sharing data");
     } finally {
       setLoading(false);
     }
