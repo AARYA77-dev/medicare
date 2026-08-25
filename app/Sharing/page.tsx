@@ -96,6 +96,7 @@ export default function SharingPage() {
 
   // Action states
   const [actionId, setActionId] = useState<string | null>(null);
+  const [roleChangingId, setRoleChangingId] = useState<string | null>(null);
 
   const fetchData = async () => {
     try {
@@ -173,7 +174,7 @@ export default function SharingPage() {
   };
 
   const handleChangeRole = async (accessId: string, role: CollabRole, name: string) => {
-    setActionId(accessId);
+    setRoleChangingId(accessId);
     try {
       await axios.patch(`/api/sharing/${accessId}`, { role });
       toast.success(`${name}'s access updated to ${ROLE_META[role].label}`);
@@ -182,7 +183,7 @@ export default function SharingPage() {
       const message = axios.isAxiosError(err) ? err.response?.data?.message : undefined;
       toast.error(message || "Failed to update access role");
     } finally {
-      setActionId(null);
+      setRoleChangingId(null);
     }
   };
 
@@ -395,14 +396,18 @@ export default function SharingPage() {
                                 id={`role-${c._id}`}
                                 value={c.role}
                                 onChange={(e) => handleChangeRole(c._id, e.target.value as CollabRole, user?.name || "User")}
-                                disabled={actionId === c._id}
+                                disabled={roleChangingId === c._id}
                                 className="w-full appearance-none cursor-pointer bg-transparent py-2 pl-7 pr-8 text-[11px] font-semibold text-gray-100 outline-none disabled:cursor-not-allowed disabled:opacity-50 sm:w-[135px]"
                               >
                                 <option className="bg-[#12051a] text-white" value="readonly">Viewer</option>
                                 <option className="bg-[#12051a] text-white" value="collaborator">Care Partner</option>
                                 <option className="bg-[#12051a] text-white" value="admin">Co-Manager</option>
                               </select>
-                              <FaChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-[#03e9f4]" aria-hidden="true" />
+                              {roleChangingId === c._id ? (
+                                <FaSpinner className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 animate-spin text-[10px] text-[#03e9f4]" aria-hidden="true" />
+                              ) : (
+                                <FaChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-[#03e9f4]" aria-hidden="true" />
+                              )}
                             </div>
                           </div>
                         </div>
