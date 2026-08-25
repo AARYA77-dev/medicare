@@ -212,7 +212,7 @@ export default function HomePage() {
                   className={`relative group overflow-hidden transition-all duration-300 border border-white/10 rounded-2xl bg-white/5 backdrop-blur-md p-6 hover:border-[#03e9f4]/40 hover:shadow-[0_0_20px_rgba(3,233,244,0.15)]`}
                 >
                   {/* Glassmorphic Background Accent */}
-                  <div className="absolute -top-10 -right-10 w-24 h-24 bg-[#03e9f4]/10 blur-3xl rounded-full" />
+                  <div className="pointer-events-none absolute -top-10 -right-10 w-24 h-24 bg-[#03e9f4]/10 blur-3xl rounded-full" />
 
                   {/* Header: Name and Checkbox */}
                   <div className="flex justify-between items-start mb-4">
