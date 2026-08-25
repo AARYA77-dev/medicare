@@ -32,7 +32,9 @@ export default function RootLayout({
         <StoreProvider>
           <AuthProvider>
             {children}
-            <Toaster />
+            <Toaster toastOptions={{
+              duration: 5000,
+            }} />
           </AuthProvider>
         </StoreProvider>
       </body>
