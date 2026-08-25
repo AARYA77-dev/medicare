@@ -986,7 +986,7 @@ const MedicinePage = () => {
             </div>
           ) : (
             <div className="flex flex-col border border-white/10 rounded-2xl bg-white/5 backdrop-blur-md w-full lg:w-[48%] xl:w-[32%] mx-auto items-center justify-center shadow-2xl px-8 py-12 text-center">
-              <div className="text-4xl mb-4">👁️</div>
+              <div className="text-4xl mb-4"><i className="fa-solid fa-eye"></i></div>
               <h3 className="text-lg font-bold text-white mb-2">View Only Access</h3>
               <p className="text-sm text-gray-400">You can browse the medicine list and schedule but cannot add, edit or delete medicines.</p>
             </div>
