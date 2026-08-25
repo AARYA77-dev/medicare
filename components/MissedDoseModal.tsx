@@ -68,13 +68,13 @@ export default function MissedDoseModal({
           >
             <div className="flex items-start gap-3">
               <div
-                className={`mt-0.5 w-4 h-4 rounded-full flex items-center justify-center border transition-all ${
+                className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-all ${
                   selectedOption === 'skip_and_continue'
                     ? 'border-[#03e9f4] bg-[#03e9f4]'
                     : 'border-gray-500 bg-transparent'
                 }`}
               >
-                {selectedOption === 'skip_and_continue' && <div className="w-1.5 h-1.5 rounded-full bg-black" />}
+                {selectedOption === 'skip_and_continue' && <div className="h-1.5 w-1.5 rounded-full bg-black" />}
               </div>
 
               <div>
@@ -99,13 +99,13 @@ export default function MissedDoseModal({
           >
             <div className="flex items-start gap-3">
               <div
-                className={`mt-0.5 w-4 h-4 rounded-full flex items-center justify-center border transition-all ${
+                className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-all ${
                   selectedOption === 'carry_forward_shift'
                     ? 'border-[#03e9f4] bg-[#03e9f4]'
                     : 'border-gray-500 bg-transparent'
                 }`}
               >
-                {selectedOption === 'carry_forward_shift' && <div className="w-1.5 h-1.5 rounded-full bg-black" />}
+                {selectedOption === 'carry_forward_shift' && <div className="h-1.5 w-1.5 rounded-full bg-black" />}
               </div>
 
               <div>
