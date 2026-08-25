@@ -171,6 +171,20 @@ export default function SharingPage() {
     }
   };
 
+  const handleChangeRole = async (accessId: string, role: CollabRole, name: string) => {
+    setActionId(accessId);
+    try {
+      await axios.patch(`/api/sharing/${accessId}`, { role });
+      toast.success(`${name}'s access updated to ${ROLE_META[role].label}`);
+      await fetchData();
+    } catch (err: unknown) {
+      const message = axios.isAxiosError(err) ? err.response?.data?.message : undefined;
+      toast.error(message || "Failed to update access role");
+    } finally {
+      setActionId(null);
+    }
+  };
+
   const pendingCount = pendingInvitations.length;
 
   const tabs = [
@@ -366,8 +380,20 @@ export default function SharingPage() {
                         <div className="flex-1 min-w-0">
                           <p className="font-semibold text-white truncate">{user?.name}</p>
                           <p className="text-xs text-gray-400 truncate">{user?.email}</p>
-                          <div className="mt-1.5">
+                          <div className="flex flex-wrap items-center gap-2 mt-1.5">
                             <RoleBadge role={c.role} />
+                            <label className="sr-only" htmlFor={`role-${c._id}`}>Change role for {user?.name}</label>
+                            <select
+                              id={`role-${c._id}`}
+                              value={c.role}
+                              onChange={(e) => handleChangeRole(c._id, e.target.value as CollabRole, user?.name || "User")}
+                              disabled={actionId === c._id}
+                              className="bg-black/60 border border-white/20 rounded-lg px-2 py-1 text-[11px] text-gray-200 cursor-pointer disabled:opacity-50"
+                            >
+                              <option value="readonly">Viewer</option>
+                              <option value="collaborator">Care Partner</option>
+                              <option value="admin">Co-Manager</option>
+                            </select>
                           </div>
                         </div>
                         <button
