@@ -71,18 +71,15 @@ export default function HomePage() {
     if (!activeMissedModal.medicine || !activeMissedModal.dose) return;
     setModalLoading(true);
     try {
-      await dispatch(
+      const response = await dispatch(
         resolveMissedDose({
           medicineId: activeMissedModal.medicine._id,
           doseId: activeMissedModal.dose._id!,
           action,
         })
       ).unwrap();
-      toast.success(
-        action === 'skip_and_continue'
-          ? "Dose skipped & appended to end of schedule (+1 day extended)!"
-          : "Dose carried forward to tomorrow (+1 day extended)!"
-      );
+
+      toast.success(response.message);
       setActiveMissedModal({ isOpen: false, medicine: null, dose: null });
     } catch (err: unknown) {
       toast.error(typeof err === 'string' ? err : "Failed to update schedule");

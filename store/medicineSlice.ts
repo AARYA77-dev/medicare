@@ -108,17 +108,21 @@ export const deleteMedicine = createAsyncThunk(
 );
 
 // Async Thunk: Resolve Missed Dose
-export const resolveMissedDose = createAsyncThunk(
+export const resolveMissedDose = createAsyncThunk<
+  { success: boolean; message: string; result: MedicineWithSchedule },
+  {
+    medicineId: string;
+    doseId: string;
+    action: 'skip_and_continue' | 'carry_forward_shift';
+  },
+  { rejectValue: string }
+>(
   'medicine/resolveMissedDose',
   async (
     {
       medicineId,
       doseId,
       action,
-    }: {
-      medicineId: string;
-      doseId: string;
-      action: 'skip_and_continue' | 'carry_forward_shift';
     },
     { rejectWithValue }
   ) => {
@@ -128,7 +132,7 @@ export const resolveMissedDose = createAsyncThunk(
         doseId,
         action,
       });
-      return response.data.result;
+      return response.data;
     } catch (error: unknown) {
       return rejectWithValue(
         getErrorMessage(error, 'Failed to resolve missed dose')
@@ -226,9 +230,10 @@ const medicineSlice = createSlice({
 
       // Resolve Missed Dose
       .addCase(resolveMissedDose.fulfilled, (state, action) => {
-        if (action.payload && action.payload._id) {
+        const updatedMedicine = action.payload?.result;
+        if (updatedMedicine && updatedMedicine._id) {
           state.medicines = state.medicines.map((med) =>
-            med._id === action.payload._id ? action.payload : med
+            med._id === updatedMedicine._id ? updatedMedicine : med
           );
         }
       });
