@@ -43,12 +43,12 @@ const MedicineTablePage = () => {
     }
 
     return (
-        <div>
-            <div className='absolute top-12 right-4 flex gap-2'>
-                <Link href="/Medicines" className='bg-[#03e9f4] text-black font-semibold px-4 mb-6 my-2 py-2 rounded transition duration-150 ease-in-out transform active:scale-75 active:shadow-inner shadow-lg'>Back</Link>
-                <Link href="/Home" className='bg-[#03e9f4] text-black font-semibold px-4 mb-6 my-2 py-2 rounded transition duration-150 ease-in-out transform active:scale-75 active:shadow-inner shadow-lg'>Home</Link>
+        <div className="min-h-screen overflow-x-hidden px-3 py-4 sm:px-6 sm:py-6">
+            <div className="mx-auto flex w-full max-w-7xl flex-wrap justify-end gap-2 pb-4">
+                <Link href="/Medicines" className='rounded bg-[#03e9f4] px-3 py-2 text-sm font-semibold text-black shadow-lg transition duration-150 ease-in-out hover:bg-[#00c5cf] active:scale-95 sm:px-4'>Back</Link>
+                <Link href="/Home" className='rounded bg-[#03e9f4] px-3 py-2 text-sm font-semibold text-black shadow-lg transition duration-150 ease-in-out hover:bg-[#00c5cf] active:scale-95 sm:px-4'>Home</Link>
             </div>
-            <div className="box box-2">
+            <div className="box box-2 mx-auto w-full max-w-7xl">
                 {!medicineData ? (
                    <div className="flex items-center justify-center gap-1 h-screen">
                                <Image
@@ -61,7 +61,7 @@ const MedicineTablePage = () => {
                              </div>
                 ) : (
                     <>
-                        <p className='font-mono ml-5 text-4xl font-bold my-2'>Your Medicine Schedule</p>
+                        <p className='my-2 text-2xl font-bold sm:text-4xl'>Your Medicine Schedule</p>
                         <div className="info-box">
                             <div className="info-item">
                                 <span className="label">Name:</span>

@@ -386,6 +386,7 @@ input[type="number"] {
 
 .info-box {
   display: flex;
+  flex-wrap: wrap;
   gap: 3rem;
   margin-bottom: 1rem;
   margin-left: 1rem;
@@ -399,6 +400,7 @@ input[type="number"] {
 
 .info-item {
   font-size: 14px;
+  min-width: 0;
 }
 
 .info-item .label {
@@ -410,6 +412,37 @@ input[type="number"] {
 .info-item .value {
   color: var(--accent);
   font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 640px) {
+  .info-box {
+    gap: 0.75rem;
+    margin-left: 0;
+    width: 100%;
+    padding: 0.75rem;
+  }
+
+  .info-item {
+    display: flex;
+    flex: 1 1 100%;
+    justify-content: space-between;
+    gap: 0.75rem;
+  }
+
+  .info-item .label,
+  .info-item .value {
+    overflow-wrap: anywhere;
+  }
+
+  .table-container {
+    -webkit-overflow-scrolling: touch;
+    overflow-x: auto;
+  }
+
+  .table-ocean {
+    min-width: 34rem;
+  }
 }
 
 .styled-table {
