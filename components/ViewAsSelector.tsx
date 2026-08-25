@@ -124,8 +124,9 @@ export default function ViewAsSelector() {
                   <p className="font-semibold truncate">{c.ownerName}</p>
                   <p className="text-xs text-gray-500 truncate">{c.ownerEmail}</p>
                 </div>
-                <span className={`shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full border ${meta.color}`}>
-                  <meta.Icon aria-hidden="true" /> {meta.label}
+                <span className={`inline-flex min-w-0 max-w-[38%] shrink items-center gap-1 overflow-hidden whitespace-nowrap text-[10px] font-bold px-2 py-0.5 rounded-full border ${meta.color}`}>
+                  <meta.Icon className="shrink-0" aria-hidden="true" />
+                  <span className="truncate">{meta.label}</span>
                 </span>
                 {isActive && <span className="ml-1 text-[10px] text-amber-400 font-bold">ACTIVE</span>}
               </button>
