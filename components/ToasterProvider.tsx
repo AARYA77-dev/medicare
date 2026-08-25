@@ -30,7 +30,7 @@ export default function ToasterProvider() {
             whiteSpace: 'normal',
             wordBreak: 'break-word',
             lineHeight: '1.5',
-            fontWeight: "500"
+            fontWeight: "500",
             opacity: t.visible ? 1 : 0,
             transition: "opacity 0.3s ease",
           }}
