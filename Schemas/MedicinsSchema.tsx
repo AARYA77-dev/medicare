@@ -54,6 +54,10 @@ const MedicinesModel = new mongoose.Schema({
         type:String,
         required:true
     },
+    missed_doses: {
+        type: Number,
+        default: 0
+    },
     startdate: {
         type:String,
         required:true

@@ -183,9 +183,6 @@ export async function POST(request: NextRequest) {
         day: idx + 1,
       }));
 
-      // Increment number_days by 1
-      const currentDays = parseInt(medicine.number_days) || filteredSchedule.length;
-      medicine.number_days = String(currentDays + 1);
       medicine.schedule = filteredSchedule;
     } else if (action === 'carry_forward_shift') {
       // 2. Carry Forward / Shift Sequence
@@ -253,10 +250,10 @@ export async function POST(request: NextRequest) {
         day: idx + 1,
       }));
 
-      const currentDays = parseInt(medicine.number_days) || finalSchedule.length;
-      medicine.number_days = String(currentDays + 1);
       medicine.schedule = finalSchedule;
     }
+
+    medicine.missed_doses = (medicine.missed_doses || 0) + 1;
 
     await medicine.save();
 

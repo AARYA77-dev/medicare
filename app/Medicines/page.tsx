@@ -230,6 +230,7 @@ const MedicinePage = () => {
       const result = getSchedule();
       const payload: MedicinePayload = {
         ...formValues,
+        missed_doses: 0,
         schedule_type: scheduleType,
         weekly_default_dose: scheduleType === 'weekly' ? weeklyDefaultDose : undefined,
         weekly_override_dose: scheduleType === 'weekly' ? weeklyOverrideDose : undefined,

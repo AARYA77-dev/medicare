@@ -12,6 +12,7 @@ export interface Medicines {
     dosage_pattern: string;
     times_days: string;
     number_days: string;
+    missed_doses?: number;
     startdate: string;
     schedule_type?: ScheduleType;
     weekly_default_dose?: string;

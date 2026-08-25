@@ -91,6 +91,10 @@ const MedicineTablePage = () => {
                                 <span className="label">Remaining:</span>
                                 <span className="value">{medicineData.schedule.length} {medicineData.schedule.length === 1 ? 'Day' : 'Days'} Left</span>
                             </div>
+                              <div className="info-item">
+                                <span className="label">Missed:</span>
+                                                                <span className="value">{medicineData.missed_doses || 0} {medicineData.missed_doses === 1 ? 'Dose' : 'Doses'}</span>
+                            </div>
                         </div>
 
                         <div className="table-container">
