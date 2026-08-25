@@ -19,14 +19,18 @@ export default function ToasterProvider() {
               t.type === "error"
                 ? "#ff4b4b"
                 : t.type === "success"
-                ? "#22c55e"
-                : "#363636",
+                  ? "#22c55e"
+                  : "#363636",
             color: "#fff",
             padding: "10px 14px",
             borderRadius: "8px",
-            boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
             fontSize: "14px",
-            maxWidth: "350px",
+            maxWidth: '90vw',
+            width: 'auto',
+            whiteSpace: 'normal',
+            wordBreak: 'break-word',
+            lineHeight: '1.5',
+            fontWeight: "500"
             opacity: t.visible ? 1 : 0,
             transition: "opacity 0.3s ease",
           }}
