@@ -221,9 +221,10 @@ export default function HomePage() {
                     </h3>
 
                     <input
-                      className="w-10 h-5 rounded cursor-pointer accent-[#03e9f4] transition-transform hover:scale-140"
+                      className="w-10 h-5 rounded accent-[#03e9f4] transition-transform enabled:cursor-pointer enabled:hover:scale-140 disabled:cursor-not-allowed disabled:opacity-40"
                       onChange={() => handleCheckbox(dose._id!)}
                       checked={isChecked}
+                      disabled={!canInteract}
                       type="checkbox"
                     />
                   </div>
