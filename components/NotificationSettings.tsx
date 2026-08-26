@@ -61,31 +61,49 @@ export default function NotificationSettings() {
       setLoading(false);
     }
   };
+
+  const sendTestNotification = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch("/api/notifications/test", { method: "POST" });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.message || "Could not send test notification");
+      toast.success("Test notification sent.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not send test notification.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={enabled}
-      aria-busy={loading}
-      aria-label="Toggle medication notifications"
-      onClick={toggleNotifications}
-      disabled={loading}
-      className={`group flex min-h-[58px] w-full max-w-sm items-center justify-between gap-4 rounded-xl border px-4 py-3 text-left shadow-lg backdrop-blur-md transition-all duration-200 disabled:cursor-wait disabled:opacity-70 ${enabled ? "border-emerald-300/40 bg-emerald-400/10 hover:border-emerald-300/70 hover:bg-emerald-400/15" : "border-white/15 bg-white/[0.06] hover:border-[#03e9f4]/50 hover:bg-white/[0.1]"}`}
-    >
-      <span className="flex min-w-0 items-center gap-3">
-        <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${enabled ? "bg-emerald-400/20 text-emerald-300" : "bg-white/10 text-gray-400 group-hover:text-[#03e9f4]"}`}>
-          <FaBell size={15} aria-hidden="true" />
-        </span>
-        <span className="min-w-0">
-          <span className="block truncate text-sm font-semibold text-white">Medication alerts</span>
-          <span className={`block text-xs ${enabled ? "text-emerald-300" : "text-gray-400"}`}>
-            {loading ? "Updating..." : enabled ? "Enabled" : "Disabled"}
+    <div className="flex w-full max-w-sm flex-wrap items-center gap-2">
+      <button
+        type="button"
+        role="switch"
+        aria-checked={enabled}
+        aria-busy={loading}
+        aria-label="Toggle medication notifications"
+        onClick={toggleNotifications}
+        disabled={loading}
+        className={`group flex min-h-[58px] min-w-[230px] flex-1 items-center justify-between gap-4 rounded-xl border px-4 py-3 text-left shadow-lg backdrop-blur-md transition-all duration-200 disabled:cursor-wait disabled:opacity-70 ${enabled ? "border-emerald-300/40 bg-emerald-400/10 hover:border-emerald-300/70 hover:bg-emerald-400/15" : "border-white/15 bg-white/[0.06] hover:border-[#03e9f4]/50 hover:bg-white/[0.1]"}`}
+      >
+        <span className="flex min-w-0 items-center gap-3">
+          <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${enabled ? "bg-emerald-400/20 text-emerald-300" : "bg-white/10 text-gray-400 group-hover:text-[#03e9f4]"}`}>
+            <FaBell size={15} aria-hidden="true" />
+          </span>
+          <span className="min-w-0">
+            <span className="block truncate text-sm font-semibold text-white">Medication alerts</span>
+            <span className={`block text-xs ${enabled ? "text-emerald-300" : "text-gray-400"}`}>
+              {loading ? "Updating..." : enabled ? "Enabled" : "Disabled"}
+            </span>
           </span>
         </span>
-      </span>
-      <span className={`relative h-6 w-11 shrink-0 rounded-full p-0.5 transition-colors ${enabled ? "bg-emerald-500" : "bg-gray-600"}`}>
-        <span className={`block h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-200 ${enabled ? "translate-x-5" : "translate-x-0"}`} />
-      </span>
-    </button>
+        <span className={`relative h-6 w-11 shrink-0 rounded-full p-0.5 transition-colors ${enabled ? "bg-emerald-500" : "bg-gray-600"}`}>
+          <span className={`block h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-200 ${enabled ? "translate-x-5" : "translate-x-0"}`} />
+        </span>
+      </button>
+      {enabled && <button type="button" onClick={sendTestNotification} disabled={loading} className="min-h-[58px] rounded-xl border border-white/15 bg-white/[0.06] px-3 text-xs font-semibold text-gray-300 shadow-lg transition-colors hover:border-[#03e9f4]/50 hover:text-[#03e9f4] disabled:cursor-wait disabled:opacity-70">Send test</button>}
+    </div>
   );
 }
