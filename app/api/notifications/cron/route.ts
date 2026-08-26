@@ -20,7 +20,16 @@ async function isQStashRequest(request: NextRequest, body: string) {
   }
 }
 
-async function sendDueNotification(body: { medicineId?: string; doseId?: string; subscriptionId?: string }) {
+async function sendDueNotification(body: { type?: string; medicineId?: string; doseId?: string; subscriptionId?: string }) {
+  if (body.type === "refresh" && body.medicineId && body.subscriptionId) {
+    await dbConnect();
+    const subscription = await PushSubscriptionSchema.findById(body.subscriptionId);
+    if (subscription) {
+      const { scheduleMedicineForSubscription } = await import("@/lib/notificationScheduling");
+      await scheduleMedicineForSubscription(body.medicineId, subscription);
+    }
+    return NextResponse.json({ success: true, refreshed: Boolean(subscription) });
+  }
   if (!body.medicineId || !body.doseId || !body.subscriptionId) {
     return NextResponse.json({ message: "Invalid notification payload" }, { status: 400 });
   }

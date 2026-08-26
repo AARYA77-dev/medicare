@@ -6,6 +6,8 @@ const qstash = new Client({
   token: process.env.QSTASH_TOKEN || "",
   baseUrl: process.env.QSTASH_URL || "https://qstash.upstash.io",
 });
+const MAX_QSTASH_DELAY_SECONDS = 604800;
+const REFRESH_BEFORE_EXPIRY_SECONDS = 86400;
 
 type ScheduledMedicine = {
   _id: unknown;
@@ -84,12 +86,14 @@ export async function scheduleMedicineForSubscription(medicineId: string, subscr
 
 async function scheduleForSubscription(medicine: ScheduledMedicine, subscription: IPushSubscription) {
   const messageIds: string[] = [];
+  const now = Date.now();
+  const maxReminderTime = now + MAX_QSTASH_DELAY_SECONDS * 1000;
   for (const entry of medicine.schedule || []) {
     for (const dose of entry.doses || []) {
       const doseTime = localTimeToUtc(entry.date, dose.time, subscription.timezone || "UTC");
-      if (!doseTime || doseTime.getTime() <= Date.now()) continue;
+      if (!doseTime || doseTime.getTime() <= now) continue;
       const reminderTime = new Date(doseTime.getTime() - 60 * 60 * 1000);
-      if (reminderTime.getTime() <= Date.now()) continue;
+      if (reminderTime.getTime() <= now || reminderTime.getTime() > maxReminderTime) continue;
       const result = await qstash.publishJSON({
         url: appUrl(),
         body: { medicineId: String(medicine._id), doseId: String(dose._id), subscriptionId: String(subscription._id) },
@@ -100,6 +104,16 @@ async function scheduleForSubscription(medicine: ScheduledMedicine, subscription
       messageIds.push(result.messageId);
     }
   }
+
+  const refreshTime = new Date(now + (MAX_QSTASH_DELAY_SECONDS - REFRESH_BEFORE_EXPIRY_SECONDS) * 1000);
+  const refresh = await qstash.publishJSON({
+    url: appUrl(),
+    body: { type: "refresh", medicineId: String(medicine._id), subscriptionId: String(subscription._id) },
+    notBefore: Math.floor(refreshTime.getTime() / 1000),
+    deduplicationId: `refresh-${medicine._id}-${subscription._id}-${Math.floor(now / 1000)}`,
+    label: `subscription-${subscription._id}`,
+  });
+  messageIds.push(refresh.messageId);
   return messageIds;
 }
 

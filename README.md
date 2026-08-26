@@ -95,7 +95,7 @@ QSTASH_URL=your-qstash-url
 APP_URL=https://your-domain.com
 ```
 
-QStash creates one delayed message for each future dose and subscription. No recurring QStash schedule is required:
+QStash creates one delayed message for each dose in the next seven days and subscription. QStash allows a maximum delay of seven days, so the app also creates a refresh message after six days to schedule the next window. No recurring QStash schedule is required:
 
 1. Add the variables above to the deployed application.
 2. Deploy the application.
