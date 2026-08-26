@@ -40,6 +40,8 @@ async function sendDueNotifications() {
   await dbConnect();
   const subscriptions = await PushSubscriptionSchema.find();
   let sent = 0;
+  let matched = 0;
+  let attempted = 0;
   for (const subscription of subscriptions) {
     let subscriptionExpired = false;
     const target = localParts(new Date(Date.now() + 60 * 60 * 1000), subscription.timezone || "UTC");
@@ -51,9 +53,11 @@ async function sendDueNotifications() {
         if (!dateMatches(entry.date, targetDate)) continue;
         for (const dose of entry.doses || []) {
           if (dose.time !== targetTime) continue;
+          matched += 1;
           const doseKey = `${medicine._id}:${dose._id}:${targetDate}`;
           if (subscription.notifiedDoseKeys.includes(doseKey)) continue;
           try {
+            attempted += 1;
             await sendPushNotification(subscription.toObject(), { title: "Medication reminder", body: `${medicine.medicine_name} (${dose.dosage}) is due in 1 hour at ${dose.time}.`, url: "/" });
             subscription.notifiedDoseKeys.push(doseKey);
             sent += 1;
@@ -69,7 +73,13 @@ async function sendDueNotifications() {
     }
     if (!subscriptionExpired) await subscription.save();
   }
-  return NextResponse.json({ success: true, sent });
+  console.info("Medication push run", {
+    subscriptions: subscriptions.length,
+    matched,
+    attempted,
+    sent,
+  });
+  return NextResponse.json({ success: true, subscriptions: subscriptions.length, matched, attempted, sent });
 }
 
 export async function POST(request: NextRequest) {
