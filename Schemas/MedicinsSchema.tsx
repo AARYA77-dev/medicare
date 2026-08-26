@@ -3,22 +3,22 @@ import mongoose from "mongoose"
 const DoseModel = new mongoose.Schema({
     time: {
         type: String,
-        required:true
+        required:[true, "Dose time is required"]
     },
     dosage: {
         type: String,
-        required:true
+        required:[true, "Dose dosage is required"]
     },
 })
 
 const ScheduleEntryModel = new mongoose.Schema({
     day: {
         type:Number,
-        required:true
+        required:[true, "Schedule day is required"]
     },
     date: {
         type:String,
-        required:true
+        required:[true, "Schedule date is required"]
     },
     doses: [DoseModel],
 })
@@ -27,32 +27,32 @@ const MedicinesModel = new mongoose.Schema({
     userId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
-        required: true,
+        required: [true, "User is required"],
         index: true,
     },
     medicine_name: {
         type:String,
-        required:true
+        required:[true, "Medicine name is required"]
     },
     quantity: {
         type: mongoose.Schema.Types.Mixed,
-        required: true
+        required: [true, "Quantity is required"]
     },
     frequency: {
         type:String,
-        required:true
+        required:[true, "Frequency is required"]
     },
     dosage_pattern: {
         type:String,
-        required:true
+        required:[true, "Dosage pattern is required"]
     },
     times_days: {
         type:String,
-        required:true
+        required:[true, "Medication times are required"]
     },
     number_days: {
         type:String,
-        required:true
+        required:[true, "Number of days is required"]
     },
     missed_doses: {
         type: Number,
@@ -60,7 +60,7 @@ const MedicinesModel = new mongoose.Schema({
     },
     startdate: {
         type:String,
-        required:true
+        required:[true, "Start date is required"]
     },
     schedule_type: {
         type: String,

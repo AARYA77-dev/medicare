@@ -10,11 +10,11 @@ export interface IPushSubscription extends Document {
 
 const PushSubscriptionSchemaInternal = new mongoose.Schema<IPushSubscription>(
   {
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, index: true },
-    endpoint: { type: String, required: true, unique: true },
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: [true, "User is required"], index: true },
+    endpoint: { type: String, required: [true, "Push endpoint is required"], unique: true, trim: true },
     keys: {
-      p256dh: { type: String, required: true },
-      auth: { type: String, required: true },
+      p256dh: { type: String, required: [true, "Push p256dh key is required"], trim: true },
+      auth: { type: String, required: [true, "Push auth key is required"], trim: true },
     },
     timezone: { type: String, required: true, default: "UTC" },
     notifiedDoseKeys: { type: [String], default: [] },

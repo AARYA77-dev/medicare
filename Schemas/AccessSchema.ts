@@ -13,14 +13,17 @@ export interface IAccess extends Document {
 
 const AccessSchemaInternal = new Schema<IAccess>(
   {
-    ownerId: { type: Schema.Types.ObjectId, ref: UserSchema, required: true, index: true },
-    collaboratorId: { type: Schema.Types.ObjectId, ref: UserSchema, required: true, index: true },
+    ownerId: { type: Schema.Types.ObjectId, ref: UserSchema, required: [true, "Owner is required"], index: true },
+    collaboratorId: { type: Schema.Types.ObjectId, ref: UserSchema, required: [true, "Collaborator is required"], index: true },
     role: {
       type: String,
-      enum: ['readonly', 'collaborator', 'admin'],
-      required: true,
+      required: [true, "Access role is required"],
+      enum: {
+        values: ['readonly', 'collaborator', 'admin'],
+        message: "Access role must be readonly, collaborator, or admin",
+      },
     },
-    invitationId: { type: Schema.Types.ObjectId, ref: 'Invitation', required: true },
+    invitationId: { type: Schema.Types.ObjectId, ref: 'Invitation', required: [true, "Invitation is required"] },
   },
   { timestamps: true }
 );

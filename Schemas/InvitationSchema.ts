@@ -16,13 +16,16 @@ export interface IInvitation extends Document {
 
 const InvitationSchemaInternal = new Schema<IInvitation>(
   {
-    ownerId: { type: Schema.Types.ObjectId, ref: UserSchema, required: true, index: true },
-    inviteeEmail: { type: String, required: true, lowercase: true, trim: true },
+    ownerId: { type: Schema.Types.ObjectId, ref: UserSchema, required: [true, "Owner is required"], index: true },
+    inviteeEmail: { type: String, required: [true, "Invitee email is required"], lowercase: true, trim: true },
     inviteeId: { type: Schema.Types.ObjectId, ref: UserSchema, default: null },
     role: {
       type: String,
-      enum: ['readonly', 'collaborator', 'admin'],
-      required: true,
+      required: [true, "Invitation role is required"],
+      enum: {
+        values: ['readonly', 'collaborator', 'admin'],
+        message: "Invitation role must be readonly, collaborator, or admin",
+      },
     },
     status: {
       type: String,
