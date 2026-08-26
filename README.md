@@ -47,13 +47,7 @@ npm install
 
 3. Create environment variables (if required)
 
-If your project uses environment variables (for example, API keys or database connection strings), add a `.env.local` file in the project root. Example:
-
-```env
-# .env.local
-NEXT_PUBLIC_API_URL=http://localhost:3000/api
-# Add other env vars your app needs
-```
+If your project uses environment variables (for example, API keys or database connection strings), add a `.env.local` file in the project root.
 
 4. Run the development server
 
