@@ -95,7 +95,7 @@ async function scheduleForSubscription(medicine: ScheduledMedicine, subscription
         body: { medicineId: String(medicine._id), doseId: String(dose._id), subscriptionId: String(subscription._id) },
         notBefore: Math.floor(reminderTime.getTime() / 1000),
         deduplicationId: `medicine-${medicine._id}-dose-${dose._id}-subscription-${subscription._id}`,
-        label: `subscription:${subscription._id}`,
+        label: `subscription-${subscription._id}`,
       });
       messageIds.push(result.messageId);
     }
@@ -108,5 +108,5 @@ export async function cancelMedicineNotifications(messageIds: string[] = []) {
 }
 
 export async function cancelSubscriptionNotifications(subscriptionId: string) {
-  await qstash.messages.cancel({ filter: { label: `subscription:${subscriptionId}` } });
+  await qstash.messages.cancel({ filter: { label: `subscription-${subscriptionId}` } });
 }
