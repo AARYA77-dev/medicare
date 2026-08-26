@@ -16,22 +16,25 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: "No notification subscription found" }, { status: 404 });
   }
 
-  let sent = 0;
-  for (const subscription of subscriptions) {
+  const results = await Promise.all(subscriptions.map(async (subscription) => {
     try {
       await sendPushNotification(subscription.toObject(), {
         title: "Medicare test notification",
         body: "Desktop notifications are working.",
         url: "/",
       });
-      sent += 1;
+      return { sent: true, expired: false };
     } catch (error: unknown) {
       const statusCode = (error as { statusCode?: number })?.statusCode;
-      if (statusCode === 404 || statusCode === 410) await subscription.deleteOne();
-      const message = error instanceof Error ? error.message : "Push delivery failed";
-      return NextResponse.json({ message }, { status: 502 });
+      if (statusCode === 404 || statusCode === 410) {
+        await subscription.deleteOne();
+        return { sent: false, expired: true };
+      }
+      return { sent: false, expired: false };
     }
-  }
+  }));
 
-  return NextResponse.json({ success: true, sent });
+  const sent = results.filter((result) => result.sent).length;
+  const failed = results.length - sent;
+  return NextResponse.json({ success: sent > 0, sent, failed, devices: results.length });
 }

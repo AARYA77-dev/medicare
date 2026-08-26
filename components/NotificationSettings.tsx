@@ -68,7 +68,11 @@ export default function NotificationSettings() {
       const response = await fetch("/api/notifications/test", { method: "POST" });
       const result = await response.json();
       if (!response.ok) throw new Error(result.message || "Could not send test notification");
-      toast.success("Test notification sent.");
+      if (result.sent > 0) {
+        toast.success(`Test notification sent to ${result.sent} device${result.sent === 1 ? "" : "s"}.`);
+      } else {
+        throw new Error("No device received the test notification.");
+      }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not send test notification.");
     } finally {
@@ -103,7 +107,7 @@ export default function NotificationSettings() {
           <span className={`block h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-200 ${enabled ? "translate-x-5" : "translate-x-0"}`} />
         </span>
       </button>
-      {enabled && <button type="button" onClick={sendTestNotification} disabled={loading} className="min-h-[58px] rounded-xl border border-white/15 bg-white/[0.06] px-3 text-xs font-semibold text-gray-300 shadow-lg transition-colors hover:border-[#03e9f4]/50 hover:text-[#03e9f4] disabled:cursor-wait disabled:opacity-70">Send test</button>}
+      {enabled && <button type="button" onClick={sendTestNotification} disabled={loading} className="min-h-[58px] rounded-xl border border-white/15 bg-white/[0.06] px-3 text-xs font-semibold text-gray-300 shadow-lg transition-colors hover:border-[#03e9f4]/50 hover:text-[#03e9f4] disabled:cursor-wait disabled:opacity-70">Test Notification</button>}
     </div>
   );
 }
