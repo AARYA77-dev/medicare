@@ -12,6 +12,7 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchMedicines, deleteDose, resolveMissedDose } from "@/store/medicineSlice";
 import { FaArrowRight, FaCalendarTimes, FaExclamationTriangle, FaEye, FaPills, FaTimes } from "react-icons/fa";
 import MissedDoseModal from "@/components/MissedDoseModal";
+import NotificationSettings from "@/components/NotificationSettings";
 
 
 export default function HomePage() {
@@ -130,6 +131,9 @@ export default function HomePage() {
   return (
     <div className="min-h-screen text-white">
       <Header />
+      <div className="max-w-7xl mx-auto px-4 pt-2">
+        <NotificationSettings />
+      </div>
       <main className="max-w-7xl mx-auto px-4 py-8">
         <ViewAsSelector />
 
