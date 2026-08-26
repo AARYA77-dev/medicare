@@ -3,8 +3,10 @@ import { getToken } from "next-auth/jwt";
 import dbConnect from "@/lib/dbConnect";
 import { PushSubscriptionSchema } from "@/Schemas/PushSubscriptionSchema";
 import { MedicineSchema } from "@/Schemas/MedicinsSchema";
-import { scheduleMedicineForSubscription } from "@/lib/notificationScheduling";
-import { cancelSubscriptionNotifications } from "@/lib/notificationScheduling";
+import {
+  cancelSubscriptionNotifications,
+  scheduleMedicineForSubscription,
+} from "@/lib/notificationScheduling";
 
 const SECRET = process.env.NEXTAUTH_SECRET;
 
@@ -39,8 +41,12 @@ export async function DELETE(request: NextRequest) {
   await dbConnect();
   const subscription = await PushSubscriptionSchema.findOne({ userId: token.id, endpoint });
   if (subscription) {
-    await cancelSubscriptionNotifications(String(subscription._id));
     await subscription.deleteOne();
+    try {
+      await cancelSubscriptionNotifications(String(subscription._id));
+    } catch (error) {
+      console.error("Failed to cancel pending QStash notifications", error);
+    }
   }
   return NextResponse.json({ success: true });
 }
