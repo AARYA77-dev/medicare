@@ -4,6 +4,7 @@ import { PushSubscriptionSchema } from "@/Schemas/PushSubscriptionSchema";
 import dbConnect from "@/lib/dbConnect";
 import { sendPushNotification } from "@/lib/push";
 import { Receiver } from "@upstash/qstash";
+import { Types } from "mongoose";
 
 export const dynamic = "force-dynamic";
 
@@ -20,8 +21,15 @@ async function isQStashRequest(request: NextRequest, body: string) {
   }
 }
 
+function isValidObjectIdString(value: unknown): value is string {
+  return typeof value === "string" && Types.ObjectId.isValid(value);
+}
+
 async function sendDueNotification(body: { type?: string; medicineId?: string; doseId?: string; subscriptionId?: string }) {
   if (body.type === "refresh" && body.medicineId && body.subscriptionId) {
+    if (!isValidObjectIdString(body.medicineId) || !isValidObjectIdString(body.subscriptionId)) {
+      return NextResponse.json({ message: "Invalid notification payload" }, { status: 400 });
+    }
     await dbConnect();
     const subscription = await PushSubscriptionSchema.findById(body.subscriptionId);
     if (subscription) {
@@ -31,6 +39,9 @@ async function sendDueNotification(body: { type?: string; medicineId?: string; d
     return NextResponse.json({ success: true, refreshed: Boolean(subscription) });
   }
   if (!body.medicineId || !body.doseId || !body.subscriptionId) {
+    return NextResponse.json({ message: "Invalid notification payload" }, { status: 400 });
+  }
+  if (!isValidObjectIdString(body.medicineId) || !isValidObjectIdString(body.doseId) || !isValidObjectIdString(body.subscriptionId)) {
     return NextResponse.json({ message: "Invalid notification payload" }, { status: 400 });
   }
   await dbConnect();
