@@ -91,6 +91,7 @@ VAPID_PRIVATE_KEY=your-private-key
 QSTASH_CURRENT_SIGNING_KEY=your-qstash-current-signing-key
 QSTASH_NEXT_SIGNING_KEY=your-qstash-next-signing-key
 QSTASH_TOKEN=your-qstash-token
+QSTASH_URL=your-qstash-url
 APP_URL=https://your-domain.com
 ```
 

@@ -2,7 +2,10 @@ import { Client } from "@upstash/qstash";
 import { MedicineSchema } from "@/Schemas/MedicinsSchema";
 import { PushSubscriptionSchema, IPushSubscription } from "@/Schemas/PushSubscriptionSchema";
 
-const qstash = new Client({ token: process.env.QSTASH_TOKEN || "" });
+const qstash = new Client({
+  token: process.env.QSTASH_TOKEN || "",
+  baseUrl: process.env.QSTASH_URL || "https://qstash.upstash.io",
+});
 
 type ScheduledMedicine = {
   _id: unknown;
