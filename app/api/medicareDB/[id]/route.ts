@@ -4,6 +4,7 @@ import { Types } from "mongoose";
 import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 import dbConnect from "@/lib/dbConnect";
+import { cancelMedicineNotifications, scheduleMedicineNotifications } from "@/lib/notificationScheduling";
 
 const SECRET = process.env.NEXTAUTH_SECRET;
 
@@ -75,6 +76,7 @@ export async function DELETE(request: NextRequest, context: Context) {
       if (!role || (role !== 'owner' && role !== 'admin')) {
         return NextResponse.json({ message: "Access denied. Co-Manager role required to delete.", success: false }, { status: 403 });
       }
+      await cancelMedicineNotifications(med.notificationMessageIds || []);
       await med.deleteOne();
       return NextResponse.json({ message: "Medicine deleted successfully", success: true, result: med });
     }
@@ -88,6 +90,8 @@ export async function DELETE(request: NextRequest, context: Context) {
     if (!role || !['owner', 'admin', 'collaborator'].includes(role)) {
       return NextResponse.json({ message: "Access denied.", success: false }, { status: 403 });
     }
+
+    await cancelMedicineNotifications(ownerMed.notificationMessageIds || []);
 
     const result = await MedicineSchema.updateOne(
       { "schedule.doses._id": objectId },
@@ -103,6 +107,10 @@ export async function DELETE(request: NextRequest, context: Context) {
       userId: ownerMed.userId,
       schedule: { $size: 0 },
     });
+
+    if (await MedicineSchema.exists({ _id: ownerMed._id })) {
+      await scheduleMedicineNotifications(String(ownerMed._id));
+    }
 
     return NextResponse.json({ message: "Dose deleted successfully", success: true, result, result2, deletedMedicineResult });
   } catch (err) {
@@ -138,6 +146,7 @@ export async function PUT(request: NextRequest, context: Context) {
       { $set: body },
       { new: true }
     );
+    await scheduleMedicineNotifications(String(id), med.notificationMessageIds || []);
 
     return NextResponse.json(
       { success: true, message: "Medicine updated successfully", result: updateMedicine },

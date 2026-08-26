@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 import dbConnect from "@/lib/dbConnect";
 import { ScheduleDose, ScheduleEntryData } from "@/Interfaces/interface";
+import { scheduleMedicineNotifications } from "@/lib/notificationScheduling";
 
 const SECRET = process.env.NEXTAUTH_SECRET;
 
@@ -256,6 +257,7 @@ export async function POST(request: NextRequest) {
     medicine.missed_doses = (medicine.missed_doses || 0) + 1;
 
     await medicine.save();
+    await scheduleMedicineNotifications(String(medicine._id), medicine.notificationMessageIds || []);
 
     return NextResponse.json({
       success: true,

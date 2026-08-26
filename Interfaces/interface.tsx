@@ -18,6 +18,7 @@ export interface Medicines {
     weekly_default_dose?: string;
     weekly_override_dose?: string;
     weekly_days?: number[];
+    notificationMessageIds?: string[];
 }
 
 export interface Dose {

@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 import dbConnect from "@/lib/dbConnect";
 import { PushSubscriptionSchema } from "@/Schemas/PushSubscriptionSchema";
+import { MedicineSchema } from "@/Schemas/MedicinsSchema";
+import { scheduleMedicineForSubscription } from "@/lib/notificationScheduling";
+import { cancelSubscriptionNotifications } from "@/lib/notificationScheduling";
 
 const SECRET = process.env.NEXTAUTH_SECRET;
 
@@ -17,11 +20,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: "Invalid push subscription" }, { status: 400 });
   }
   await dbConnect();
-  await PushSubscriptionSchema.findOneAndUpdate(
+  const subscription = await PushSubscriptionSchema.findOneAndUpdate(
     { endpoint: body.endpoint },
     { userId: token.id, endpoint: body.endpoint, keys: body.keys, timezone: body.timezone || "UTC", notifiedDoseKeys: [] },
     { upsert: true, new: true, setDefaultsOnInsert: true }
-  );
+  ) as unknown as import("@/Schemas/PushSubscriptionSchema").IPushSubscription | null;
+  const medicines = await MedicineSchema.find({ userId: token.id });
+  if (subscription) {
+    await Promise.all(medicines.map((medicine) => scheduleMedicineForSubscription(String(medicine._id), subscription)));
+  }
   return NextResponse.json({ success: true });
 }
 
@@ -30,6 +37,10 @@ export async function DELETE(request: NextRequest) {
   if (!token?.id) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   const { endpoint } = await request.json();
   await dbConnect();
-  await PushSubscriptionSchema.deleteOne({ userId: token.id, endpoint });
+  const subscription = await PushSubscriptionSchema.findOne({ userId: token.id, endpoint });
+  if (subscription) {
+    await cancelSubscriptionNotifications(String(subscription._id));
+    await subscription.deleteOne();
+  }
   return NextResponse.json({ success: true });
 }

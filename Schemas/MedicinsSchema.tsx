@@ -76,6 +76,9 @@ const MedicinesModel = new mongoose.Schema({
     weekly_days: [{
         type: Number
     }],
+    notificationMessageIds: [{
+        type: String
+    }],
     schedule:[ScheduleEntryModel]
 }, { timestamps : true });
 

@@ -3,6 +3,7 @@ import { AccessSchema } from "@/Schemas/AccessSchema";
 import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 import dbConnect from "@/lib/dbConnect";
+import { scheduleMedicineNotifications } from "@/lib/notificationScheduling";
 
 const SECRET = process.env.NEXTAUTH_SECRET;
 
@@ -63,5 +64,6 @@ export async function POST(request: NextRequest) {
 
   const medicine = new MedicineSchema({ ...medicineData, userId: effectiveUserId });
   const result = await medicine.save();
+  await scheduleMedicineNotifications(String(result._id));
   return NextResponse.json({ result, success: true });
 }

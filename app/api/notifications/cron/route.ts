@@ -20,66 +20,29 @@ async function isQStashRequest(request: NextRequest, body: string) {
   }
 }
 
-function localParts(date: Date, timezone: string) {
-  const parts = new Intl.DateTimeFormat("en-CA", { timeZone: timezone, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(date);
-  return Object.fromEntries(parts.filter((part) => part.type !== "literal").map((part) => [part.type, part.value]));
-}
-
-function dateMatches(scheduleDate: string, target: string) {
-  const numbers = scheduleDate.match(/\d+/g) || [];
-  if (numbers.length < 3) return scheduleDate === target;
-  const [first, second, third] = numbers.map(Number);
-  return [
-    `${String(first).padStart(4, "0")}-${String(second).padStart(2, "0")}-${String(third).padStart(2, "0")}`,
-    `${String(third).padStart(4, "0")}-${String(second).padStart(2, "0")}-${String(first).padStart(2, "0")}`,
-    `${String(third).padStart(4, "0")}-${String(first).padStart(2, "0")}-${String(second).padStart(2, "0")}`,
-  ].includes(target);
-}
-
-async function sendDueNotifications() {
-  await dbConnect();
-  const subscriptions = await PushSubscriptionSchema.find();
-  let sent = 0;
-  let matched = 0;
-  let attempted = 0;
-  for (const subscription of subscriptions) {
-    let subscriptionExpired = false;
-    const target = localParts(new Date(Date.now() + 60 * 60 * 1000), subscription.timezone || "UTC");
-    const targetDate = `${target.year}-${target.month}-${target.day}`;
-    const targetTime = `${target.hour}:${target.minute}`;
-    const medicines = await MedicineSchema.find({ userId: subscription.userId });
-    for (const medicine of medicines) {
-      for (const entry of medicine.schedule || []) {
-        if (!dateMatches(entry.date, targetDate)) continue;
-        for (const dose of entry.doses || []) {
-          if (dose.time !== targetTime) continue;
-          matched += 1;
-          const doseKey = `${medicine._id}:${dose._id}:${targetDate}`;
-          if (subscription.notifiedDoseKeys.includes(doseKey)) continue;
-          try {
-            attempted += 1;
-            await sendPushNotification(subscription.toObject(), { title: "Medication reminder", body: `${medicine.medicine_name} (${dose.dosage}) is due in 1 hour at ${dose.time}.`, url: "/" });
-            subscription.notifiedDoseKeys.push(doseKey);
-            sent += 1;
-          } catch (error: unknown) {
-            const statusCode = (error as { statusCode?: number })?.statusCode;
-            if (statusCode === 404 || statusCode === 410) {
-              await subscription.deleteOne();
-              subscriptionExpired = true;
-            }
-          }
-        }
-      }
-    }
-    if (!subscriptionExpired) await subscription.save();
+async function sendDueNotification(body: { medicineId?: string; doseId?: string; subscriptionId?: string }) {
+  if (!body.medicineId || !body.doseId || !body.subscriptionId) {
+    return NextResponse.json({ message: "Invalid notification payload" }, { status: 400 });
   }
-  console.info("Medication push run", {
-    subscriptions: subscriptions.length,
-    matched,
-    attempted,
-    sent,
-  });
-  return NextResponse.json({ success: true, subscriptions: subscriptions.length, matched, attempted, sent });
+  await dbConnect();
+  const [medicine, subscription] = await Promise.all([
+    MedicineSchema.findOne({ _id: body.medicineId, "schedule.doses._id": body.doseId }),
+    PushSubscriptionSchema.findById(body.subscriptionId),
+  ]);
+  if (!medicine || !subscription || String(medicine.userId) !== String(subscription.userId)) {
+    return NextResponse.json({ message: "Notification target not found" }, { status: 404 });
+  }
+  const dose = medicine.schedule.flatMap((entry: { doses: Array<{ _id?: unknown; time: string; dosage: string }> }) => entry.doses).find((item: { _id?: unknown }) => String(item._id) === body.doseId);
+  if (!dose) return NextResponse.json({ message: "Dose not found" }, { status: 404 });
+  try {
+    await sendPushNotification(subscription.toObject(), { title: "Medication reminder", body: `${medicine.medicine_name} (${dose.dosage}) is due in 1 hour at ${dose.time}.`, url: "/" });
+    await PushSubscriptionSchema.updateOne({ _id: subscription._id }, { $addToSet: { notifiedDoseKeys: `${medicine._id}:${dose._id}` } });
+    return NextResponse.json({ success: true, sent: 1 });
+  } catch (error: unknown) {
+    const statusCode = (error as { statusCode?: number })?.statusCode;
+    if (statusCode === 404 || statusCode === 410) await subscription.deleteOne();
+    return NextResponse.json({ message: "Push delivery failed" }, { status: 502 });
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -87,5 +50,9 @@ export async function POST(request: NextRequest) {
   if (!(await isQStashRequest(request, body))) {
     return NextResponse.json({ message: "Invalid QStash signature" }, { status: 401 });
   }
-  return sendDueNotifications();
+  try {
+    return sendDueNotification(JSON.parse(body));
+  } catch {
+    return NextResponse.json({ message: "Invalid JSON payload" }, { status: 400 });
+  }
 }

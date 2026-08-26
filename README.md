@@ -90,16 +90,17 @@ NEXT_PUBLIC_VAPID_PUBLIC_KEY=your-public-key
 VAPID_PRIVATE_KEY=your-private-key
 QSTASH_CURRENT_SIGNING_KEY=your-qstash-current-signing-key
 QSTASH_NEXT_SIGNING_KEY=your-qstash-next-signing-key
+QSTASH_TOKEN=your-qstash-token
+APP_URL=https://your-domain.com
 ```
 
-Vercel Hobby cron jobs cannot run often enough for one-hour medication reminders. Use QStash instead:
+QStash creates one delayed message for each future dose and subscription. No recurring QStash schedule is required:
 
-1. In the QStash console, create a schedule.
-2. Set the destination URL to `https://your-domain.com/api/notifications/cron`.
-3. Use the `POST` method and the cron expression `* * * * *`.
-4. Add the QStash signing keys to Vercel environment variables as shown above.
+1. Add the variables above to the deployed application.
+2. Deploy the application.
+3. Enable notifications from Home. Creating or updating medicines creates the delayed messages automatically.
 
-QStash signs every request. The endpoint verifies the `Upstash-Signature` header before processing it.
+QStash signs every request. The endpoint verifies the `Upstash-Signature` header before processing it. Delete any old recurring `/api/notifications/cron` schedule from the QStash console; it is no longer used.
 Users must click **Enable medication notifications** on Home once per browser. The endpoint checks each user's timezone and sends only once for each scheduled dose.
 
 ## Deployment
