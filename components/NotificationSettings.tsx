@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
+import { FaBell } from "react-icons/fa";
 
 function urlBase64ToUint8Array(value: string) {
   const padding = "=".repeat((4 - (value.length % 4)) % 4);
@@ -65,15 +66,26 @@ export default function NotificationSettings() {
       type="button"
       role="switch"
       aria-checked={enabled}
+      aria-busy={loading}
       aria-label="Toggle medication notifications"
       onClick={toggleNotifications}
       disabled={loading}
-      className={`flex items-center gap-3 rounded-lg border px-3 py-2 text-sm transition-colors disabled:opacity-50 ${enabled ? "border-emerald-400/60 text-emerald-300" : "border-white/30 text-gray-300"}`}
+      className={`group flex min-h-[58px] w-full max-w-sm items-center justify-between gap-4 rounded-xl border px-4 py-3 text-left shadow-lg backdrop-blur-md transition-all duration-200 disabled:cursor-wait disabled:opacity-70 ${enabled ? "border-emerald-300/40 bg-emerald-400/10 hover:border-emerald-300/70 hover:bg-emerald-400/15" : "border-white/15 bg-white/[0.06] hover:border-[#03e9f4]/50 hover:bg-white/[0.1]"}`}
     >
-      <span className={`relative h-5 w-9 rounded-full transition-colors ${enabled ? "bg-emerald-500" : "bg-gray-600"}`}>
-        <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-transform ${enabled ? "translate-x-4" : "translate-x-0.5"}`} />
+      <span className="flex min-w-0 items-center gap-3">
+        <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${enabled ? "bg-emerald-400/20 text-emerald-300" : "bg-white/10 text-gray-400 group-hover:text-[#03e9f4]"}`}>
+          <FaBell size={15} aria-hidden="true" />
+        </span>
+        <span className="min-w-0">
+          <span className="block truncate text-sm font-semibold text-white">Medication alerts</span>
+          <span className={`block text-xs ${enabled ? "text-emerald-300" : "text-gray-400"}`}>
+            {loading ? "Updating..." : enabled ? "Enabled" : "Disabled"}
+          </span>
+        </span>
       </span>
-      {loading ? "Updating..." : enabled ? "Notifications on" : "Notifications off"}
+      <span className={`relative h-6 w-11 shrink-0 rounded-full p-0.5 transition-colors ${enabled ? "bg-emerald-500" : "bg-gray-600"}`}>
+        <span className={`block h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-200 ${enabled ? "translate-x-5" : "translate-x-0"}`} />
+      </span>
     </button>
   );
 }
