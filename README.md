@@ -80,6 +80,28 @@ Adjust these paths to match the actual structure if it differs.
 
 If you integrate a database, authentication, or third-party services, provide an `.env.example` file documenting required variables. Keep secrets out of source control.
 
+### Push notifications
+
+Generate VAPID keys with `npx web-push generate-vapid-keys` and configure these server environment variables:
+
+```text
+VAPID_SUBJECT=mailto:you@example.com
+NEXT_PUBLIC_VAPID_PUBLIC_KEY=your-public-key
+VAPID_PRIVATE_KEY=your-private-key
+QSTASH_CURRENT_SIGNING_KEY=your-qstash-current-signing-key
+QSTASH_NEXT_SIGNING_KEY=your-qstash-next-signing-key
+```
+
+Vercel Hobby cron jobs cannot run often enough for one-hour medication reminders. Use QStash instead:
+
+1. In the QStash console, create a schedule.
+2. Set the destination URL to `https://your-domain.com/api/notifications/cron`.
+3. Use the `POST` method and the cron expression `* * * * *`.
+4. Add the QStash signing keys to Vercel environment variables as shown above.
+
+QStash signs every request. The endpoint verifies the `Upstash-Signature` header before processing it.
+Users must click **Enable medication notifications** on Home once per browser. The endpoint checks each user's timezone and sends only once for each scheduled dose.
+
 ## Deployment
 
 - Recommended: Deploy on Vercel. Connect your GitHub repository to Vercel and it will detect the Next.js app and create automatic deployments.

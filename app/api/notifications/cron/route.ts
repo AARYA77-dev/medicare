@@ -3,8 +3,22 @@ import { MedicineSchema } from "@/Schemas/MedicinsSchema";
 import { PushSubscriptionSchema } from "@/Schemas/PushSubscriptionSchema";
 import dbConnect from "@/lib/dbConnect";
 import { sendPushNotification } from "@/lib/push";
+import { Receiver } from "@upstash/qstash";
 
 export const dynamic = "force-dynamic";
+
+async function isQStashRequest(request: NextRequest, body: string) {
+  const signature = request.headers.get("upstash-signature");
+  const currentSigningKey = process.env.QSTASH_CURRENT_SIGNING_KEY;
+  const nextSigningKey = process.env.QSTASH_NEXT_SIGNING_KEY;
+  if (!signature || !currentSigningKey || !nextSigningKey) return false;
+
+  try {
+    return await new Receiver({ currentSigningKey, nextSigningKey }).verify({ signature, body });
+  } catch {
+    return false;
+  }
+}
 
 function localParts(date: Date, timezone: string) {
   const parts = new Intl.DateTimeFormat("en-CA", { timeZone: timezone, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(date);
@@ -22,10 +36,7 @@ function dateMatches(scheduleDate: string, target: string) {
   ].includes(target);
 }
 
-export async function GET(request: NextRequest) {
-  if (!process.env.CRON_SECRET || request.headers.get("authorization") !== `Bearer ${process.env.CRON_SECRET}`) {
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-  }
+async function sendDueNotifications() {
   await dbConnect();
   const subscriptions = await PushSubscriptionSchema.find();
   let sent = 0;
@@ -59,4 +70,12 @@ export async function GET(request: NextRequest) {
     if (!subscriptionExpired) await subscription.save();
   }
   return NextResponse.json({ success: true, sent });
+}
+
+export async function POST(request: NextRequest) {
+  const body = await request.text();
+  if (!(await isQStashRequest(request, body))) {
+    return NextResponse.json({ message: "Invalid QStash signature" }, { status: 401 });
+  }
+  return sendDueNotifications();
 }
