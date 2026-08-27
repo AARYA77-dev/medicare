@@ -10,8 +10,18 @@ import {
 
 const SECRET = process.env.NEXTAUTH_SECRET;
 
-export async function GET() {
-  return NextResponse.json({ publicKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || null });
+export async function GET(request: NextRequest) {
+  const token = await getToken({ req: request, secret: SECRET });
+  if (!token?.id) {
+    return NextResponse.json({ publicKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || null });
+  }
+
+  await dbConnect();
+  const subscriptionCount = await PushSubscriptionSchema.countDocuments({ userId: token.id });
+  return NextResponse.json({
+    publicKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || null,
+    subscribed: subscriptionCount > 0,
+  });
 }
 
 export async function POST(request: NextRequest) {

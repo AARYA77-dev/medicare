@@ -18,7 +18,10 @@ export default function NotificationSettings() {
     if (!("serviceWorker" in navigator)) return;
     navigator.serviceWorker.getRegistration("/sw.js").then(async (registration) => {
       const subscription = await registration?.pushManager.getSubscription();
-      setEnabled(Boolean(subscription));
+      if (!subscription) return;
+      const response = await fetch("/api/notifications/subscription");
+      const result = await response.json();
+      setEnabled(Boolean(result.subscribed));
     });
   }, []);
 
@@ -67,7 +70,10 @@ export default function NotificationSettings() {
     try {
       const response = await fetch("/api/notifications/test", { method: "POST" });
       const result = await response.json();
-      if (!response.ok) throw new Error(result.message || "Could not send test notification");
+      if (!response.ok) {
+        if (response.status === 404) setEnabled(false);
+        throw new Error(result.message || "Could not send test notification");
+      }
       if (result.sent > 0) {
         toast.success(`Test notification sent to ${result.sent} device${result.sent === 1 ? "" : "s"}.`);
       } else {
