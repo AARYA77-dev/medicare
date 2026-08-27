@@ -66,7 +66,7 @@ const ROLE_META: Record<CollabRole, { label: string; desc: string; color: string
 };
 
 const STATUS_META: Record<InviteStatus, { label: string; color: string }> = {
-  pending:  { label: "Pending",  color: "text-amber-400 bg-amber-500/10 border-amber-500/30" },
+  pending: { label: "Pending", color: "text-amber-400 bg-amber-500/10 border-amber-500/30" },
   accepted: { label: "Accepted", color: "text-emerald-400 bg-emerald-500/10 border-emerald-500/30" },
   declined: { label: "Declined", color: "text-red-400 bg-red-500/10 border-red-500/30" },
 };
@@ -273,12 +273,14 @@ export default function SharingPage() {
                   <form onSubmit={handleSendInvite} className="space-y-4">
                     {/* Email */}
                     <div>
-                      <label className="block text-xs font-semibold text-gray-300 mb-1.5">
+                      <label htmlFor="inviteEmail" className="block text-xs font-semibold text-gray-300 mb-1.5">
                         Invitee Email Address
                       </label>
                       <div className="relative">
                         <FaEnvelope className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-xs" />
                         <input
+                          id="inviteEmail"
+                          name="inviteEmail"
                           type="email"
                           value={inviteEmail}
                           onChange={(e) => setInviteEmail(e.target.value)}
