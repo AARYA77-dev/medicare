@@ -7,6 +7,7 @@ import {
   cancelSubscriptionNotifications,
   scheduleMedicineForSubscription,
 } from "@/lib/notificationScheduling";
+import { AccessSchema } from "@/Schemas/AccessSchema";
 
 const SECRET = process.env.NEXTAUTH_SECRET;
 
@@ -37,7 +38,9 @@ export async function POST(request: NextRequest) {
     { userId: token.id, endpoint: body.endpoint, keys: body.keys, timezone: body.timezone || "UTC", notifiedDoseKeys: [] },
     { upsert: true, new: true, setDefaultsOnInsert: true }
   ) as unknown as import("@/Schemas/PushSubscriptionSchema").IPushSubscription | null;
-  const medicines = await MedicineSchema.find({ userId: token.id });
+  const accessRecords = await AccessSchema.find({ collaboratorId: token.id }).select("ownerId");
+  const ownerIds = [token.id, ...accessRecords.map((access) => String(access.ownerId))];
+  const medicines = await MedicineSchema.find({ userId: { $in: ownerIds } });
   if (subscription) {
     await Promise.all(medicines.map((medicine) => scheduleMedicineForSubscription(String(medicine._id), subscription)));
   }

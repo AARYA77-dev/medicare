@@ -5,6 +5,7 @@ import dbConnect from "@/lib/dbConnect";
 import { sendPushNotification } from "@/lib/push";
 import { Receiver } from "@upstash/qstash";
 import { Types } from "mongoose";
+import { AccessSchema } from "@/Schemas/AccessSchema";
 
 export const dynamic = "force-dynamic";
 
@@ -49,7 +50,12 @@ async function sendDueNotification(body: { type?: string; medicineId?: string; d
     MedicineSchema.findOne({ _id: body.medicineId, "schedule.doses._id": body.doseId }),
     PushSubscriptionSchema.findById(body.subscriptionId),
   ]);
-  if (!medicine || !subscription || String(medicine.userId) !== String(subscription.userId)) {
+  const isOwner = medicine && subscription && String(medicine.userId) === String(subscription.userId);
+  const hasSharedAccess = medicine && subscription && await AccessSchema.exists({
+    ownerId: medicine.userId,
+    collaboratorId: subscription.userId,
+  });
+  if (!medicine || !subscription || (!isOwner && !hasSharedAccess)) {
     return NextResponse.json({ message: "Notification target not found" }, { status: 404 });
   }
   const dose = medicine.schedule.flatMap((entry: { doses: Array<{ _id?: unknown; time: string; dosage: string }> }) => entry.doses).find((item: { _id?: unknown }) => String(item._id) === body.doseId);

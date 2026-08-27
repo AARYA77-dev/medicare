@@ -3,6 +3,7 @@ import { InvitationSchema } from "@/Schemas/InvitationSchema";
 import dbConnect from "@/lib/dbConnect";
 import { getToken } from "next-auth/jwt";
 import { NextRequest, NextResponse } from "next/server";
+import { cancelSubscriptionNotifications } from "@/lib/notificationScheduling";
 
 const SECRET = process.env.NEXTAUTH_SECRET;
 type Context = { params: Promise<{ accessId: string }> };
@@ -63,6 +64,7 @@ export async function DELETE(request: NextRequest, context: Context) {
     return NextResponse.json({ success: false, message: "Forbidden — only the owner can revoke access." }, { status: 403 });
   }
 
+  await cancelSubscriptionNotificationsForUser(String(access.collaboratorId));
   await access.deleteOne();
 
   // Mark the linked invitation as declined so it won't create a new Access on re-accept
@@ -71,4 +73,10 @@ export async function DELETE(request: NextRequest, context: Context) {
   }
 
   return NextResponse.json({ success: true, message: "Collaborator access revoked successfully." });
+}
+
+async function cancelSubscriptionNotificationsForUser(userId: string) {
+  const { PushSubscriptionSchema } = await import("@/Schemas/PushSubscriptionSchema");
+  const subscriptions = await PushSubscriptionSchema.find({ userId }).select("_id");
+  await Promise.all(subscriptions.map((subscription) => cancelSubscriptionNotifications(String(subscription._id))));
 }

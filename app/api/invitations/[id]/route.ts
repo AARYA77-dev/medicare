@@ -5,6 +5,9 @@ import { getToken } from "next-auth/jwt";
 import { Types } from "mongoose";
 import { NextRequest, NextResponse } from "next/server";
 import { InvitationContext } from "@/Interfaces/interface";
+import { MedicineSchema } from "@/Schemas/MedicinsSchema";
+import { PushSubscriptionSchema } from "@/Schemas/PushSubscriptionSchema";
+import { scheduleMedicineForSubscription } from "@/lib/notificationScheduling";
 
 const SECRET = process.env.NEXTAUTH_SECRET;
 
@@ -54,6 +57,12 @@ export async function PUT(request: NextRequest, context: InvitationContext) {
       },
       { upsert: true, new: true }
     );
+
+    const subscription = await PushSubscriptionSchema.findOne({ userId: token.id });
+    if (subscription) {
+      const medicines = await MedicineSchema.find({ userId: invitation.ownerId });
+      await Promise.all(medicines.map((medicine) => scheduleMedicineForSubscription(String(medicine._id), subscription)));
+    }
   } else {
     invitation.status = 'declined';
     await invitation.save();

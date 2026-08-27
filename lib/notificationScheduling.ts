@@ -1,6 +1,7 @@
 import { Client } from "@upstash/qstash";
 import { MedicineSchema } from "@/Schemas/MedicinsSchema";
 import { PushSubscriptionSchema, IPushSubscription } from "@/Schemas/PushSubscriptionSchema";
+import { AccessSchema } from "@/Schemas/AccessSchema";
 
 const qstash = new Client({
   token: process.env.QSTASH_TOKEN || "",
@@ -67,7 +68,9 @@ export async function scheduleMedicineNotifications(medicineId: string, existing
 async function dbSubscriptionsForMedicine(medicineId: string) {
   const medicine = await MedicineSchema.findById(medicineId);
   if (!medicine) return;
-  const subscriptions = await PushSubscriptionSchema.find({ userId: medicine.userId });
+  const accessRecords = await AccessSchema.find({ ownerId: medicine.userId }).select("collaboratorId");
+  const recipientIds = [String(medicine.userId), ...accessRecords.map((access) => String(access.collaboratorId))];
+  const subscriptions = await PushSubscriptionSchema.find({ userId: { $in: recipientIds } });
   const messageIds: string[] = [];
   for (const subscription of subscriptions) {
     messageIds.push(...await scheduleForSubscription(medicine, subscription));
