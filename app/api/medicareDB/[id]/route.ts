@@ -147,6 +147,10 @@ export async function PUT(request: NextRequest, context: Context) {
 
   try {
     const { id } = await context.params;
+    if (!Types.ObjectId.isValid(id)) {
+      return NextResponse.json({ success: false, message: "Invalid Medicine ID" }, { status: 400 });
+    }
+
     const body = await request.json();
     await dbConnect();
 
@@ -166,7 +170,7 @@ export async function PUT(request: NextRequest, context: Context) {
     const updateMedicine = await MedicineSchema.findByIdAndUpdate(
       id,
       { $set: { ...body, ...(shouldPause ? { is_paused: true, paused_at: new Date() } : {}) } },
-      { new: true }
+      { new: true, runValidators: true }
     );
     if (shouldPause || updateMedicine?.is_paused) {
       await cancelMedicineNotifications(med.notificationMessageIds || []);
@@ -178,7 +182,10 @@ export async function PUT(request: NextRequest, context: Context) {
       { success: true, message: "Medicine updated successfully", result: updateMedicine },
       { status: 200 }
     );
-  } catch (err) {
+  } catch (err: unknown) {
+    if (err && typeof err === 'object' && 'name' in err && err.name === 'ValidationError') {
+      return NextResponse.json({ success: false, message: (err as Error).message }, { status: 400 });
+    }
     console.log("error", err);
     return NextResponse.json({ success: false, message: "Update failed", error: String(err) }, { status: 500 });
   }

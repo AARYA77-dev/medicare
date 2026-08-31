@@ -62,32 +62,63 @@ const MedicinePage = () => {
   const [weeklyOverrideDose, setWeeklyOverrideDose] = useState<string>("2");
   const [weeklyDays, setWeeklyDays] = useState<number[]>([1]); // default: Monday
 
-  const syncValuesRef = useRef({ alternateCycle, singleTime, weeklyDefaultDose, weeklyOverrideDose, weeklyDays, setFieldValue: (() => { }) as (f: string, v: unknown) => void });
-
-  // Sync dosage_pattern and times_days when mode changes or values change
+  // Sync dosage_pattern and times_days when mode changes and reset unselected tab states
   const handleScheduleTypeChange = (type: ScheduleType) => {
     setScheduleType(type);
     setFieldValue("schedule_type", type);
 
     if (type === "daily") {
+      // Clean alternate & weekly fields
+      setAlternateCycle(["", ""]);
+      setWeeklyDefaultDose("");
+      setWeeklyOverrideDose("");
+      setWeeklyDays([]);
+      setFieldValue("weekly_default_dose", "");
+      setFieldValue("weekly_override_dose", "");
+      setFieldValue("weekly_days", []);
+
       const combinedDose = dosageList.filter((d) => d.trim() !== "").join(",");
       setFieldValue("dosage_pattern", combinedDose);
       const combinedTime = timeList.filter((t) => t.trim() !== "").join(",");
       setFieldValue("times_days", combinedTime || "08:00");
-      setFieldValue("frequency", String(timeList.length || 1));
+      setFieldValue("frequency", values.frequency || "1");
     } else if (type === "alternate") {
+      // Clean daily & weekly fields
+      setDosageList([""]);
+      setTimeList([""]);
+      setTimeDoseIndices([0]);
+      setWeeklyDefaultDose("");
+      setWeeklyOverrideDose("");
+      setWeeklyDays([]);
+      setFieldValue("weekly_default_dose", "");
+      setFieldValue("weekly_override_dose", "");
+      setFieldValue("weekly_days", []);
+
       const combinedDose = alternateCycle.filter((d) => d.trim() !== "").join(",");
       setFieldValue("dosage_pattern", combinedDose);
       setFieldValue("times_days", singleTime || "08:00");
       setFieldValue("frequency", "1");
     } else if (type === "weekly") {
-      const doses = Array.from(new Set([weeklyDefaultDose, weeklyOverrideDose])).filter(Boolean);
+      // Clean daily & alternate fields
+      setDosageList([""]);
+      setTimeList([""]);
+      setTimeDoseIndices([0]);
+      setAlternateCycle(["", ""]);
+
+      const defDose = weeklyDefaultDose || "3";
+      const overDose = weeklyOverrideDose || "2";
+      const wDays = weeklyDays.length > 0 ? weeklyDays : [1];
+      setWeeklyDefaultDose(defDose);
+      setWeeklyOverrideDose(overDose);
+      setWeeklyDays(wDays);
+
+      const doses = Array.from(new Set([defDose, overDose])).filter(Boolean);
       setFieldValue("dosage_pattern", doses.join(","));
       setFieldValue("times_days", singleTime || "08:00");
       setFieldValue("frequency", "1");
-      setFieldValue("weekly_default_dose", weeklyDefaultDose);
-      setFieldValue("weekly_override_dose", weeklyOverrideDose);
-      setFieldValue("weekly_days", weeklyDays);
+      setFieldValue("weekly_default_dose", defDose);
+      setFieldValue("weekly_override_dose", overDose);
+      setFieldValue("weekly_days", wDays);
     }
   };
 
@@ -263,9 +294,7 @@ const MedicinePage = () => {
   });
 
 
-  useEffect(() => {
-    syncValuesRef.current = { alternateCycle, singleTime, weeklyDefaultDose, weeklyOverrideDose, weeklyDays, setFieldValue };
-  });
+
 
   // Keep daily time slots synchronized with frequency
   useEffect(() => {
@@ -292,26 +321,7 @@ const MedicinePage = () => {
     }
   }, [values.frequency, dosageList.length, scheduleType]);
 
-  // Synchronize initial times_days and dosage_pattern when switching to alternate or weekly.
-  // Reads latest values from syncValuesRef so the effect only re-runs when scheduleType
-  // changes, not on every keystroke in dose/time fields.
-  useEffect(() => {
-    const { alternateCycle: ac, singleTime: st, weeklyDefaultDose: wdd, weeklyOverrideDose: wod, weeklyDays: wd, setFieldValue: sfv } = syncValuesRef.current;
-    if (scheduleType === "alternate") {
-      const combinedDose = ac.filter((d) => d.trim() !== "").join(",");
-      sfv("dosage_pattern", combinedDose);
-      sfv("times_days", st || "08:00");
-      sfv("frequency", "1");
-    } else if (scheduleType === "weekly") {
-      const doses = Array.from(new Set([wdd, wod])).filter(Boolean);
-      sfv("dosage_pattern", doses.join(","));
-      sfv("times_days", st || "08:00");
-      sfv("frequency", "1");
-      sfv("weekly_default_dose", wdd);
-      sfv("weekly_override_dose", wod);
-      sfv("weekly_days", wd);
-    }
-  }, [scheduleType]);
+
 
   // Schedule Generation Algorithm
   const getSchedule = () => {
@@ -859,6 +869,7 @@ const MedicinePage = () => {
                       </span>
                     </div>
                     <p className="text-[11px] text-gray-400 mt-1">Applied to regular / unselected days.</p>
+                    {errors.weekly_default_dose && touched.weekly_default_dose && <p className='text-red-500 text-xs mt-1'>{errors.weekly_default_dose}</p>}
                   </div>
 
                   {/* Weekday Selector */}
@@ -883,6 +894,7 @@ const MedicinePage = () => {
                         );
                       })}
                     </div>
+                    {errors.weekly_days && touched.weekly_days && <p className='text-red-500 text-xs mt-1'>{typeof errors.weekly_days === 'string' ? errors.weekly_days : "Please select at least 1 day"}</p>}
                   </div>
 
                   {/* Override Dose */}
@@ -904,6 +916,7 @@ const MedicinePage = () => {
                         mg
                       </span>
                     </div>
+                    {errors.weekly_override_dose && touched.weekly_override_dose && <p className='text-red-500 text-xs mt-1'>{errors.weekly_override_dose}</p>}
                   </div>
 
                   {/* Time of Dose */}

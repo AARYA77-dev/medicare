@@ -24,9 +24,21 @@ export const MedicineSchema = Yup.object({
     number_days: Yup.string().required("please enter no. of Days"),
     startdate: Yup.string().required("please enter Start Date"),
     schedule_type: Yup.string().oneOf(['daily', 'alternate', 'weekly']).optional(),
-    weekly_default_dose: Yup.string().optional(),
-    weekly_override_dose: Yup.string().optional(),
-    weekly_days: Yup.array().of(Yup.number()).optional(),
+    weekly_default_dose: Yup.string().when("schedule_type", {
+        is: "weekly",
+        then: (schema) => schema.matches(/^[0-9]+(\.[0-9]+)?$/, 'Please enter valid default dosage').required("please enter Default Daily Dose"),
+        otherwise: (schema) => schema.notRequired()
+    }),
+    weekly_override_dose: Yup.string().when("schedule_type", {
+        is: "weekly",
+        then: (schema) => schema.matches(/^[0-9]+(\.[0-9]+)?$/, 'Please enter valid custom dosage').required("please enter Custom Dose"),
+        otherwise: (schema) => schema.notRequired()
+    }),
+    weekly_days: Yup.array().when("schedule_type", {
+        is: "weekly",
+        then: (schema) => schema.of(Yup.number()).min(1, "Please select at least 1 day for custom dosage"),
+        otherwise: (schema) => schema.notRequired()
+    }),
 })
 
 export const ReminderSchema = Yup.object({

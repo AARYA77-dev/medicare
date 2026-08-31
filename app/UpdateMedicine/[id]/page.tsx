@@ -72,10 +72,64 @@ const UpdateMedicine = () => {
     }
   }, [viewingOwnerId, role, route]);
 
-  // Mode changer
+  // Mode changer - resets unselected tab states and updates form values
   const handleScheduleTypeChange = (type: ScheduleType) => {
     setScheduleType(type);
     setFieldValue("schedule_type", type);
+
+    if (type === "daily") {
+      // Clean alternate & weekly fields
+      setAlternateCycle(["", ""]);
+      setWeeklyDefaultDose("");
+      setWeeklyOverrideDose("");
+      setWeeklyDays([]);
+      setFieldValue("weekly_default_dose", "");
+      setFieldValue("weekly_override_dose", "");
+      setFieldValue("weekly_days", []);
+
+      const combinedDose = dosageList.filter((d) => d.trim() !== "").join(",");
+      setFieldValue("dosage_pattern", combinedDose);
+      const combinedTime = timeList.filter((t) => t.trim() !== "").join(",");
+      setFieldValue("times_days", combinedTime || "08:00");
+      setFieldValue("frequency", values.frequency || "1");
+    } else if (type === "alternate") {
+      // Clean daily & weekly fields
+      setDosageList([""]);
+      setTimeList([""]);
+      setTimeDoseIndices([0]);
+      setWeeklyDefaultDose("");
+      setWeeklyOverrideDose("");
+      setWeeklyDays([]);
+      setFieldValue("weekly_default_dose", "");
+      setFieldValue("weekly_override_dose", "");
+      setFieldValue("weekly_days", []);
+
+      const combinedDose = alternateCycle.filter((d) => d.trim() !== "").join(",");
+      setFieldValue("dosage_pattern", combinedDose);
+      setFieldValue("times_days", singleTime || "08:00");
+      setFieldValue("frequency", "1");
+    } else if (type === "weekly") {
+      // Clean daily & alternate fields
+      setDosageList([""]);
+      setTimeList([""]);
+      setTimeDoseIndices([0]);
+      setAlternateCycle(["", ""]);
+
+      const defDose = weeklyDefaultDose || "3";
+      const overDose = weeklyOverrideDose || "2";
+      const wDays = weeklyDays.length > 0 ? weeklyDays : [1];
+      setWeeklyDefaultDose(defDose);
+      setWeeklyOverrideDose(overDose);
+      setWeeklyDays(wDays);
+
+      const doses = Array.from(new Set([defDose, overDose])).filter(Boolean);
+      setFieldValue("dosage_pattern", doses.join(","));
+      setFieldValue("times_days", singleTime || "08:00");
+      setFieldValue("frequency", "1");
+      setFieldValue("weekly_default_dose", defDose);
+      setFieldValue("weekly_override_dose", overDose);
+      setFieldValue("weekly_days", wDays);
+    }
   };
 
   // Daily Handlers
@@ -716,6 +770,7 @@ const UpdateMedicine = () => {
                   </span>
                 </div>
                 <p className="text-[11px] text-gray-400 mt-1">Applied to regular / unselected days.</p>
+                {errors.weekly_default_dose && touched.weekly_default_dose && <p className='text-red-500 text-xs mt-1'>{errors.weekly_default_dose}</p>}
               </div>
 
               <div>
@@ -739,6 +794,7 @@ const UpdateMedicine = () => {
                     );
                   })}
                 </div>
+                {errors.weekly_days && touched.weekly_days && <p className='text-red-500 text-xs mt-1'>{typeof errors.weekly_days === 'string' ? errors.weekly_days : "Please select at least 1 day"}</p>}
               </div>
 
               <div>
@@ -759,6 +815,7 @@ const UpdateMedicine = () => {
                     mg
                   </span>
                 </div>
+                {errors.weekly_override_dose && touched.weekly_override_dose && <p className='text-red-500 text-xs mt-1'>{errors.weekly_override_dose}</p>}
               </div>
 
               <div>

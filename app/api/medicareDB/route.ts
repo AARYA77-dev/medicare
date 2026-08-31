@@ -1,5 +1,6 @@
 import { MedicineSchema } from "@/Schemas/MedicinsSchema";
 import { AccessSchema } from "@/Schemas/AccessSchema";
+import { Types } from "mongoose";
 import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 import dbConnect from "@/lib/dbConnect";
@@ -21,6 +22,9 @@ export async function GET(request: NextRequest) {
 
   // Collaborator viewing another user's schedule
   if (ownerId && ownerId !== String(token.id)) {
+    if (!Types.ObjectId.isValid(ownerId)) {
+      return NextResponse.json({ message: "Invalid owner ID", success: false }, { status: 400 });
+    }
     const access = await AccessSchema.findOne({
       ownerId,
       collaboratorId: token.id,
@@ -43,32 +47,40 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: "Unauthorized", success: false }, { status: 401 });
   }
 
-  const payload = await request.json();
-  const { _ownerId, ...medicineData } = payload;
+  try {
+    const payload = await request.json();
+    const { _ownerId, ...medicineData } = payload;
 
-  await dbConnect();
+    await dbConnect();
 
-  let effectiveUserId = String(token.id);
+    let effectiveUserId = String(token.id);
 
-  // Co-Manager adding medicine to owner's schedule
-  if (_ownerId && _ownerId !== String(token.id)) {
-    const access = await AccessSchema.findOne({
-      ownerId: _ownerId,
-      collaboratorId: token.id,
-      role: 'admin',
-    });
-    if (!access) {
-      return NextResponse.json({ message: "Access denied. Co-Manager role required to add medicines.", success: false }, { status: 403 });
+    // Co-Manager adding medicine to owner's schedule
+    if (_ownerId && _ownerId !== String(token.id)) {
+      if (!Types.ObjectId.isValid(_ownerId)) {
+        return NextResponse.json({ message: "Invalid owner ID", success: false }, { status: 400 });
+      }
+      const access = await AccessSchema.findOne({
+        ownerId: _ownerId,
+        collaboratorId: token.id,
+        role: 'admin',
+      });
+      if (!access) {
+        return NextResponse.json({ message: "Access denied. Co-Manager role required to add medicines.", success: false }, { status: 403 });
+      }
+      effectiveUserId = _ownerId;
     }
-    effectiveUserId = _ownerId;
-  }
 
-  const medicine = new MedicineSchema({
-    ...medicineData,
-    userId: effectiveUserId,
-    is_paused: hasNoQuantity(medicineData.quantity),
-  });
-  const result = await medicine.save();
-  if (!result.is_paused) await scheduleMedicineNotifications(String(result._id));
-  return NextResponse.json({ result, success: true });
+    const medicine = new MedicineSchema({
+      ...medicineData,
+      userId: effectiveUserId,
+      is_paused: hasNoQuantity(medicineData.quantity),
+    });
+    const result = await medicine.save();
+    if (!result.is_paused) await scheduleMedicineNotifications(String(result._id));
+    return NextResponse.json({ result, success: true });
+  } catch (error: unknown) {
+    const errorMsg = error instanceof Error ? error.message : "Failed to create medicine";
+    return NextResponse.json({ message: errorMsg, success: false }, { status: 400 });
+  }
 }
