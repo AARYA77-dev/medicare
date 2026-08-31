@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 import dbConnect from "@/lib/dbConnect";
 import { scheduleMedicineNotifications } from "@/lib/notificationScheduling";
+import { hasNoQuantity } from "@/lib/medicineQuantity";
 
 const SECRET = process.env.NEXTAUTH_SECRET;
 
@@ -62,8 +63,12 @@ export async function POST(request: NextRequest) {
     effectiveUserId = _ownerId;
   }
 
-  const medicine = new MedicineSchema({ ...medicineData, userId: effectiveUserId });
+  const medicine = new MedicineSchema({
+    ...medicineData,
+    userId: effectiveUserId,
+    is_paused: hasNoQuantity(medicineData.quantity),
+  });
   const result = await medicine.save();
-  await scheduleMedicineNotifications(String(result._id));
+  if (!result.is_paused) await scheduleMedicineNotifications(String(result._id));
   return NextResponse.json({ result, success: true });
 }

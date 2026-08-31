@@ -12,6 +12,7 @@ import { MedicinePayload, ScheduleEntry, Medicines, Dose, ScheduleType } from '@
 import Loading from '../loading';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { fetchMedicines, addMedicineSchedule, deleteMedicine, toggleMedicinePause } from '@/store/medicineSlice';
+import { hasNoQuantity, MedicineQuantity } from '@/lib/medicineQuantity';
 
 const initialValues: Medicines = {
   medicine_name: "",
@@ -411,9 +412,10 @@ const MedicinePage = () => {
     return <Loading />;
   }
 
-  const MedicineMenu = ({ id, isPaused }: { id: string; isPaused: boolean }) => {
+  const MedicineMenu = ({ id, isPaused, quantity }: { id: string; isPaused: boolean; quantity: MedicineQuantity }) => {
     const [editOpen, setEditOpen] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
+    const [resumeConfirmOpen, setResumeConfirmOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -439,7 +441,7 @@ const MedicinePage = () => {
       }
     };
 
-    const handlePauseToggle = async () => {
+    const resumeSchedule = async () => {
       let resumeDate: string | undefined;
       if (isPaused) {
         resumeDate = window.prompt("Resume date (YYYY-MM-DD):", new Date().toISOString().slice(0, 10)) || undefined;
@@ -457,6 +459,15 @@ const MedicinePage = () => {
       } catch (error) {
         toast.error(typeof error === 'string' ? error : "Failed to update schedule");
       }
+    };
+
+    const handlePauseToggle = async () => {
+      if (isPaused && hasNoQuantity(quantity)) {
+        setEditOpen(false);
+        setResumeConfirmOpen(true);
+        return;
+      }
+      await resumeSchedule();
     };
 
     return (
@@ -504,6 +515,33 @@ const MedicinePage = () => {
             <span>Delete</span>
           </button>
         </div>
+        {resumeConfirmOpen && (
+          <div className="fixed inset-0 z-[60] grid place-items-center bg-black/70 p-4">
+            <div className="w-full max-w-sm rounded-lg border-2 border-yellow-300 bg-black p-5 text-white shadow-2xl">
+              <h2 className="text-base font-bold text-yellow-300">No medicine quantity</h2>
+              <p className="mt-2 text-sm text-gray-300">The quantity is zero. Resume this schedule anyway?</p>
+              <div className="mt-5 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setResumeConfirmOpen(false)}
+                  className="rounded px-3 py-2 text-sm text-gray-300 hover:bg-white/10"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setResumeConfirmOpen(false);
+                    void resumeSchedule();
+                  }}
+                  className="rounded bg-yellow-300 px-3 py-2 text-sm font-semibold text-black hover:bg-yellow-200"
+                >
+                  Resume anyway
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   };
@@ -1038,7 +1076,7 @@ const MedicinePage = () => {
                     <p className="font-bold text-sm text-white truncate flex-1">
                       {item.medicine_name}
                     </p>
-                    {canEdit && <MedicineMenu id={item._id!} isPaused={Boolean(item.is_paused)} />}
+                    {canEdit && <MedicineMenu id={item._id!} isPaused={Boolean(item.is_paused)} quantity={item.quantity} />}
                   </div>
                   {item.is_paused && (
                     <p className="mt-1 text-xs font-semibold text-yellow-300">Paused</p>

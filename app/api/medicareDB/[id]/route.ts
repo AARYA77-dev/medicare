@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 import dbConnect from "@/lib/dbConnect";
 import { cancelMedicineNotifications, scheduleMedicineNotifications } from "@/lib/notificationScheduling";
+import { decreaseQuantity, hasNoQuantity } from "@/lib/medicineQuantity";
 
 const SECRET = process.env.NEXTAUTH_SECRET;
 
@@ -93,9 +94,20 @@ export async function DELETE(request: NextRequest, context: Context) {
 
     await cancelMedicineNotifications(ownerMed.notificationMessageIds || []);
 
+    const dose = ownerMed.schedule
+      .flatMap((entry: { doses: { _id?: unknown; dosage: string }[] }) => entry.doses)
+      .find((item: { _id?: unknown }) => String(item._id) === String(objectId));
+    const nextQuantity = dose ? decreaseQuantity(ownerMed.quantity, dose.dosage) : ownerMed.quantity;
+    const shouldPause = hasNoQuantity(nextQuantity);
     const result = await MedicineSchema.updateOne(
       { "schedule.doses._id": objectId },
-      { $pull: { "schedule.$[].doses": { _id: objectId } } }
+      {
+        $pull: { "schedule.$[].doses": { _id: objectId } },
+        $set: {
+          quantity: nextQuantity,
+          ...(shouldPause ? { is_paused: true, paused_at: new Date() } : {}),
+        },
+      }
     );
 
     const result2 = await MedicineSchema.updateMany(
@@ -108,7 +120,9 @@ export async function DELETE(request: NextRequest, context: Context) {
       schedule: { $size: 0 },
     });
 
-    if (await MedicineSchema.exists({ _id: ownerMed._id })) {
+    if (shouldPause) {
+      await cancelMedicineNotifications(ownerMed.notificationMessageIds || []);
+    } else if (await MedicineSchema.exists({ _id: ownerMed._id })) {
       await scheduleMedicineNotifications(String(ownerMed._id));
     }
 
@@ -141,12 +155,18 @@ export async function PUT(request: NextRequest, context: Context) {
       return NextResponse.json({ message: "Access denied. Co-Manager role required to edit.", success: false }, { status: 403 });
     }
 
+    const quantityProvided = Object.prototype.hasOwnProperty.call(body, 'quantity');
+    const shouldPause = quantityProvided && hasNoQuantity(body.quantity);
     const updateMedicine = await MedicineSchema.findByIdAndUpdate(
       id,
-      { $set: body },
+      { $set: { ...body, ...(shouldPause ? { is_paused: true, paused_at: new Date() } : {}) } },
       { new: true }
     );
-    await scheduleMedicineNotifications(String(id), med.notificationMessageIds || []);
+    if (shouldPause || updateMedicine?.is_paused) {
+      await cancelMedicineNotifications(med.notificationMessageIds || []);
+    } else {
+      await scheduleMedicineNotifications(String(id), med.notificationMessageIds || []);
+    }
 
     return NextResponse.json(
       { success: true, message: "Medicine updated successfully", result: updateMedicine },
