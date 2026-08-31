@@ -77,6 +77,13 @@ const UpdateMedicine = () => {
     setScheduleType(type);
     setFieldValue("schedule_type", type);
 
+    // Reset touched state so new tab starts fresh without old errors
+    setFieldTouched("dosage_pattern", false);
+    setFieldTouched("times_days", false);
+    setFieldTouched("weekly_default_dose", false);
+    setFieldTouched("weekly_override_dose", false);
+    setFieldTouched("weekly_days", false);
+
     if (type === "daily") {
       // Clean alternate & weekly fields
       setAlternateCycle(["", ""]);
