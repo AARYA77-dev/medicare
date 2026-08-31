@@ -5,6 +5,7 @@ import { getToken } from "next-auth/jwt";
 import dbConnect from "@/lib/dbConnect";
 import { ScheduleDose, ScheduleEntryData } from "@/Interfaces/interface";
 import { scheduleMedicineNotifications } from "@/lib/notificationScheduling";
+import { hasNoQuantity } from "@/lib/medicineQuantity";
 
 const SECRET = process.env.NEXTAUTH_SECRET;
 
@@ -115,6 +116,12 @@ export async function POST(request: NextRequest) {
     if (medicine.is_paused) {
       return NextResponse.json(
         { success: false, message: "Cannot manage a missed dose while the medicine schedule is paused." },
+        { status: 409 }
+      );
+    }
+    if (hasNoQuantity(medicine.quantity)) {
+      return NextResponse.json(
+        { success: false, message: "Cannot manage a missed dose while medicine quantity is zero." },
         { status: 409 }
       );
     }

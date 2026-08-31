@@ -536,9 +536,10 @@ const MedicinePage = () => {
                     setResumeConfirmOpen(false);
                     void resumeSchedule();
                   }}
-                  className="rounded bg-yellow-300 px-3 py-2 text-sm font-semibold text-black hover:bg-yellow-200"
+                  disabled={hasNoQuantity(quantity)}
+                  className="rounded bg-yellow-300 px-3 py-2 text-sm font-semibold text-black hover:bg-yellow-200 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  Resume
+                  {hasNoQuantity(quantity) ? "Add quantity first" : "Resume"}
                 </button>
               </div>
             </div>

@@ -5,6 +5,7 @@ import { getToken } from "next-auth/jwt";
 import { Types } from "mongoose";
 import dbConnect from "@/lib/dbConnect";
 import { cancelMedicineNotifications, scheduleMedicineNotifications } from "@/lib/notificationScheduling";
+import { hasNoQuantity } from "@/lib/medicineQuantity";
 
 const SECRET = process.env.NEXTAUTH_SECRET;
 type Context = { params: Promise<{ id: string }> };
@@ -74,6 +75,9 @@ export async function POST(request: NextRequest, context: Context) {
       await cancelMedicineNotifications(medicine.notificationMessageIds || []);
     } else {
       if (!medicine.is_paused) return NextResponse.json({ success: false, message: "Medicine is not paused" }, { status: 400 });
+      if (hasNoQuantity(medicine.quantity)) {
+        return NextResponse.json({ success: false, message: "Add medicine quantity before resuming this schedule" }, { status: 409 });
+      }
       const targetDate = typeof resumeDate === 'string' ? parseDate(resumeDate) : null;
       if (!targetDate) return NextResponse.json({ success: false, message: "A valid resume date is required" }, { status: 400 });
       const firstEntry = medicine.schedule[0];

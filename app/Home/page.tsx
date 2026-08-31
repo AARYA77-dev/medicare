@@ -10,6 +10,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchMedicines, deleteDose, resolveMissedDose } from "@/store/medicineSlice";
+import { hasNoQuantity } from "@/lib/medicineQuantity";
 import { FaArrowRight, FaCalendarTimes, FaExclamationTriangle, FaEye, FaPills, FaTimes } from "react-icons/fa";
 import MissedDoseModal from "@/components/MissedDoseModal";
 import NotificationSettings from "@/components/NotificationSettings";
@@ -210,6 +211,7 @@ export default function HomePage() {
               if (!dose) return null;
 
               const isChecked = dose._id ? checkDoses.includes(dose._id) : false;
+              const hasNoStock = hasNoQuantity(item.quantity);
               return (
                 <div
                   key={item._id}
@@ -228,7 +230,7 @@ export default function HomePage() {
                       className="w-10 h-5 rounded accent-[#03e9f4] transition-transform enabled:cursor-pointer enabled:hover:scale-140 disabled:cursor-not-allowed disabled:opacity-40"
                       onChange={() => handleCheckbox(dose._id!)}
                       checked={isChecked}
-                      disabled={!canInteract || item.is_paused}
+                      disabled={!canInteract || item.is_paused || hasNoStock}
                       type="checkbox"
                     />
                   </div>
@@ -251,7 +253,7 @@ export default function HomePage() {
 
                   {/* Footer: Done and Missed Buttons */}
                   <div className="mt-6 flex items-center gap-2">
-                    {canInteract && !item.is_paused ? (
+                    {canInteract && !item.is_paused && !hasNoStock ? (
                       <>
                         <button
                           disabled={!isChecked || !!buttonLoading}
@@ -281,6 +283,10 @@ export default function HomePage() {
                     ) : item.is_paused ? (
                       <div className="w-full py-2.5 rounded-xl bg-yellow-500/10 border border-yellow-500/30 text-center text-xs text-yellow-300 font-medium">
                         Schedule is paused
+                      </div>
+                    ) : hasNoStock ? (
+                      <div className="w-full py-2.5 rounded-xl bg-red-500/10 border border-red-500/30 text-center text-xs text-red-300 font-medium">
+                        Add medicine quantity before managing doses
                       </div>
                     ) : (
                       <div className="w-full py-2.5 rounded-xl bg-white/5 border border-white/10 text-center text-xs text-gray-500 font-medium">
