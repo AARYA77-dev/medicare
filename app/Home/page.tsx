@@ -277,7 +277,7 @@ export default function HomePage() {
                       </>
                     ) : item.is_paused ? (
                       <div className="w-full py-2.5 rounded-xl bg-yellow-500/10 border border-yellow-500/30 text-center text-xs text-yellow-300 font-medium">
-                        Schedule paused — resume it before managing doses
+                        Schedule is paused
                       </div>
                     ) : (
                       <div className="w-full py-2.5 rounded-xl bg-white/5 border border-white/10 text-center text-xs text-gray-500 font-medium">
