@@ -133,52 +133,54 @@ export default function HomePage() {
       <Header />
         {/* Low Stock Alert Bar */}
         {lowStockMedicines.length > 0 && !alertDismissed && (
-          <div className="mb-8 rounded-2xl border border-amber-500/25 bg-amber-500/10 backdrop-blur-md p-4 sm:p-4.5">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3.5">
-              <div className="flex items-start gap-3">
-                <FaExclamationTriangle className="text-amber-400 text-base sm:text-lg shrink-0 mt-0.5" />
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-sm sm:text-base font-semibold text-white">
-                      Low Stock Alert
-                    </h3>
-                    <span className="text-[11px] font-medium px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                      {lowStockMedicines.length} {lowStockMedicines.length > 1 ? 'medicines' : 'medicine'} &lt; 4 pills
-                    </span>
-                  </div>
+          <div className="mx-auto max-w-7xl px-4">
+            <div className="mb-8 rounded-2xl border border-amber-500/25 bg-amber-500/10 backdrop-blur-md p-4 sm:p-4.5">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-3.5">
+                <div className="flex items-start gap-3">
+                  <FaExclamationTriangle className="text-amber-400 text-base sm:text-lg shrink-0 mt-0.5" />
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-sm sm:text-base font-semibold text-white">
+                        Low Stock Alert
+                      </h3>
+                      <span className="text-[11px] font-medium px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                        {lowStockMedicines.length} {lowStockMedicines.length > 1 ? 'medicines' : 'medicine'} &lt; 4 pills
+                      </span>
+                    </div>
 
-                  <div className="flex flex-wrap gap-1.5 mt-2">
-                    {lowStockMedicines.map((item, idx) => (
-                      <div
-                        key={idx}
-                        className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-black/40 border border-white/10 text-xs text-gray-300"
-                      >
-                        <FaPills className="text-amber-400/80 text-[10px]" />
-                        <span className="font-medium text-white">{item.name}</span>
-                        <span className="text-amber-300/90 font-mono text-[11px]">({item.details})</span>
-                      </div>
-                    ))}
+                    <div className="flex flex-wrap gap-1.5 mt-2">
+                      {lowStockMedicines.map((item, idx) => (
+                        <div
+                          key={idx}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-black/40 border border-white/10 text-xs text-gray-300"
+                        >
+                          <FaPills className="text-amber-400/80 text-[10px]" />
+                          <span className="font-medium text-white">{item.name}</span>
+                          <span className="text-amber-300/90 font-mono text-[11px]">({item.details})</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="flex items-center gap-2 shrink-0 self-end md:self-center">
-                <Link
-                  href="/Medicines"
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#03e9f4] hover:bg-[#02c4ce] text-black font-semibold text-xs transition-colors"
-                >
-                  Manage
-                  <FaArrowRight className="text-[10px]" />
-                </Link>
-                <button
-                  type="button"
-                  onClick={() => setAlertDismissed(true)}
-                  className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
-                  title="Dismiss alert"
-                  aria-label="Dismiss alert"
-                >
-                  <FaTimes size={13} />
-                </button>
+                <div className="flex items-center gap-2 shrink-0 self-end md:self-center">
+                  <Link
+                    href="/Medicines"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#03e9f4] hover:bg-[#02c4ce] text-black font-semibold text-xs transition-colors"
+                  >
+                    Manage
+                    <FaArrowRight className="text-[10px]" />
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => setAlertDismissed(true)}
+                    className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                    title="Dismiss alert"
+                    aria-label="Dismiss alert"
+                  >
+                    <FaTimes size={13} />
+                  </button>
+                </div>
               </div>
             </div>
           </div>
