@@ -131,12 +131,6 @@ export default function HomePage() {
   return (
     <div className="min-h-screen text-white">
       <Header />
-      <div className="max-w-7xl mx-auto px-4 pt-2">
-        <NotificationSettings />
-      </div>
-      <main className="max-w-7xl mx-auto px-4 py-8">
-        <ViewAsSelector />
-
         {/* Low Stock Alert Bar */}
         {lowStockMedicines.length > 0 && !alertDismissed && (
           <div className="mb-8 rounded-2xl border border-amber-500/25 bg-amber-500/10 backdrop-blur-md p-4 sm:p-4.5">
@@ -189,6 +183,13 @@ export default function HomePage() {
             </div>
           </div>
         )}
+        
+      <div className="max-w-7xl mx-auto px-4 pt-2">
+        <NotificationSettings />
+      </div>
+      <main className="max-w-7xl mx-auto px-4 py-8">
+        <ViewAsSelector />
+
 
         {/* Section Title */}
         {medicineData.length > 0 && <h2 className="text-2xl font-bold mb-8 text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-500">
