@@ -2,13 +2,13 @@
 
 ## What this is
 
-Medicare is a Next.js medication management application for tracking medicines, dosages, and schedules with push notifications. It enables users to create and maintain medicine records, view upcoming doses, share access with caregivers, and receive automated reminders via Web Push and QStash integration.
+Medicare is a Next.js medication management application for tracking medicines, dosages, and schedules with push notifications. It enables users to create and maintain medicine records, view upcoming doses, mark medications as taken or missed, and share medicines with caregivers (family members, nurses, or healthcare providers). The system includes timezone-aware push notifications powered by Upstash QStash and Web Push API.
 
 ---
 
 ## Stack
 
-- **Language(s):** TypeScript (96.2%), CSS (3.3%), JavaScript (0.5%)
+- **Language(s):** TypeScript (96.5%), CSS (3.1%), JavaScript (0.4%)
 - **Framework / runtime:** Next.js 16.3 (App Router) with React 19, Tailwind CSS 4.1, and Turbopack
 - **Notable libraries:** 
   - Redux Toolkit (state management)
@@ -77,7 +77,7 @@ next.config.ts                     Next.js configuration
 
 ### How it fits together
 
-The app authenticates users via NextAuth, loads their medicine list from MongoDB through the API layer, and stores it in Redux. The Home page displays upcoming doses for the logged-in user (or a shared user if viewing as caregiver via ViewAsSelector). 
+The app authenticates users via NextAuth, loads their medicine list from MongoDB through the API layer, and stores it in Redux. The Home page displays upcoming doses for the logged-in user (or a selected caregiver's medicines if in caregiver mode).
 
 Creating or editing a medicine triggers:
 1. API call to `/api/medicareDB` to store in MongoDB
@@ -427,5 +427,5 @@ See `LICENSE` file in the repository for details.
 ---
 
 **Document Version:** 1.0  
-**Last Updated:** 2026-08-26  
+**Last Updated:** 2026-08-31  
 **Repository:** [AARYA77-dev/medicare](https://github.com/AARYA77-dev/medicare)
