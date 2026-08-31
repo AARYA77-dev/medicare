@@ -522,7 +522,7 @@ const MedicinePage = () => {
               <h2 className="text-base font-bold text-yellow-300">Resume medicine schedule?</h2>
               {hasNoQuantity(quantity) ? (
                 <p className="mt-2 text-sm text-red-300">
-                  Warning: this medicine has no quantity remaining. The schedule was automatically paused because its quantity reached zero.
+                  Warning: The schedule was automatically paused because its medicine quantity reached zero.
                 </p>
               ) : (
                 <p className="mt-2 text-sm text-gray-300">The schedule will resume from today.</p>
