@@ -16,20 +16,7 @@ export const MedicineSchema = Yup.object({
     frequency: Yup.string().required("please enter Frequancy"),
     dosage_pattern: Yup.string()
         .matches(/^[0-9]+(\.[0-9]+)?(,[0-9]+(\.[0-9]+)?)*$/, 'Please enter valid numbers for dosage')
-        .required("please enter Dosage Pattern")
-        .when("schedule_type", {
-            is: "alternate",
-            then: (schema) => schema.test(
-                "alternate-cycle-min-2",
-                "Please enter valid dosage for each cycle day (at least 2 days required)",
-                (value) => {
-                    if (!value) return false;
-                    const parts = value.split(",");
-                    return parts.length >= 2 && parts.every(p => p.trim().length > 0 && !isNaN(Number(p)) && Number(p) > 0);
-                }
-            ),
-            otherwise: (schema) => schema
-        }),
+        .required("please enter Dosage Pattern"),
     times_days: Yup.string()
         .matches(
             /^([01]\d|2[0-3]):[0-5]\d(,([01]\d|2[0-3]):[0-5]\d)*$/,
