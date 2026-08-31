@@ -119,6 +119,12 @@ MedicinesModel.pre('validate', function (next) {
             this.invalidate('weekly_days', 'Please select at least 1 day for custom dosage');
         }
     }
+    if (this.schedule_type === 'alternate') {
+        const doses = (this.dosage_pattern || '').split(',').map((d: string) => d.trim()).filter(Boolean);
+        if (doses.length < 2) {
+            this.invalidate('dosage_pattern', 'Alternating schedule requires at least 2 cycle doses');
+        }
+    }
     next();
 });
 

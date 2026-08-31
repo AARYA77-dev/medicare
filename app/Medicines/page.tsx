@@ -77,9 +77,9 @@ const MedicinePage = () => {
       setFieldValue("weekly_override_dose", "");
       setFieldValue("weekly_days", []);
 
-      const combinedDose = dosageList.filter((d) => d.trim() !== "").join(",");
+      const combinedDose = dosageList.join(",");
       setFieldValue("dosage_pattern", combinedDose);
-      const combinedTime = timeList.filter((t) => t.trim() !== "").join(",");
+      const combinedTime = timeList.join(",");
       setFieldValue("times_days", combinedTime || "08:00");
       setFieldValue("frequency", values.frequency || "1");
     } else if (type === "alternate") {
@@ -94,7 +94,7 @@ const MedicinePage = () => {
       setFieldValue("weekly_override_dose", "");
       setFieldValue("weekly_days", []);
 
-      const combinedDose = alternateCycle.filter((d) => d.trim() !== "").join(",");
+      const combinedDose = alternateCycle.join(",");
       setFieldValue("dosage_pattern", combinedDose);
       setFieldValue("times_days", singleTime || "08:00");
       setFieldValue("frequency", "1");
@@ -127,20 +127,22 @@ const MedicinePage = () => {
     const updated = [...dosageList];
     updated[index] = val;
     setDosageList(updated);
-    const combined = updated.filter((d) => d.trim() !== "").join(",");
-    setFieldValue("dosage_pattern", combined);
+    setFieldValue("dosage_pattern", updated.join(","));
   };
 
   const handleAddDosage = () => {
-    setDosageList((prev) => [...prev, ""]);
+    setDosageList((prev) => {
+      const updated = [...prev, ""];
+      setFieldValue("dosage_pattern", updated.join(","));
+      return updated;
+    });
   };
 
   const handleRemoveDosage = (index: number) => {
     if (dosageList.length <= 1) return;
     const updated = dosageList.filter((_, i) => i !== index);
     setDosageList(updated);
-    const combined = updated.filter((d) => d.trim() !== "").join(",");
-    setFieldValue("dosage_pattern", combined);
+    setFieldValue("dosage_pattern", updated.join(","));
 
     setTimeDoseIndices((prev) =>
       prev.map((dIdx) => {
@@ -155,8 +157,7 @@ const MedicinePage = () => {
     const updated = [...timeList];
     updated[index] = val;
     setTimeList(updated);
-    const combined = updated.filter((t) => t.trim() !== "").join(",");
-    setFieldValue("times_days", combined);
+    setFieldValue("times_days", updated.join(","));
   };
 
   const handleTimeDoseChange = (timeIndex: number, doseIndex: number) => {
@@ -170,15 +171,13 @@ const MedicinePage = () => {
     const updated = [...alternateCycle];
     updated[index] = val;
     setAlternateCycle(updated);
-    const combined = updated.filter((d) => d.trim() !== "").join(",");
-    setFieldValue("dosage_pattern", combined);
+    setFieldValue("dosage_pattern", updated.join(","));
   };
 
   const handleAddAlternateDay = () => {
     setAlternateCycle((prev) => {
       const updated = [...prev, ""];
-      const combined = updated.filter((d) => d.trim() !== "").join(",");
-      setFieldValue("dosage_pattern", combined);
+      setFieldValue("dosage_pattern", updated.join(","));
       return updated;
     });
   };
@@ -187,8 +186,7 @@ const MedicinePage = () => {
     if (alternateCycle.length <= 2) return;
     const updated = alternateCycle.filter((_, i) => i !== index);
     setAlternateCycle(updated);
-    const combined = updated.filter((d) => d.trim() !== "").join(",");
-    setFieldValue("dosage_pattern", combined);
+    setFieldValue("dosage_pattern", updated.join(","));
   };
 
   // Weekday Mode Handlers
