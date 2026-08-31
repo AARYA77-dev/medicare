@@ -107,6 +107,21 @@ export const deleteMedicine = createAsyncThunk(
   }
 );
 
+export const toggleMedicinePause = createAsyncThunk<
+  MedicineWithSchedule,
+  { id: string; action: 'pause' | 'resume'; resumeDate?: string }
+>(
+  'medicine/toggleMedicinePause',
+  async ({ id, action, resumeDate }, { rejectWithValue }) => {
+    try {
+      const response = await axios.post(`/api/medicareDB/${id}/pause`, { action, resumeDate });
+      return response.data.result;
+    } catch (error: unknown) {
+      return rejectWithValue(getErrorMessage(error, 'Failed to update pause status'));
+    }
+  }
+);
+
 // Async Thunk: Resolve Missed Dose
 export const resolveMissedDose = createAsyncThunk<
   { success: boolean; message: string; result: MedicineWithSchedule },
@@ -226,6 +241,12 @@ const medicineSlice = createSlice({
       // Delete Medicine
       .addCase(deleteMedicine.fulfilled, (state, action: PayloadAction<string>) => {
         state.medicines = state.medicines.filter((med) => med._id !== action.payload);
+      })
+
+      .addCase(toggleMedicinePause.fulfilled, (state, action) => {
+        state.medicines = state.medicines.map((med) =>
+          med._id === action.payload._id ? action.payload : med
+        );
       })
 
       // Resolve Missed Dose

@@ -58,6 +58,13 @@ const MedicinesModel = new mongoose.Schema({
         type: Number,
         default: 0
     },
+    is_paused: {
+        type: Boolean,
+        default: false
+    },
+    paused_at: {
+        type: Date
+    },
     startdate: {
         type:String,
         required:[true, "Start date is required"]

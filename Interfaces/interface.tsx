@@ -13,6 +13,8 @@ export interface Medicines {
     times_days: string;
     number_days: string;
     missed_doses?: number;
+    is_paused?: boolean;
+    paused_at?: string;
     startdate: string;
     schedule_type?: ScheduleType;
     weekly_default_dose?: string;

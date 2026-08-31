@@ -7,11 +7,11 @@ import { useFormik } from 'formik';
 import Link from 'next/link';
 import React, { useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
-import { FaCalendarAlt, FaEdit, FaEllipsisV, FaEye, FaPlus, FaSyncAlt, FaTrash } from 'react-icons/fa';
+import { FaCalendarAlt, FaEdit, FaEllipsisV, FaEye, FaPause, FaPlay, FaPlus, FaSyncAlt, FaTrash } from 'react-icons/fa';
 import { MedicinePayload, ScheduleEntry, Medicines, Dose, ScheduleType } from '@/Interfaces/interface';
 import Loading from '../loading';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { fetchMedicines, addMedicineSchedule, deleteMedicine } from '@/store/medicineSlice';
+import { fetchMedicines, addMedicineSchedule, deleteMedicine, toggleMedicinePause } from '@/store/medicineSlice';
 
 const initialValues: Medicines = {
   medicine_name: "",
@@ -411,7 +411,7 @@ const MedicinePage = () => {
     return <Loading />;
   }
 
-  const MedicineMenu = ({ id }: { id: string }) => {
+  const MedicineMenu = ({ id, isPaused }: { id: string; isPaused: boolean }) => {
     const [editOpen, setEditOpen] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
@@ -439,6 +439,26 @@ const MedicinePage = () => {
       }
     };
 
+    const handlePauseToggle = async () => {
+      let resumeDate: string | undefined;
+      if (isPaused) {
+        resumeDate = window.prompt("Resume date (YYYY-MM-DD):", new Date().toISOString().slice(0, 10)) || undefined;
+        if (!resumeDate) return;
+      }
+
+      try {
+        await dispatch(toggleMedicinePause({
+          id,
+          action: isPaused ? 'resume' : 'pause',
+          resumeDate,
+        })).unwrap();
+        toast.success(isPaused ? "Medicine schedule resumed" : "Medicine schedule paused");
+        setEditOpen(false);
+      } catch (error) {
+        toast.error(typeof error === 'string' ? error : "Failed to update schedule");
+      }
+    };
+
     return (
       <div ref={menuRef} className="absolute right-2">
         <button
@@ -462,6 +482,14 @@ const MedicinePage = () => {
             <FaEdit className="text-xs" />
             <span>Edit</span>
           </Link>
+          <button
+            type="button"
+            onClick={handlePauseToggle}
+            className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-yellow-300 hover:bg-yellow-500/20 transition-colors text-left cursor-pointer"
+          >
+            {isPaused ? <FaPlay className="text-xs" /> : <FaPause className="text-xs" />}
+            <span>{isPaused ? "Resume" : "Pause"}</span>
+          </button>
           <button
             type="button"
             onClick={handleDelete}
@@ -1010,8 +1038,11 @@ const MedicinePage = () => {
                     <p className="font-bold text-sm text-white truncate flex-1">
                       {item.medicine_name}
                     </p>
-                    {canEdit && <MedicineMenu id={item._id!} />}
+                    {canEdit && <MedicineMenu id={item._id!} isPaused={Boolean(item.is_paused)} />}
                   </div>
+                  {item.is_paused && (
+                    <p className="mt-1 text-xs font-semibold text-yellow-300">Paused</p>
+                  )}
 
                   <Link
                     className="w-full mt-3 flex cursor-pointer justify-center items-center gap-2 bg-[#03e9f4] text-black font-semibold px-3 py-1.5 rounded-lg shadow-md active:scale-95 text-xs hover:bg-[#00c5cf] transition-all"
