@@ -128,7 +128,7 @@ export const resolveMissedDose = createAsyncThunk<
   {
     medicineId: string;
     doseId: string;
-    action: 'skip_and_continue' | 'carry_forward_shift';
+    action: 'skip_and_continue' | 'carry_forward_shift' | 'quantity_unavailable';
   },
   { rejectValue: string }
 >(

@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Dose, MedicineWithSchedule } from '@/Interfaces/interface';
+import { hasNoQuantityForDose } from '@/lib/medicineQuantity';
 import { FaTimes, FaInfoCircle } from 'react-icons/fa';
 
 interface MissedDoseModalProps {
@@ -9,7 +10,7 @@ interface MissedDoseModalProps {
   onClose: () => void;
   medicine: MedicineWithSchedule | null;
   dose: Dose | null;
-  onConfirm: (action: 'skip_and_continue' | 'carry_forward_shift') => Promise<void>;
+  onConfirm: (action: 'skip_and_continue' | 'carry_forward_shift' | 'quantity_unavailable') => Promise<void>;
   isLoading: boolean;
 }
 
@@ -21,7 +22,15 @@ export default function MissedDoseModal({
   onConfirm,
   isLoading,
 }: MissedDoseModalProps) {
-  const [selectedOption, setSelectedOption] = useState<'skip_and_continue' | 'carry_forward_shift'>('skip_and_continue');
+  const [selectedOption, setSelectedOption] = useState<'skip_and_continue' | 'carry_forward_shift' | 'quantity_unavailable'>('skip_and_continue');
+
+  const doseHasNoStock = medicine && dose
+    ? hasNoQuantityForDose(medicine.quantity, dose.dosage)
+    : false;
+
+  useEffect(() => {
+    setSelectedOption(doseHasNoStock ? 'quantity_unavailable' : 'skip_and_continue');
+  }, [dose?._id, doseHasNoStock, isOpen]);
 
   if (!isOpen || !medicine || !dose) return null;
 
@@ -57,8 +66,31 @@ export default function MissedDoseModal({
 
         {/* Options */}
         <div className="mt-4 space-y-3">
+          {doseHasNoStock && (
+            <div
+              onClick={() => setSelectedOption('quantity_unavailable')}
+              className={`p-3.5 rounded-xl border transition-all cursor-pointer ${
+                selectedOption === 'quantity_unavailable'
+                  ? 'border-red-400 bg-red-500/10'
+                  : 'border-red-500/30 bg-red-500/5 hover:border-red-400/60'
+              }`}
+            >
+              <div className="flex items-start gap-3">
+                <div className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border ${selectedOption === 'quantity_unavailable' ? 'border-red-400 bg-red-400' : 'border-gray-500'}`}>
+                  {selectedOption === 'quantity_unavailable' && <div className="h-1.5 w-1.5 rounded-full bg-black" />}
+                </div>
+                <div>
+                  <h4 className="text-sm font-medium text-red-300">Quantity unavailable</h4>
+                  <p className="text-xs text-gray-400 mt-0.5 leading-relaxed">
+                    I missed this dose because {currentDoseVal} medicine quantity is zero.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Option 1: Continue with Next Dose */}
-          <div
+          {!doseHasNoStock && <div
             onClick={() => setSelectedOption('skip_and_continue')}
             className={`p-3.5 rounded-xl border transition-all cursor-pointer ${
               selectedOption === 'skip_and_continue'
@@ -86,10 +118,10 @@ export default function MissedDoseModal({
                 </p>
               </div>
             </div>
-          </div>
+          </div>}
 
           {/* Option 2: Carry Forward Today's Missed Dose */}
-          <div
+          {!doseHasNoStock && <div
             onClick={() => setSelectedOption('carry_forward_shift')}
             className={`p-3.5 rounded-xl border transition-all cursor-pointer ${
               selectedOption === 'carry_forward_shift'
@@ -117,7 +149,7 @@ export default function MissedDoseModal({
                 </p>
               </div>
             </div>
-          </div>
+          </div>}
         </div>
 
         {/* Safety Guidance Note */}

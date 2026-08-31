@@ -10,7 +10,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchMedicines, deleteDose, resolveMissedDose } from "@/store/medicineSlice";
-import { hasNoQuantity } from "@/lib/medicineQuantity";
+import { hasNoQuantityForDose } from "@/lib/medicineQuantity";
 import { FaArrowRight, FaCalendarTimes, FaExclamationTriangle, FaEye, FaPills, FaTimes } from "react-icons/fa";
 import MissedDoseModal from "@/components/MissedDoseModal";
 import NotificationSettings from "@/components/NotificationSettings";
@@ -69,7 +69,7 @@ export default function HomePage() {
     });
   };
 
-  const handleConfirmMissedDose = async (action: 'skip_and_continue' | 'carry_forward_shift') => {
+  const handleConfirmMissedDose = async (action: 'skip_and_continue' | 'carry_forward_shift' | 'quantity_unavailable') => {
     if (!activeMissedModal.medicine || !activeMissedModal.dose) return;
     setModalLoading(true);
     try {
@@ -211,7 +211,7 @@ export default function HomePage() {
               if (!dose) return null;
 
               const isChecked = dose._id ? checkDoses.includes(dose._id) : false;
-              const hasNoStock = hasNoQuantity(item.quantity);
+              const doseHasNoStock = hasNoQuantityForDose(item.quantity, dose.dosage);
               return (
                 <div
                   key={item._id}
@@ -230,7 +230,7 @@ export default function HomePage() {
                       className="w-10 h-5 rounded accent-[#03e9f4] transition-transform enabled:cursor-pointer enabled:hover:scale-140 disabled:cursor-not-allowed disabled:opacity-40"
                       onChange={() => handleCheckbox(dose._id!)}
                       checked={isChecked}
-                      disabled={!canInteract || item.is_paused || hasNoStock}
+                      disabled={!canInteract || item.is_paused || doseHasNoStock}
                       type="checkbox"
                     />
                   </div>
@@ -253,10 +253,10 @@ export default function HomePage() {
 
                   {/* Footer: Done and Missed Buttons */}
                   <div className="mt-6 flex items-center gap-2">
-                    {canInteract && !item.is_paused && !hasNoStock ? (
+                    {canInteract && !item.is_paused ? (
                       <>
                         <button
-                          disabled={!isChecked || !!buttonLoading}
+                          disabled={!isChecked || !!buttonLoading || doseHasNoStock}
                           onClick={() => handleDeleteDose(dose._id!, item._id)}
                           className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold uppercase text-[11px] sm:text-xs tracking-wider transition-all duration-200 
                             ${isChecked
@@ -283,10 +283,6 @@ export default function HomePage() {
                     ) : item.is_paused ? (
                       <div className="w-full py-2.5 rounded-xl bg-yellow-500/10 border border-yellow-500/30 text-center text-xs text-yellow-300 font-medium">
                         Schedule is paused
-                      </div>
-                    ) : hasNoStock ? (
-                      <div className="w-full py-2.5 rounded-xl bg-red-500/10 border border-red-500/30 text-center text-xs text-red-300 font-medium">
-                        Add medicine quantity before managing doses
                       </div>
                     ) : (
                       <div className="w-full py-2.5 rounded-xl bg-white/5 border border-white/10 text-center text-xs text-gray-500 font-medium">

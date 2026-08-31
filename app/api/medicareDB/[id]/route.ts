@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 import dbConnect from "@/lib/dbConnect";
 import { cancelMedicineNotifications, scheduleMedicineNotifications } from "@/lib/notificationScheduling";
-import { decreaseQuantity, hasNoQuantity } from "@/lib/medicineQuantity";
+import { decreaseQuantity, hasNoQuantity, hasNoQuantityForDose } from "@/lib/medicineQuantity";
 
 const SECRET = process.env.NEXTAUTH_SECRET;
 
@@ -94,15 +94,15 @@ export async function DELETE(request: NextRequest, context: Context) {
     if (ownerMed.is_paused) {
       return NextResponse.json({ message: "Cannot mark a dose done while the medicine schedule is paused.", success: false }, { status: 409 });
     }
-    if (hasNoQuantity(ownerMed.quantity)) {
-      return NextResponse.json({ message: "Cannot mark a dose done while medicine quantity is zero.", success: false }, { status: 409 });
+    const dose = ownerMed.schedule
+      .flatMap((entry: { doses: { _id?: unknown; dosage: string }[] }) => entry.doses)
+      .find((item: { _id?: unknown }) => String(item._id) === String(objectId));
+    if (dose && hasNoQuantityForDose(ownerMed.quantity, dose.dosage)) {
+      return NextResponse.json({ message: "Cannot mark this dose done because its dosage quantity is zero.", success: false }, { status: 409 });
     }
 
     await cancelMedicineNotifications(ownerMed.notificationMessageIds || []);
 
-    const dose = ownerMed.schedule
-      .flatMap((entry: { doses: { _id?: unknown; dosage: string }[] }) => entry.doses)
-      .find((item: { _id?: unknown }) => String(item._id) === String(objectId));
     const nextQuantity = dose ? decreaseQuantity(ownerMed.quantity, dose.dosage) : ownerMed.quantity;
     const shouldPause = hasNoQuantity(nextQuantity);
     const result = await MedicineSchema.updateOne(

@@ -5,7 +5,7 @@ import { getToken } from "next-auth/jwt";
 import dbConnect from "@/lib/dbConnect";
 import { ScheduleDose, ScheduleEntryData } from "@/Interfaces/interface";
 import { scheduleMedicineNotifications } from "@/lib/notificationScheduling";
-import { hasNoQuantity } from "@/lib/medicineQuantity";
+import { hasNoQuantityForDose } from "@/lib/medicineQuantity";
 
 const SECRET = process.env.NEXTAUTH_SECRET;
 
@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!['skip_and_continue', 'carry_forward_shift'].includes(action)) {
+    if (!['skip_and_continue', 'carry_forward_shift', 'quantity_unavailable'].includes(action)) {
       return NextResponse.json(
         { success: false, message: "Invalid action. Must be 'skip_and_continue' or 'carry_forward_shift'." },
         { status: 400 }
@@ -119,13 +119,6 @@ export async function POST(request: NextRequest) {
         { status: 409 }
       );
     }
-    if (hasNoQuantity(medicine.quantity)) {
-      return NextResponse.json(
-        { success: false, message: "Cannot manage a missed dose while medicine quantity is zero." },
-        { status: 409 }
-      );
-    }
-
     // Locate the dose and its schedule entry
     let foundEntryIndex = -1;
     let foundDoseIndex = -1;
@@ -154,9 +147,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (action === 'quantity_unavailable' && !hasNoQuantityForDose(medicine.quantity, missedDose.dosage)) {
+      return NextResponse.json(
+        { success: false, message: "This dosage still has quantity available." },
+        { status: 409 }
+      );
+    }
+
     const currentSchedule = JSON.parse(JSON.stringify(medicine.schedule)) as ScheduleEntryData[];
 
-    if (action === 'skip_and_continue') {
+    if (action === 'quantity_unavailable') {
+      currentSchedule[foundEntryIndex].doses.splice(foundDoseIndex, 1);
+      medicine.schedule = currentSchedule.filter((sch) => sch.doses && sch.doses.length > 0);
+    } else if (action === 'skip_and_continue') {
       // 1. Remove the missed dose from today's schedule entry
       currentSchedule[foundEntryIndex].doses.splice(foundDoseIndex, 1);
 
@@ -276,7 +279,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       message:
-        action === 'skip_and_continue'
+        action === 'quantity_unavailable'
+          ? "The dose was recorded as missed because its quantity was zero."
+          : action === 'skip_and_continue'
           ? "Today's missed dose was skipped, and it will be added to the end of the schedule."
           : "Today's missed dose was moved to tomorrow, and the rest of the schedule was shifted forward by one day.",
       result: medicine,
