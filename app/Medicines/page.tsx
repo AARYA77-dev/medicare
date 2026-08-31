@@ -442,11 +442,7 @@ const MedicinePage = () => {
     };
 
     const resumeSchedule = async () => {
-      let resumeDate: string | undefined;
-      if (isPaused) {
-        resumeDate = window.prompt("Resume date (YYYY-MM-DD):", new Date().toISOString().slice(0, 10)) || undefined;
-        if (!resumeDate) return;
-      }
+      const resumeDate = new Date().toISOString().slice(0, 10);
 
       try {
         await dispatch(toggleMedicinePause({
@@ -462,7 +458,7 @@ const MedicinePage = () => {
     };
 
     const handlePauseToggle = async () => {
-      if (isPaused && hasNoQuantity(quantity)) {
+      if (isPaused) {
         setEditOpen(false);
         setResumeConfirmOpen(true);
         return;
@@ -518,8 +514,14 @@ const MedicinePage = () => {
         {resumeConfirmOpen && (
           <div className="fixed inset-0 z-[60] grid place-items-center bg-black/70 p-4">
             <div className="w-full max-w-sm rounded-lg border-2 border-yellow-300 bg-black p-5 text-white shadow-2xl">
-              <h2 className="text-base font-bold text-yellow-300">No medicine quantity</h2>
-              <p className="mt-2 text-sm text-gray-300">The quantity is zero. Resume this schedule anyway?</p>
+              <h2 className="text-base font-bold text-yellow-300">Resume medicine schedule?</h2>
+              {hasNoQuantity(quantity) ? (
+                <p className="mt-2 text-sm text-red-300">
+                  Warning: this medicine has no quantity remaining. The schedule was automatically paused because its quantity reached zero.
+                </p>
+              ) : (
+                <p className="mt-2 text-sm text-gray-300">The schedule will resume from today.</p>
+              )}
               <div className="mt-5 flex justify-end gap-2">
                 <button
                   type="button"
@@ -536,7 +538,7 @@ const MedicinePage = () => {
                   }}
                   className="rounded bg-yellow-300 px-3 py-2 text-sm font-semibold text-black hover:bg-yellow-200"
                 >
-                  Resume anyway
+                  Resume
                 </button>
               </div>
             </div>
