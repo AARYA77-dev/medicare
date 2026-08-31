@@ -15,8 +15,8 @@ function formatDisplayDate(value: string): string {
 
     const [first, second, third] = parts;
     const year = first > 1000 ? first : third;
-    const month = first > 1000 ? second : first;
-    const day = first > 1000 ? third : second;
+    const month = first > 1000 ? second : first > 12 ? second : first;
+    const day = first > 1000 ? third : first > 12 ? first : second;
     return `${String(day).padStart(2, '0')}-${String(month).padStart(2, '0')}-${year}`;
 }
 
