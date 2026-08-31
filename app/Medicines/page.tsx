@@ -252,7 +252,7 @@ const MedicinePage = () => {
 
   const uniqueDoses = getUniqueDoses();
 
-  const { errors, values, handleBlur, touched, handleChange, handleSubmit, setFieldValue } = useFormik<Medicines>({
+  const { errors, values, handleBlur, touched, handleChange, handleSubmit, setFieldValue, setFieldTouched } = useFormik<Medicines>({
 
     validationSchema: MedicineSchema,
     initialValues,
@@ -954,6 +954,7 @@ const MedicinePage = () => {
                       onChange={(e) => {
                         const checked = e.target.checked;
                         setSeparateQuantity(checked);
+                        setFieldTouched("quantity", false);
                         if (checked) {
                           const initialQuantities: Record<string, string> = {};
                           uniqueDoses.forEach((dose) => {
