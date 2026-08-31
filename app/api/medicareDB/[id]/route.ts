@@ -91,6 +91,9 @@ export async function DELETE(request: NextRequest, context: Context) {
     if (!role || !['owner', 'admin', 'collaborator'].includes(role)) {
       return NextResponse.json({ message: "Access denied.", success: false }, { status: 403 });
     }
+    if (ownerMed.is_paused) {
+      return NextResponse.json({ message: "Cannot mark a dose done while the medicine schedule is paused.", success: false }, { status: 409 });
+    }
 
     await cancelMedicineNotifications(ownerMed.notificationMessageIds || []);
 

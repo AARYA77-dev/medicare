@@ -112,6 +112,13 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    if (medicine.is_paused) {
+      return NextResponse.json(
+        { success: false, message: "Cannot manage a missed dose while the medicine schedule is paused." },
+        { status: 409 }
+      );
+    }
+
     // Locate the dose and its schedule entry
     let foundEntryIndex = -1;
     let foundDoseIndex = -1;

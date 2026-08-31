@@ -225,7 +225,7 @@ export default function HomePage() {
                       className="w-10 h-5 rounded accent-[#03e9f4] transition-transform enabled:cursor-pointer enabled:hover:scale-140 disabled:cursor-not-allowed disabled:opacity-40"
                       onChange={() => handleCheckbox(dose._id!)}
                       checked={isChecked}
-                      disabled={!canInteract}
+                      disabled={!canInteract || item.is_paused}
                       type="checkbox"
                     />
                   </div>
@@ -248,7 +248,7 @@ export default function HomePage() {
 
                   {/* Footer: Done and Missed Buttons */}
                   <div className="mt-6 flex items-center gap-2">
-                    {canInteract ? (
+                    {canInteract && !item.is_paused ? (
                       <>
                         <button
                           disabled={!isChecked || !!buttonLoading}
@@ -275,6 +275,10 @@ export default function HomePage() {
                           <span>Missed</span>
                         </button>
                       </>
+                    ) : item.is_paused ? (
+                      <div className="w-full py-2.5 rounded-xl bg-yellow-500/10 border border-yellow-500/30 text-center text-xs text-yellow-300 font-medium">
+                        Schedule paused — resume it before managing doses
+                      </div>
                     ) : (
                       <div className="w-full py-2.5 rounded-xl bg-white/5 border border-white/10 text-center text-xs text-gray-500 font-medium">
                         <span className="flex items-center justify-center gap-1"><FaEye aria-hidden="true" /> View only — no interactions</span>
