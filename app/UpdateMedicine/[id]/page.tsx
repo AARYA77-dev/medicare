@@ -855,18 +855,11 @@ const UpdateMedicine = () => {
                     if (checked) {
                       const initialQuantities: Record<string, string> = {};
                       uniqueDoses.forEach((dose) => {
-                        initialQuantities[dose] =
-                          typeof values.quantity === 'object' && values.quantity !== null && (values.quantity as Record<string, string>)[dose]
-                            ? String((values.quantity as Record<string, string>)[dose])
-                            : (typeof values.quantity === 'string' ? values.quantity : "");
+                        initialQuantities[dose] = "";
                       });
                       setFieldValue("quantity", initialQuantities);
                     } else {
-                      const firstVal =
-                        typeof values.quantity === 'object' && values.quantity !== null
-                          ? Object.values(values.quantity as Record<string, string>)[0] || ""
-                          : (typeof values.quantity === 'string' ? values.quantity : "");
-                      setFieldValue("quantity", firstVal);
+                      setFieldValue("quantity", "");
                     }
                   }}
                   className="mt-0.5 w-4 h-4 rounded cursor-pointer accent-[#03e9f4]"
@@ -904,7 +897,7 @@ const UpdateMedicine = () => {
                         setFieldValue("quantity", newMap);
                       }}
                       onBlur={handleBlur}
-                      name={`quantity_${dose}`}
+                      name="quantity"
                       className="w-full bg-black placeholder-gray-500 rounded-md border-2 border-[#03e9f4] px-3 py-2 text-sm"
                     />
                   </div>
@@ -923,7 +916,7 @@ const UpdateMedicine = () => {
               </label>
               <input
                 onChange={(e) => setFieldValue("quantity", e.target.value)}
-                value={typeof values.quantity === 'string' ? values.quantity : (Object.values(values.quantity || {})[0] ?? "")}
+                value={typeof values.quantity === 'string' ? values.quantity : ""}
                 onBlur={handleBlur}
                 className="w-full bg-black placeholder-[#03e9f4] rounded-md border-2 border-[#03e9f4] px-3 py-2 mt-1"
                 type="number"

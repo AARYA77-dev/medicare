@@ -37,7 +37,20 @@ const MedicinesModel = new mongoose.Schema({
     },
     quantity: {
         type: mongoose.Schema.Types.Mixed,
-        required: [true, "Quantity is required"]
+        required: [true, "Quantity is required"],
+        validate: {
+            validator: function (value: unknown) {
+                if (value === undefined || value === null) return false;
+                if (typeof value === "string") return value.trim().length > 0 && !isNaN(Number(value)) && Number(value) >= 0;
+                if (typeof value === "number") return value >= 0;
+                if (typeof value === "object") {
+                    const vals = Object.values(value as Record<string, unknown>);
+                    return vals.length > 0 && vals.every(v => v !== undefined && v !== null && String(v).trim().length > 0 && !isNaN(Number(v)) && Number(v) >= 0);
+                }
+                return false;
+            },
+            message: "Please enter a valid quantity"
+        }
     },
     frequency: {
         type: String,
