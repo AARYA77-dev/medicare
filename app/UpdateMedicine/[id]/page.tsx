@@ -570,6 +570,7 @@ const UpdateMedicine = () => {
                           step="any"
                           placeholder={idx === 0 ? "e.g. 5" : "e.g. 10"}
                           value={dose}
+                          name="dosage_pattern"
                           onChange={(e) => handleDosageChange(idx, e.target.value)}
                           onBlur={handleBlur}
                           className="w-full bg-black placeholder-gray-500 rounded-md border-2 border-[#03e9f4] px-3 py-2 pr-10 text-sm"
@@ -646,6 +647,7 @@ const UpdateMedicine = () => {
                             <input
                               type="time"
                               value={timeList[idx] ?? ""}
+                              name="times_days"
                               onChange={(e) => handleTimeChange(idx, e.target.value)}
                               onBlur={handleBlur}
                               className="w-full bg-black text-white rounded-md border-2 border-[#03e9f4] px-3 py-1.5 text-sm [color-scheme:dark]"
@@ -701,7 +703,9 @@ const UpdateMedicine = () => {
                           step="any"
                           placeholder={`e.g. ${idx % 2 === 0 ? "2" : "3"}`}
                           value={dose}
+                          name="dosage_pattern"
                           onChange={(e) => handleAlternateCycleChange(idx, e.target.value)}
+                          onBlur={handleBlur}
                           className="w-full bg-black placeholder-gray-500 rounded-md border-2 border-[#03e9f4] px-3 py-2 pr-10 text-sm"
                         />
                         <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#03e9f4] font-semibold">
@@ -738,7 +742,9 @@ const UpdateMedicine = () => {
                 <input
                   type="time"
                   value={singleTime}
+                  name="times_days"
                   onChange={(e) => handleSingleTimeChange(e.target.value)}
+                  onBlur={handleBlur}
                   className="w-full bg-black text-white rounded-md border-2 border-[#03e9f4] px-3 py-2 text-sm [color-scheme:dark]"
                 />
               </div>
@@ -762,7 +768,9 @@ const UpdateMedicine = () => {
                     step="any"
                     placeholder="e.g. 3"
                     value={weeklyDefaultDose}
+                    name="weekly_default_dose"
                     onChange={(e) => handleWeeklyDefaultChange(e.target.value)}
+                    onBlur={handleBlur}
                     className="w-full bg-black placeholder-gray-500 rounded-md border-2 border-[#03e9f4] px-3 py-2 pr-10 text-sm"
                   />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#03e9f4] font-semibold">
@@ -808,7 +816,9 @@ const UpdateMedicine = () => {
                     step="any"
                     placeholder="e.g. 2"
                     value={weeklyOverrideDose}
+                    name="weekly_override_dose"
                     onChange={(e) => handleWeeklyOverrideChange(e.target.value)}
+                    onBlur={handleBlur}
                     className="w-full bg-black placeholder-gray-500 rounded-md border-2 border-[#03e9f4] px-3 py-2 pr-10 text-sm"
                   />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#03e9f4] font-semibold">
@@ -823,7 +833,9 @@ const UpdateMedicine = () => {
                 <input
                   type="time"
                   value={singleTime}
+                  name="times_days"
                   onChange={(e) => handleSingleTimeChange(e.target.value)}
+                  onBlur={handleBlur}
                   className="w-full bg-black text-white rounded-md border-2 border-[#03e9f4] px-3 py-2 text-sm [color-scheme:dark]"
                 />
               </div>
