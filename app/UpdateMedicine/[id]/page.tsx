@@ -317,7 +317,7 @@ const UpdateMedicine = () => {
         }
       }
     }
-  }, []);
+  }, [setScheduleType]);
 
   useEffect(() => {
     if (scheduleType === "daily") {

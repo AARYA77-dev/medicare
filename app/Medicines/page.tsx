@@ -144,7 +144,12 @@ const MedicinePage = () => {
   };
 
   const handleAddAlternateDay = () => {
-    setAlternateCycle((prev) => [...prev, ""]);
+    setAlternateCycle((prev) => {
+      const updated = [...prev, ""];
+      const combined = updated.filter((d) => d.trim() !== "").join(",");
+      setFieldValue("dosage_pattern", combined);
+      return updated;
+    });
   };
 
   const handleRemoveAlternateDay = (index: number) => {
