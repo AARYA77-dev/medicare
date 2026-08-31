@@ -9,6 +9,17 @@ import toast from 'react-hot-toast';
 import Image from "next/image";
 import { useAppSelector } from '@/store/hooks';
 
+function formatDisplayDate(value: string): string {
+    const parts = value.split(/[\/\-.]/).map(Number);
+    if (parts.length !== 3 || parts.some((part) => Number.isNaN(part))) return value;
+
+    const [first, second, third] = parts;
+    const year = first > 1000 ? first : third;
+    const month = first > 1000 ? second : first;
+    const day = first > 1000 ? third : second;
+    return `${String(day).padStart(2, '0')}-${String(month).padStart(2, '0')}-${year}`;
+}
+
 const MedicineTablePage = () => {
     const { medicines } = useAppSelector((state) => state.medicine);
     const [medicineData, setMedicineData] = useState<MedicineWithSchedule>();
@@ -110,7 +121,7 @@ const MedicineTablePage = () => {
                                 <tbody>
                                     {medicineData.schedule && medicineData.schedule.map((item, id: number) => (
                                         <tr key={id}>
-                                            <td className='text-center '>{item.date}</td>
+                                            <td className='text-center '>{formatDisplayDate(item.date)}</td>
                                             <td className='text-center '>Day {item.day}</td>
                                             <td className='text-center no-padding'>
                                                 {
