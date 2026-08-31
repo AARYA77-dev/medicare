@@ -132,7 +132,15 @@ export async function DELETE(request: NextRequest, context: Context) {
       await scheduleMedicineNotifications(String(ownerMed._id));
     }
 
-    return NextResponse.json({ message: "Dose deleted successfully", success: true, result, result2, deletedMedicineResult });
+    const updatedMedicine = await MedicineSchema.findById(ownerMed._id);
+    return NextResponse.json({
+      message: "Dose deleted successfully",
+      success: true,
+      result,
+      result2,
+      deletedMedicineResult,
+      updatedMedicine: updatedMedicine || null,
+    });
   } catch (err) {
     console.error("Error", err);
     return NextResponse.json({ message: "Failed to delete", error: String(err) }, { status: 500 });

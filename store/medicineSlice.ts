@@ -82,12 +82,19 @@ export const updateMedicineSchedule = createAsyncThunk<MedicineWithSchedule, { i
 );
 
 // Async Thunk: Delete/Mark dose completed
-export const deleteDose = createAsyncThunk(
+export const deleteDose = createAsyncThunk<
+  { doseId: string; medicineId: string; updatedMedicine: MedicineWithSchedule | null },
+  { doseId: string; medicineId: string }
+>(
   'medicine/deleteDose',
-  async ({ doseId, medicineId }: { doseId: string; medicineId: string }, { rejectWithValue }) => {
+  async ({ doseId, medicineId }, { rejectWithValue }) => {
     try {
-      await axios.delete(`/api/medicareDB/${doseId}`);
-      return { doseId, medicineId };
+      const response = await axios.delete(`/api/medicareDB/${doseId}`);
+      return {
+        doseId,
+        medicineId,
+        updatedMedicine: (response.data.updatedMedicine as MedicineWithSchedule) || null,
+      };
     } catch (error: unknown) {
       return rejectWithValue(getErrorMessage(error, 'Failed to update dose'));
     }
@@ -220,22 +227,28 @@ const medicineSlice = createSlice({
 
       // Delete Dose
       .addCase(deleteDose.fulfilled, (state, action) => {
-        const { doseId, medicineId } = action.payload;
-        state.medicines = state.medicines
-          .map((med) => {
-            if (med._id === medicineId) {
-              const updatedSchedule = med.schedule
-                .map((sch) => ({
-                  ...sch,
-                  doses: sch.doses.filter((d) => d._id !== doseId),
-                }))
-                .filter((sch) => sch.doses.length > 0);
+        const { doseId, medicineId, updatedMedicine } = action.payload;
+        if (updatedMedicine && updatedMedicine.schedule && updatedMedicine.schedule.length > 0) {
+          state.medicines = state.medicines.map((med) =>
+            med._id === medicineId ? updatedMedicine : med
+          );
+        } else {
+          state.medicines = state.medicines
+            .map((med) => {
+              if (med._id === medicineId) {
+                const updatedSchedule = med.schedule
+                  .map((sch) => ({
+                    ...sch,
+                    doses: sch.doses.filter((d) => d._id !== doseId),
+                  }))
+                  .filter((sch) => sch.doses.length > 0);
 
-              return { ...med, schedule: updatedSchedule };
-            }
-            return med;
-          })
-          .filter((med) => med.schedule.length > 0);
+                return { ...med, schedule: updatedSchedule };
+              }
+              return med;
+            })
+            .filter((med) => med.schedule.length > 0);
+        }
       })
 
       // Delete Medicine
