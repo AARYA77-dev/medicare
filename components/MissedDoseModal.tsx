@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Dose, MedicineWithSchedule } from '@/Interfaces/interface';
 import { hasNoQuantityForDose } from '@/lib/medicineQuantity';
 import { FaTimes, FaInfoCircle } from 'react-icons/fa';
@@ -28,16 +28,18 @@ export default function MissedDoseModal({
     ? hasNoQuantityForDose(medicine.quantity, dose.dosage)
     : false;
 
-  useEffect(() => {
-    setSelectedOption(doseHasNoStock ? 'quantity_unavailable' : 'skip_and_continue');
-  }, [dose?._id, doseHasNoStock, isOpen]);
+  const effectiveOption = doseHasNoStock
+    ? 'quantity_unavailable'
+    : selectedOption === 'quantity_unavailable'
+      ? 'skip_and_continue'
+      : selectedOption;
 
   if (!isOpen || !medicine || !dose) return null;
 
   const currentDoseVal = dose.dosage;
 
   const handleConfirm = async () => {
-    await onConfirm(selectedOption);
+    await onConfirm(effectiveOption);
   };
 
   return (
@@ -70,14 +72,14 @@ export default function MissedDoseModal({
             <div
               onClick={() => setSelectedOption('quantity_unavailable')}
               className={`p-3.5 rounded-xl border transition-all cursor-pointer ${
-                selectedOption === 'quantity_unavailable'
+                effectiveOption === 'quantity_unavailable'
                   ? 'border-red-400 bg-red-500/10'
                   : 'border-red-500/30 bg-red-500/5 hover:border-red-400/60'
               }`}
             >
               <div className="flex items-start gap-3">
-                <div className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border ${selectedOption === 'quantity_unavailable' ? 'border-red-400 bg-red-400' : 'border-gray-500'}`}>
-                  {selectedOption === 'quantity_unavailable' && <div className="h-1.5 w-1.5 rounded-full bg-black" />}
+                <div className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border ${effectiveOption === 'quantity_unavailable' ? 'border-red-400 bg-red-400' : 'border-gray-500'}`}>
+                  {effectiveOption === 'quantity_unavailable' && <div className="h-1.5 w-1.5 rounded-full bg-black" />}
                 </div>
                 <div>
                   <h4 className="text-sm font-medium text-red-300">Quantity unavailable</h4>
@@ -93,7 +95,7 @@ export default function MissedDoseModal({
           {!doseHasNoStock && <div
             onClick={() => setSelectedOption('skip_and_continue')}
             className={`p-3.5 rounded-xl border transition-all cursor-pointer ${
-              selectedOption === 'skip_and_continue'
+              effectiveOption === 'skip_and_continue'
                 ? 'border-[#03e9f4] bg-[#03e9f4]/10'
                 : 'border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/[0.07]'
             }`}
@@ -101,12 +103,12 @@ export default function MissedDoseModal({
             <div className="flex items-start gap-3">
               <div
                 className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-all ${
-                  selectedOption === 'skip_and_continue'
+                  effectiveOption === 'skip_and_continue'
                     ? 'border-[#03e9f4] bg-[#03e9f4]'
                     : 'border-gray-500 bg-transparent'
                 }`}
               >
-                {selectedOption === 'skip_and_continue' && <div className="h-1.5 w-1.5 rounded-full bg-black" />}
+                {effectiveOption === 'skip_and_continue' && <div className="h-1.5 w-1.5 rounded-full bg-black" />}
               </div>
 
               <div>
@@ -124,7 +126,7 @@ export default function MissedDoseModal({
           {!doseHasNoStock && <div
             onClick={() => setSelectedOption('carry_forward_shift')}
             className={`p-3.5 rounded-xl border transition-all cursor-pointer ${
-              selectedOption === 'carry_forward_shift'
+              effectiveOption === 'carry_forward_shift'
                 ? 'border-[#03e9f4] bg-[#03e9f4]/10'
                 : 'border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/[0.07]'
             }`}
@@ -132,12 +134,12 @@ export default function MissedDoseModal({
             <div className="flex items-start gap-3">
               <div
                 className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-all ${
-                  selectedOption === 'carry_forward_shift'
+                  effectiveOption === 'carry_forward_shift'
                     ? 'border-[#03e9f4] bg-[#03e9f4]'
                     : 'border-gray-500 bg-transparent'
                 }`}
               >
-                {selectedOption === 'carry_forward_shift' && <div className="h-1.5 w-1.5 rounded-full bg-black" />}
+                {effectiveOption === 'carry_forward_shift' && <div className="h-1.5 w-1.5 rounded-full bg-black" />}
               </div>
 
               <div>

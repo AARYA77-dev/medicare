@@ -4,8 +4,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 import dbConnect from "@/lib/dbConnect";
 import { ScheduleDose, ScheduleEntryData } from "@/Interfaces/interface";
-import { scheduleMedicineNotifications } from "@/lib/notificationScheduling";
-import { hasNoQuantityForDose } from "@/lib/medicineQuantity";
+import { cancelMedicineNotifications, scheduleMedicineNotifications } from "@/lib/notificationScheduling";
+import { hasNoQuantity, hasNoQuantityForDose } from "@/lib/medicineQuantity";
 
 const SECRET = process.env.NEXTAUTH_SECRET;
 
@@ -272,9 +272,18 @@ export async function POST(request: NextRequest) {
     }
 
     medicine.missed_doses = (medicine.missed_doses || 0) + 1;
+    const shouldPause = hasNoQuantity(medicine.quantity);
+    if (shouldPause) {
+      medicine.is_paused = true;
+      medicine.paused_at = new Date();
+    }
 
     await medicine.save();
-    await scheduleMedicineNotifications(String(medicine._id), medicine.notificationMessageIds || []);
+    if (shouldPause) {
+      await cancelMedicineNotifications(medicine.notificationMessageIds || []);
+    } else {
+      await scheduleMedicineNotifications(String(medicine._id), medicine.notificationMessageIds || []);
+    }
 
     return NextResponse.json({
       success: true,
