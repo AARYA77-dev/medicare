@@ -53,7 +53,7 @@ const UpdateMedicine = () => {
   const [timeDoseIndices, setTimeDoseIndices] = useState<number[]>([0]);
 
   // Alternate mode state
-  const [alternateCycle, setAlternateCycle] = useState<string[]>(["2", "3"]);
+  const [alternateCycle, setAlternateCycle] = useState<string[]>(["", ""]);
   const [singleTime, setSingleTime] = useState<string>("08:00");
 
   // Specific Weekdays mode state
@@ -119,19 +119,25 @@ const UpdateMedicine = () => {
     const updated = [...alternateCycle];
     updated[index] = val;
     setAlternateCycle(updated);
+    const combined = updated.filter((d) => d.trim() !== "").join(",");
+    setFieldValue("dosage_pattern", combined);
   };
 
   const handleAddAlternateDay = () => {
-    setAlternateCycle((prev) => [...prev, ""]);
+    setAlternateCycle((prev) => {
+      const updated = [...prev, ""];
+      const combined = updated.filter((d) => d.trim() !== "").join(",");
+      setFieldValue("dosage_pattern", combined);
+      return updated;
+    });
   };
 
   const handleRemoveAlternateDay = (index: number) => {
-    if (alternateCycle.length <= 2) {
-      toast.error("Alternate schedule requires at least 2 days in cycle");
-      return;
-    }
+    if (alternateCycle.length <= 2) return;
     const updated = alternateCycle.filter((_, i) => i !== index);
     setAlternateCycle(updated);
+    const combined = updated.filter((d) => d.trim() !== "").join(",");
+    setFieldValue("dosage_pattern", combined);
   };
 
   // Weekday Mode Handlers
@@ -292,7 +298,7 @@ const UpdateMedicine = () => {
       }
 
       if (mode === "alternate") {
-        if (splitDoses.length > 0) setAlternateCycle(splitDoses);
+        setAlternateCycle(splitDoses.length > 0 ? splitDoses : ["", ""]);
         if (data.times_days) setSingleTime(data.times_days.split(',')[0] || "08:00");
       } else if (mode === "weekly") {
         if (data.weekly_default_dose) setWeeklyDefaultDose(data.weekly_default_dose);
@@ -443,8 +449,8 @@ const UpdateMedicine = () => {
                 type="button"
                 onClick={() => handleScheduleTypeChange('daily')}
                 className={`py-2 px-1 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1 cursor-pointer ${scheduleType === 'daily'
-                    ? 'bg-[#03e9f4] text-black font-bold shadow-md'
-                    : 'text-gray-400 hover:text-white hover:bg-white/5'
+                  ? 'bg-[#03e9f4] text-black font-bold shadow-md'
+                  : 'text-gray-400 hover:text-white hover:bg-white/5'
                   }`}
               >
                 <span className="flex items-center justify-center gap-1"><FaCalendarAlt aria-hidden="true" /> Daily</span>
@@ -453,8 +459,8 @@ const UpdateMedicine = () => {
                 type="button"
                 onClick={() => handleScheduleTypeChange('alternate')}
                 className={`py-2 px-1 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1 cursor-pointer ${scheduleType === 'alternate'
-                    ? 'bg-[#03e9f4] text-black font-bold shadow-md'
-                    : 'text-gray-400 hover:text-white hover:bg-white/5'
+                  ? 'bg-[#03e9f4] text-black font-bold shadow-md'
+                  : 'text-gray-400 hover:text-white hover:bg-white/5'
                   }`}
               >
                 <span className="flex items-center justify-center gap-1"><FaSyncAlt aria-hidden="true" /> Alternate</span>
@@ -463,8 +469,8 @@ const UpdateMedicine = () => {
                 type="button"
                 onClick={() => handleScheduleTypeChange('weekly')}
                 className={`py-2 px-1 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1 cursor-pointer ${scheduleType === 'weekly'
-                    ? 'bg-[#03e9f4] text-black font-bold shadow-md'
-                    : 'text-gray-400 hover:text-white hover:bg-white/5'
+                  ? 'bg-[#03e9f4] text-black font-bold shadow-md'
+                  : 'text-gray-400 hover:text-white hover:bg-white/5'
                   }`}
               >
                 <span className="flex items-center justify-center gap-1"><FaCalendarAlt aria-hidden="true" /> Weekdays</span>
@@ -670,6 +676,7 @@ const UpdateMedicine = () => {
                     Add More Days in Cycle
                   </button>
                 </div>
+                {errors.dosage_pattern && touched.dosage_pattern && <p className='text-red-500 text-xs mt-1'>{errors.dosage_pattern}</p>}
               </div>
 
               <div>
@@ -722,8 +729,8 @@ const UpdateMedicine = () => {
                         type="button"
                         onClick={() => toggleWeekday(wd.day)}
                         className={`py-2 text-xs font-bold rounded-lg border transition-all cursor-pointer ${isSelected
-                            ? 'bg-[#03e9f4] border-[#03e9f4] text-black shadow-md scale-102'
-                            : 'bg-black/50 border-white/20 text-gray-400 hover:border-[#03e9f4]/60 hover:text-white'
+                          ? 'bg-[#03e9f4] border-[#03e9f4] text-black shadow-md scale-102'
+                          : 'bg-black/50 border-white/20 text-gray-400 hover:border-[#03e9f4]/60 hover:text-white'
                           }`}
                         title={wd.full}
                       >

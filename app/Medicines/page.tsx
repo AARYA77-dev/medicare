@@ -54,7 +54,7 @@ const MedicinePage = () => {
   const [timeDoseIndices, setTimeDoseIndices] = useState<number[]>([0]);
 
   // Alternate mode state (e.g. Day 1: 2mg, Day 2: 3mg)
-  const [alternateCycle, setAlternateCycle] = useState<string[]>(["2", "3"]);
+  const [alternateCycle, setAlternateCycle] = useState<string[]>(["", ""]);
   const [singleTime, setSingleTime] = useState<string>("08:00");
 
   // Specific Weekdays mode state (e.g. 2mg on Monday, 3mg rest of week)
@@ -153,10 +153,7 @@ const MedicinePage = () => {
   };
 
   const handleRemoveAlternateDay = (index: number) => {
-    if (alternateCycle.length <= 2) {
-      toast.error("Alternate schedule requires at least 2 days in cycle");
-      return;
-    }
+    if (alternateCycle.length <= 2) return;
     const updated = alternateCycle.filter((_, i) => i !== index);
     setAlternateCycle(updated);
     const combined = updated.filter((d) => d.trim() !== "").join(",");
@@ -820,6 +817,7 @@ const MedicinePage = () => {
                         Add More Days in Cycle
                       </button>
                     </div>
+                    {errors.dosage_pattern && touched.dosage_pattern && <p className='text-red-500 text-xs mt-1'>{errors.dosage_pattern}</p>}
                   </div>
 
                   {/* Time of Dose */}
