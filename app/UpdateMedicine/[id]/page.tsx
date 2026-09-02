@@ -26,6 +26,13 @@ const initialValues: Medicines = {
   weekly_days: [],
 };
 
+function formatScheduleDate(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 const WEEKDAYS = [
   { day: 1, label: "Mon", full: "Monday" },
   { day: 2, label: "Tue", full: "Tuesday" },
@@ -260,11 +267,16 @@ const UpdateMedicine = () => {
     return result;
   }
 
+  function parseLocalDate(value: string) {
+    const [year, month, day] = value.split("-").map(Number);
+    return new Date(year, month - 1, day);
+  }
+
   const getSchedule = (): ScheduleEntry[] => {
     const validDoses = parseDoses();
     const validTimes = parseTimes();
     const numDays = parseInt(values.number_days) || 1;
-    const start = values.startdate ? new Date(values.startdate) : new Date();
+    const start = values.startdate ? parseLocalDate(values.startdate) : new Date();
 
     const result: ScheduleEntry[] = [];
 
@@ -279,7 +291,7 @@ const UpdateMedicine = () => {
 
         result.push({
           day: i + 1,
-          date: currentDate.toLocaleDateString(),
+          date: formatScheduleDate(currentDate),
           doses: dayDoses,
         });
       }
@@ -293,7 +305,7 @@ const UpdateMedicine = () => {
 
         result.push({
           day: i + 1,
-          date: currentDate.toLocaleDateString(),
+          date: formatScheduleDate(currentDate),
           doses: [{ time: t, dosage: doseForDay }],
         });
       }
@@ -309,7 +321,7 @@ const UpdateMedicine = () => {
 
         result.push({
           day: i + 1,
-          date: currentDate.toLocaleDateString(),
+          date: formatScheduleDate(currentDate),
           doses: [{ time: t, dosage: doseForDay }],
         });
       }

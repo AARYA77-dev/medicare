@@ -38,6 +38,13 @@ const WEEKDAYS = [
   { day: 0, label: "Sun", full: "Sunday" },
 ];
 
+function formatScheduleDate(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 const MedicinePage = () => {
   const dispatch = useAppDispatch();
   const { medicines: medicineData, loading, actionLoading } = useAppSelector((state) => state.medicine);
@@ -347,7 +354,7 @@ const MedicinePage = () => {
         const doseVal = activeCycle[i % activeCycle.length] ?? 0;
         result.push({
           day: i + 1,
-          date: currentDate.toLocaleDateString(),
+          date: formatScheduleDate(currentDate),
           doses: [
             {
               time: timeVal,
@@ -373,7 +380,7 @@ const MedicinePage = () => {
 
         result.push({
           day: i + 1,
-          date: currentDate.toLocaleDateString(),
+          date: formatScheduleDate(currentDate),
           doses: [
             {
               time: timeVal,
@@ -414,7 +421,7 @@ const MedicinePage = () => {
 
       result.push({
         day: i + 1,
-        date: currentDate.toLocaleDateString(),
+        date: formatScheduleDate(currentDate),
         doses
       });
     }
