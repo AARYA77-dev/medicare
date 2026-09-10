@@ -15,6 +15,35 @@ import { FaArrowRight, FaCalendarTimes, FaExclamationTriangle, FaEye, FaPills, F
 import MissedDoseModal from "@/components/MissedDoseModal";
 import NotificationSettings from "@/components/NotificationSettings";
 
+function formatDisplayDate(value?: string): string {
+  if (!value) return "";
+  const str = String(value).trim();
+
+  // If in YYYY-MM-DD or YYYY/MM/DD format (e.g. 2026-09-10)
+  const ymdMatch = str.match(/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})/);
+  if (ymdMatch) {
+    const [, year, month, day] = ymdMatch;
+    return `${day.padStart(2, "0")}-${month.padStart(2, "0")}-${year}`;
+  }
+
+  // If in DD-MM-YYYY or DD/MM/YYYY format
+  const dmyMatch = str.match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{4})/);
+  if (dmyMatch) {
+    const [, day, month, year] = dmyMatch;
+    return `${day.padStart(2, "0")}-${month.padStart(2, "0")}-${year}`;
+  }
+
+  // Fallback for valid Date strings
+  const parsed = new Date(str);
+  if (!isNaN(parsed.getTime())) {
+    const day = String(parsed.getDate()).padStart(2, "0");
+    const month = String(parsed.getMonth() + 1).padStart(2, "0");
+    const year = parsed.getFullYear();
+    return `${day}-${month}-${year}`;
+  }
+
+  return str;
+}
 
 export default function HomePage() {
   const dispatch = useAppDispatch();
@@ -247,7 +276,7 @@ export default function HomePage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="opacity-50 text-[10px] uppercase tracking-tighter">Schedule:</span>
-                      <span className="text-[12px] italic">Day {item.schedule[0].day} • {item.schedule[0].date}</span>
+                      <span className="text-[12px] italic">Day {item.schedule[0].day} • {formatDisplayDate(item.schedule[0].date)}</span>
                     </div>
                   </div>
 
