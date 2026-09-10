@@ -173,11 +173,12 @@ export async function PUT(request: NextRequest, context: Context) {
       return NextResponse.json({ message: "Access denied. Co-Manager role required to edit.", success: false }, { status: 403 });
     }
 
-    const quantityProvided = Object.prototype.hasOwnProperty.call(body, 'quantity');
-    const shouldPause = quantityProvided && hasNoQuantity(body.quantity);
+    const { _id: _ignoredId, ...cleanBody } = body;
+    const quantityProvided = Object.prototype.hasOwnProperty.call(cleanBody, 'quantity');
+    const shouldPause = quantityProvided && hasNoQuantity(cleanBody.quantity);
     const updateMedicine = await MedicineSchema.findByIdAndUpdate(
       id,
-      { $set: { ...body, ...(shouldPause ? { is_paused: true, paused_at: new Date() } : {}) } },
+      { $set: { ...cleanBody, ...(shouldPause ? { is_paused: true, paused_at: new Date() } : {}) } },
       { new: true, runValidators: true }
     );
     if (shouldPause || updateMedicine?.is_paused) {

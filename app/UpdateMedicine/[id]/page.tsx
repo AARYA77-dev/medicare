@@ -4,9 +4,9 @@ import { MedicineSchema } from '@/Schemas/yupSChemas';
 import { useFormik } from 'formik';
 import React, { useEffect, useState, useCallback } from 'react';
 import toast from 'react-hot-toast';
-import { FaArrowLeft, FaCalendarAlt, FaPlus, FaSyncAlt, FaTrash } from 'react-icons/fa';
+import { FaArrowLeft, FaCalendarAlt, FaExclamationTriangle, FaPlus, FaSyncAlt, FaTrash } from 'react-icons/fa';
 import axios from 'axios';
-import { Medicines, ScheduleType, Dose, ScheduleEntry } from '@/Interfaces/interface';
+import { Medicines, ScheduleType, Dose, ScheduleEntry, MedicineWithSchedule } from '@/Interfaces/interface';
 import { useParams, useRouter } from 'next/navigation';
 import Loading from '@/app/loading';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
@@ -33,6 +33,36 @@ function formatScheduleDate(date: Date) {
   return `${year}-${month}-${day}`;
 }
 
+function parseSafeDate(dateStr?: string): Date {
+  if (!dateStr) return new Date();
+  const str = String(dateStr).trim();
+  const parts = str.split(/[\/\-\.]/).map(Number);
+  if (parts.length === 3) {
+    if (parts[0] > 1000) {
+      return new Date(parts[0], parts[1] - 1, parts[2]);
+    }
+    const year = parts[2] < 100 ? parts[2] + 2000 : parts[2];
+    if (parts[0] > 12) {
+      return new Date(year, parts[1] - 1, parts[0]);
+    }
+    if (parts[1] > 12) {
+      return new Date(year, parts[0] - 1, parts[1]);
+    }
+    return new Date(year, parts[1] - 1, parts[0]);
+  }
+  const fallback = new Date(str);
+  return !isNaN(fallback.getTime()) ? fallback : new Date();
+}
+
+function formatDisplayDate(value?: string): string {
+  if (!value) return "";
+  const d = parseSafeDate(value);
+  const day = String(d.getDate()).padStart(2, "0");
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const year = d.getFullYear();
+  return `${day}-${month}-${year}`;
+}
+
 const WEEKDAYS = [
   { day: 1, label: "Mon", full: "Monday" },
   { day: 2, label: "Tue", full: "Tuesday" },
@@ -47,9 +77,22 @@ const UpdateMedicine = () => {
   const dispatch = useAppDispatch();
   const { medicines } = useAppSelector((state) => state.medicine);
   const { viewingOwnerId, role } = useAppSelector((state) => state.sharing);
-  const [medicineData, setMedicineData] = useState<Medicines>();
+  const [medicineData, setMedicineData] = useState<MedicineWithSchedule>();
   const [loading, setLoading] = useState(false);
   const [buttonLoading, setButtonLoading] = useState(false);
+  const [showStartDateModal, setShowStartDateModal] = useState(false);
+  const [pendingFormValues, setPendingFormValues] = useState<Medicines | null>(null);
+
+  const existingSchedule = medicineData?.schedule || [];
+  const origNumDays = parseInt(medicineData?.number_days || "0") || existingSchedule.length;
+  const remainingCount = existingSchedule.length;
+  const completedDays = Math.max(0, origNumDays - remainingCount);
+
+  const isCourseStarted = Boolean(
+    completedDays > 0 ||
+    (existingSchedule.length > 0 && (existingSchedule[0]?.day || 1) > 1) ||
+    (medicineData?.startdate && parseSafeDate(medicineData.startdate).getTime() < new Date().setHours(0, 0, 0, 0))
+  );
 
   const [scheduleType, setScheduleType] = useState<ScheduleType>("daily");
   const [separateQuantity, setSeparateQuantity] = useState(false);
@@ -267,67 +310,166 @@ const UpdateMedicine = () => {
     return result;
   }
 
-  function parseLocalDate(value: string) {
-    const [year, month, day] = value.split("-").map(Number);
-    return new Date(year, month - 1, day);
-  }
-
-  const getSchedule = (): ScheduleEntry[] => {
+  const generateDayDoses = (date: Date, cycleIdx: number): Dose[] => {
     const validDoses = parseDoses();
     const validTimes = parseTimes();
-    const numDays = parseInt(values.number_days) || 1;
-    const start = values.startdate ? parseLocalDate(values.startdate) : new Date();
-
-    const result: ScheduleEntry[] = [];
 
     if (scheduleType === "daily") {
-      for (let i = 0; i < numDays; i++) {
-        const currentDate = addDays(start, i);
-        const dayDoses: Dose[] = validTimes.map((t, tIdx) => {
-          const dIdx = timeDoseIndices[tIdx] !== undefined ? timeDoseIndices[tIdx] : 0;
-          const assignedDose = validDoses[dIdx] || validDoses[0] || "5 mg";
-          return { time: t, dosage: assignedDose };
-        });
-
-        result.push({
-          day: i + 1,
-          date: formatScheduleDate(currentDate),
-          doses: dayDoses,
-        });
-      }
+      return validTimes.map((t, tIdx) => {
+        const dIdx = timeDoseIndices[tIdx] !== undefined ? timeDoseIndices[tIdx] : 0;
+        const assignedDose = validDoses[dIdx] || validDoses[0] || "5 mg";
+        return { time: t, dosage: assignedDose };
+      });
     } else if (scheduleType === "alternate") {
       const cycleLength = validDoses.length || 2;
       const t = validTimes[0] || "08:00";
-
-      for (let i = 0; i < numDays; i++) {
-        const currentDate = addDays(start, i);
-        const doseForDay = validDoses[i % cycleLength] || "5 mg";
-
-        result.push({
-          day: i + 1,
-          date: formatScheduleDate(currentDate),
-          doses: [{ time: t, dosage: doseForDay }],
-        });
-      }
+      const doseForDay = validDoses[cycleIdx % cycleLength] || "5 mg";
+      return [{ time: t, dosage: doseForDay }];
     } else if (scheduleType === "weekly") {
       const t = validTimes[0] || "08:00";
       const overrideVal = `${weeklyOverrideDose || "2"} mg`;
       const defaultVal = `${weeklyDefaultDose || "3"} mg`;
+      const dayOfWeek = date.getDay();
+      const doseForDay = weeklyDays.includes(dayOfWeek) ? overrideVal : defaultVal;
+      return [{ time: t, dosage: doseForDay }];
+    }
+    return [];
+  };
 
-      for (let i = 0; i < numDays; i++) {
-        const currentDate = addDays(start, i);
-        const dayOfWeek = currentDate.getDay();
-        const doseForDay = weeklyDays.includes(dayOfWeek) ? overrideVal : defaultVal;
+  const buildUpdatedSchedule = (
+    formValues: Medicines,
+    startDateMode: 'keep' | 'shift' | 'reset' = 'keep'
+  ): ScheduleEntry[] => {
+    const newTotalDays = parseInt(formValues.number_days) || 1;
+    const newStartDate = formValues.startdate ? parseSafeDate(formValues.startdate) : new Date();
 
+    // If reset mode requested, or if course has NOT started and startdate changed, regenerate full schedule
+    if (startDateMode === 'reset' || (!isCourseStarted && medicineData && formValues.startdate !== medicineData.startdate)) {
+      const result: ScheduleEntry[] = [];
+      for (let i = 0; i < newTotalDays; i++) {
+        const currentDate = addDays(newStartDate, i);
         result.push({
           day: i + 1,
           date: formatScheduleDate(currentDate),
-          doses: [{ time: t, dosage: doseForDay }],
+          doses: generateDayDoses(currentDate, i),
         });
       }
+      return result;
     }
 
-    return result;
+    // If there is no existing schedule to preserve, generate new
+    if (existingSchedule.length === 0) {
+      const result: ScheduleEntry[] = [];
+      for (let i = 0; i < newTotalDays; i++) {
+        const currentDate = addDays(newStartDate, i);
+        result.push({
+          day: i + 1,
+          date: formatScheduleDate(currentDate),
+          doses: generateDayDoses(currentDate, i),
+        });
+      }
+      return result;
+    }
+
+    // Otherwise, we are updating an ongoing course and preserving completed history!
+    // 1. Calculate how many days need to remain in the schedule
+    const targetRemainingDays = Math.max(1, newTotalDays - completedDays);
+
+    // 2. Check if timing, dosage, frequency, or schedule_type changed
+    const timingOrDoseChanged = Boolean(
+      !medicineData ||
+      formValues.times_days !== medicineData.times_days ||
+      formValues.dosage_pattern !== medicineData.dosage_pattern ||
+      formValues.frequency !== medicineData.frequency ||
+      scheduleType !== (medicineData.schedule_type || 'daily') ||
+      formValues.weekly_default_dose !== (medicineData.weekly_default_dose || '') ||
+      formValues.weekly_override_dose !== (medicineData.weekly_override_dose || '') ||
+      JSON.stringify(weeklyDays.slice().sort()) !== JSON.stringify((medicineData.weekly_days || []).slice().sort())
+    );
+
+    // 3. Shift dates if startDateMode === 'shift'
+    let dayShift = 0;
+    if (startDateMode === 'shift' && medicineData?.startdate) {
+      const oldStart = parseSafeDate(medicineData.startdate);
+      dayShift = Math.round((newStartDate.getTime() - oldStart.getTime()) / (1000 * 60 * 60 * 24));
+    }
+
+    // 4. Update existing remaining entries
+    const updatedEntries: ScheduleEntry[] = existingSchedule.map((entry, idx) => {
+      const parsedEntryDate = parseSafeDate(entry.date);
+      const shiftedDate = dayShift !== 0 ? addDays(parsedEntryDate, dayShift) : parsedEntryDate;
+      const formattedDate = formatScheduleDate(shiftedDate);
+
+      // If timing or dosage changed, regenerate doses for this day
+      if (timingOrDoseChanged) {
+        return {
+          day: entry.day,
+          date: formattedDate,
+          doses: generateDayDoses(shiftedDate, idx),
+        };
+      }
+
+      // Otherwise preserve doses and dose IDs exactly as they are
+      return {
+        ...entry,
+        date: formattedDate,
+      };
+    });
+
+    // 5. Adjust length if newTotalDays extended or shortened
+    if (updatedEntries.length > targetRemainingDays) {
+      // Shorten: trim tail
+      return updatedEntries.slice(0, targetRemainingDays);
+    } else if (updatedEntries.length < targetRemainingDays) {
+      // Extend: append additional days
+      const lastEntry = updatedEntries[updatedEntries.length - 1];
+      const lastDate = parseSafeDate(lastEntry.date);
+      const lastDay = lastEntry.day;
+      const daysToAdd = targetRemainingDays - updatedEntries.length;
+
+      for (let k = 1; k <= daysToAdd; k++) {
+        const nextDate = addDays(lastDate, k);
+        const nextDay = lastDay + k;
+        updatedEntries.push({
+          day: nextDay,
+          date: formatScheduleDate(nextDate),
+          doses: generateDayDoses(nextDate, updatedEntries.length),
+        });
+      }
+      return updatedEntries;
+    }
+
+    return updatedEntries;
+  };
+
+  const executeSubmit = async (
+    formValues: Medicines,
+    startDateMode: 'keep' | 'shift' | 'reset' = 'keep'
+  ) => {
+    setButtonLoading(true);
+    const result = buildUpdatedSchedule(formValues, startDateMode);
+    const payload = {
+      ...formValues,
+      startdate: startDateMode === 'reset' || !isCourseStarted ? formValues.startdate : (medicineData?.startdate || formValues.startdate),
+      schedule_type: scheduleType,
+      weekly_default_dose: scheduleType === 'weekly' ? weeklyDefaultDose : undefined,
+      weekly_override_dose: scheduleType === 'weekly' ? weeklyOverrideDose : undefined,
+      weekly_days: scheduleType === 'weekly' ? weeklyDays : undefined,
+      schedule: result,
+    };
+
+    try {
+      await dispatch(updateMedicineSchedule({ id: id as string, payload })).unwrap();
+      toast.success("Your schedule updated successfully");
+      route.push("/Medicines");
+    } catch (error) {
+      console.log("Error:", error);
+      toast.error("Something went wrong");
+    } finally {
+      setButtonLoading(false);
+      setShowStartDateModal(false);
+      setPendingFormValues(null);
+    }
   };
 
   const { values, errors, touched, handleBlur, handleChange, handleSubmit, setFieldValue, setFieldTouched } = useFormik({
@@ -335,31 +477,19 @@ const UpdateMedicine = () => {
     enableReinitialize: true,
     initialValues: medicineData ?? initialValues,
     onSubmit: async (formValues) => {
-      setButtonLoading(true);
-      const result = getSchedule();
-      const payload = {
-        ...formValues,
-        schedule_type: scheduleType,
-        weekly_default_dose: scheduleType === 'weekly' ? weeklyDefaultDose : undefined,
-        weekly_override_dose: scheduleType === 'weekly' ? weeklyOverrideDose : undefined,
-        weekly_days: scheduleType === 'weekly' ? weeklyDays : undefined,
-        schedule: result,
-      };
-
-      try {
-        await dispatch(updateMedicineSchedule({ id: id as string, payload })).unwrap();
-        toast.success("Your schedule updated successfully");
-        route.push("/Medicines");
-      } catch (error) {
-        console.log("Error:", error);
-        toast.error("Something went wrong");
-      } finally {
-        setButtonLoading(false);
+      // If course has started and start date was changed, ask user how to apply it
+      const startDateChanged = Boolean(medicineData && formValues.startdate !== medicineData.startdate);
+      if (isCourseStarted && startDateChanged) {
+        setPendingFormValues(formValues);
+        setShowStartDateModal(true);
+        return;
       }
+
+      await executeSubmit(formValues, 'keep');
     },
   });
 
-  const applyMedicineData = useCallback((data: Medicines & { schedule?: ScheduleEntry[] }) => {
+  const applyMedicineData = useCallback((data: MedicineWithSchedule) => {
     setMedicineData(data);
     if (data) {
       const mode: ScheduleType = data.schedule_type || "daily";
@@ -501,6 +631,26 @@ const UpdateMedicine = () => {
         <div className='flex flex-col border border-white/10 rounded-2xl bg-white/5 backdrop-blur-md w-full sm:w-[90%] md:w-[70%] lg:w-[48%] xl:w-[32%] items-center shadow-2xl px-4 sm:px-8 py-6'>
 
           <h2 className="text-xl font-bold text-[#03e9f4] mb-2">Edit Medicine Schedule</h2>
+
+          {/* Ongoing course progress badge */}
+          {isCourseStarted && (
+            <div className="w-full p-3 bg-[#03e9f4]/10 border border-[#03e9f4]/30 rounded-xl mb-4 text-xs text-gray-200">
+              <div className="flex items-center justify-between font-semibold text-[#03e9f4] mb-1">
+                <span className="flex items-center gap-1.5">
+                  <FaCalendarAlt className="text-xs" /> Course In Progress
+                </span>
+                <span className="bg-[#03e9f4]/20 text-[#03e9f4] px-2 py-0.5 rounded text-[11px] font-mono font-bold">
+                  {completedDays} / {origNumDays} Days Completed
+                </span>
+              </div>
+              <p>
+                {completedDays} {completedDays === 1 ? 'day' : 'days'} completed &bull; {remainingCount} {remainingCount === 1 ? 'day' : 'days'} remaining.
+              </p>
+              <p className="text-[11px] text-gray-400 mt-1">
+                Past completed doses are preserved and will not be regenerated.
+              </p>
+            </div>
+          )}
 
           {/* Medicine Name */}
           <div className="w-full">
@@ -958,7 +1108,14 @@ const UpdateMedicine = () => {
 
           {/* Numbers of the Days & Start Date */}
           <div className="w-full mt-3">
-            <label htmlFor="number_days" className='font-bold block text-sm'>Course Duration (Days):</label>
+            <div className="flex items-center justify-between">
+              <label htmlFor="number_days" className='font-bold block text-sm'>Course Duration (Days):</label>
+              {isCourseStarted && (
+                <span className="text-xs text-gray-400">
+                  ({remainingCount} days remaining)
+                </span>
+              )}
+            </div>
             <input
               onChange={handleChange}
               onBlur={handleBlur}
@@ -967,13 +1124,26 @@ const UpdateMedicine = () => {
               name='number_days'
               id='number_days'
               type='number'
+              min={isCourseStarted ? completedDays + 1 : 1}
               placeholder='15'
             />
+            {isCourseStarted && (
+              <p className="text-[11px] text-gray-400 mt-1">
+                Total course days ({completedDays} already completed). You can extend or shorten the remaining days.
+              </p>
+            )}
             {errors.number_days && touched.number_days && <p className='text-red-500 text-xs mt-1'>{errors.number_days}</p>}
           </div>
 
           <div className="w-full mt-3">
-            <label htmlFor="startdate" className='font-bold block text-sm'>Start Date:</label>
+            <div className="flex items-center justify-between">
+              <label htmlFor="startdate" className='font-bold block text-sm'>Start Date:</label>
+              {isCourseStarted && (
+                <span className="text-[11px] text-[#03e9f4] font-semibold">
+                  Started: {formatDisplayDate(medicineData?.startdate)}
+                </span>
+              )}
+            </div>
             <input
               onChange={handleChange}
               value={values.startdate}
@@ -983,6 +1153,12 @@ const UpdateMedicine = () => {
               id='startdate'
               type='date'
             />
+            {isCourseStarted && medicineData && values.startdate !== medicineData.startdate && (
+              <p className="text-[11px] text-amber-300 mt-1 flex items-center gap-1">
+                <FaExclamationTriangle className="text-xs shrink-0" />
+                You changed the start date. You will be prompted on submit to choose how to apply this change.
+              </p>
+            )}
             {errors.startdate && touched.startdate && <p className='text-red-500 text-xs mt-1'>{errors.startdate}</p>}
           </div>
 
@@ -998,6 +1174,87 @@ const UpdateMedicine = () => {
           </button>
         </div>
       </form>
+
+      {/* Start Date Change Confirmation Modal */}
+      {showStartDateModal && pendingFormValues && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="bg-[#111827] border border-[#03e9f4]/40 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-full bg-amber-500/20 text-amber-400">
+                <FaExclamationTriangle className="text-xl" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-white">Start Date Changed</h3>
+                <p className="text-xs text-gray-400">Choose how to update this ongoing course</p>
+              </div>
+            </div>
+
+            <div className="bg-black/50 border border-white/10 rounded-xl p-3 text-xs text-gray-300 space-y-1.5">
+              <div className="flex justify-between">
+                <span className="text-gray-400">Original Start Date:</span>
+                <span className="font-semibold text-white">{formatDisplayDate(medicineData?.startdate)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-400">New Start Date:</span>
+                <span className="font-semibold text-[#03e9f4]">{formatDisplayDate(pendingFormValues.startdate)}</span>
+              </div>
+              <div className="flex justify-between pt-1 border-t border-white/10">
+                <span className="text-gray-400">Course Progress:</span>
+                <span className="font-semibold text-white">{completedDays} days completed &bull; {remainingCount} days left</span>
+              </div>
+            </div>
+
+            <p className="text-xs text-gray-300">
+              This medicine already has recorded history. How would you like to apply the new start date?
+            </p>
+
+            <div className="space-y-2.5 pt-1">
+              <button
+                type="button"
+                disabled={buttonLoading}
+                onClick={() => executeSubmit(pendingFormValues, 'shift')}
+                className="w-full text-left p-3 rounded-xl border border-[#03e9f4]/50 bg-[#03e9f4]/15 hover:bg-[#03e9f4]/25 transition cursor-pointer"
+              >
+                <p className="text-xs font-bold text-[#03e9f4]">
+                  1. Shift Remaining Schedule (Recommended)
+                </p>
+                <p className="text-[11px] text-gray-300 mt-0.5">
+                  Preserves all your completed doses and shifts the remaining {remainingCount} days to align with the new timeline.
+                </p>
+              </button>
+
+              <button
+                type="button"
+                disabled={buttonLoading}
+                onClick={() => executeSubmit(pendingFormValues, 'reset')}
+                className="w-full text-left p-3 rounded-xl border border-red-500/40 bg-red-500/10 hover:bg-red-500/20 transition cursor-pointer"
+              >
+                <p className="text-xs font-bold text-red-400">
+                  2. Reset & Regenerate From Start
+                </p>
+                <p className="text-[11px] text-gray-300 mt-0.5">
+                  Wipes previous progress and restarts all {pendingFormValues.number_days} days fresh from {formatDisplayDate(pendingFormValues.startdate)}. Use if original schedule was wrong from day 1.
+                </p>
+              </button>
+            </div>
+
+            <div className="pt-2 flex justify-end">
+              <button
+                type="button"
+                disabled={buttonLoading}
+                onClick={() => {
+                  setShowStartDateModal(false);
+                  setPendingFormValues(null);
+                  setFieldValue("startdate", medicineData?.startdate || "");
+                }}
+                className="px-4 py-2 text-xs font-semibold text-gray-400 hover:text-white transition cursor-pointer"
+              >
+                Cancel & Revert Date
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };
