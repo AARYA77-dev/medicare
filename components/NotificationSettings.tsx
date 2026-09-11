@@ -17,6 +17,13 @@ export default function NotificationSettings() {
   useEffect(() => {
     if (!("serviceWorker" in navigator)) return;
     navigator.serviceWorker.getRegistration("/sw.js").then(async (registration) => {
+      if (registration) {
+        try {
+          await registration.update();
+        } catch {
+          // ignore update errors
+        }
+      }
       const subscription = await registration?.pushManager.getSubscription();
       if (!subscription) return;
       const response = await fetch("/api/notifications/subscription");
@@ -32,7 +39,8 @@ export default function NotificationSettings() {
     }
     setLoading(true);
     try {
-      const registration = await navigator.serviceWorker.register("/sw.js");
+      const registration = await navigator.serviceWorker.register("/sw.js", { updateViaCache: "none" });
+      await registration.update();
       const subscription = await registration.pushManager.getSubscription();
 
       if (enabled) {

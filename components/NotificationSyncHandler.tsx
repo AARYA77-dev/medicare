@@ -27,6 +27,8 @@ export default function NotificationSyncHandler() {
         toast.success(
           event.data.message || "Notification 'Mark Done' action verified successfully!"
         );
+      } else if (event.data.type === "DOSE_MARK_FAILED") {
+        toast.error(event.data.message || "Could not mark dose as done.");
       }
     };
 

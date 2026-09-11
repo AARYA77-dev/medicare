@@ -1,3 +1,6 @@
+// Service Worker v2.2.0 - 1-click background mark-done with mobile failure alerts
+const SW_VERSION = "2.2.0";
+
 self.addEventListener("install", () => {
   self.skipWaiting();
 });
@@ -94,10 +97,26 @@ async function handleMarkDone(data) {
     return;
   }
 
-  // 2. Handle Real Dose
+  // 2. Handle missing doseId
   if (!data.doseId) {
-    if (self.clients.openWindow) {
-      await self.clients.openWindow(data.url || "/");
+    const fallbackMsg = "Could not identify medication dose. Tap to open schedule.";
+    await self.registration.showNotification("Medicare - Action Notice", {
+      body: fallbackMsg,
+      icon: "/medicareLogo.png",
+      badge: "/medicareLogo.png",
+      tag: "medicare-action-error",
+      vibrate: [200, 100, 200],
+      renotify: true,
+      data: { url: "/" },
+      actions: [{ action: "open-app", title: "Open Schedule" }],
+    });
+
+    const clientList = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+    for (const client of clientList) {
+      client.postMessage({
+        type: "DOSE_MARK_FAILED",
+        message: fallbackMsg,
+      });
     }
     return;
   }
@@ -140,22 +159,50 @@ async function handleMarkDone(data) {
         });
       }
     } else {
-      await self.registration.showNotification("Medicare", {
-        body: result.message || "Could not mark dose as done. Tap to view schedule.",
+      const failureMsg = result.message || "Could not mark dose as done. Tap to view schedule.";
+
+      // Show clear failure alert on mobile screen with vibration and 1-tap open action
+      await self.registration.showNotification("Medicare - Could not mark dose", {
+        body: failureMsg,
         icon: "/medicareLogo.png",
         badge: "/medicareLogo.png",
-        tag: "medicare-action-feedback",
+        tag: "medicare-action-error",
+        vibrate: [200, 100, 200],
+        renotify: true,
         data: { url: "/" },
+        actions: [{ action: "open-app", title: "Open Schedule" }],
       });
+
+      // Broadcast to any open tabs so they show error toast
+      const clientList = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+      for (const client of clientList) {
+        client.postMessage({
+          type: "DOSE_MARK_FAILED",
+          message: failureMsg,
+        });
+      }
     }
   } catch (error) {
     console.error("Error marking dose done from notification:", error);
-    await self.registration.showNotification("Medicare", {
-      body: "Network error while marking dose done. Tap to open app.",
+    const networkMsg = "Network error while marking dose done. Tap to open app.";
+
+    await self.registration.showNotification("Medicare - Connection Error", {
+      body: networkMsg,
       icon: "/medicareLogo.png",
       badge: "/medicareLogo.png",
-      tag: "medicare-action-feedback",
+      tag: "medicare-action-error",
+      vibrate: [200, 100, 200],
+      renotify: true,
       data: { url: "/" },
+      actions: [{ action: "open-app", title: "Open Schedule" }],
     });
+
+    const clientList = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+    for (const client of clientList) {
+      client.postMessage({
+        type: "DOSE_MARK_FAILED",
+        message: networkMsg,
+      });
+    }
   }
 }
