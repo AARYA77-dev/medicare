@@ -6,6 +6,7 @@ import { sendPushNotification } from "@/lib/push";
 import { Receiver } from "@upstash/qstash";
 import { Types } from "mongoose";
 import { AccessSchema } from "@/Schemas/AccessSchema";
+import { createActionToken } from "@/lib/actionToken";
 
 export const dynamic = "force-dynamic";
 
@@ -61,7 +62,28 @@ async function sendDueNotification(body: { type?: string; medicineId?: string; d
   const dose = medicine.schedule.flatMap((entry: { doses: Array<{ _id?: unknown; time: string; dosage: string }> }) => entry.doses).find((item: { _id?: unknown }) => String(item._id) === body.doseId);
   if (!dose) return NextResponse.json({ message: "Dose not found" }, { status: 404 });
   try {
-    await sendPushNotification(subscription.toObject(), { title: "Medication reminder", body: `${medicine.medicine_name} (${dose.dosage}) is due in 1 hour at ${dose.time}.`, url: "/" });
+    const actionToken = createActionToken({
+      medicineId: String(medicine._id),
+      doseId: String(dose._id),
+      userId: String(subscription.userId),
+      action: "mark-done",
+    });
+
+    await sendPushNotification(subscription.toObject(), {
+      title: "Medication reminder",
+      body: `${medicine.medicine_name} (${dose.dosage}) is due in 1 hour at ${dose.time}.`,
+      url: "/",
+      medicineId: String(medicine._id),
+      doseId: String(dose._id),
+      medicineName: medicine.medicine_name,
+      dosage: dose.dosage,
+      time: dose.time,
+      actionToken,
+      actions: [
+        { action: "mark-done", title: "✓ Mark Done" },
+        { action: "open-app", title: "Open App" },
+      ],
+    });
     await PushSubscriptionSchema.updateOne({ _id: subscription._id }, { $addToSet: { notifiedDoseKeys: `${medicine._id}:${dose._id}` } });
     return NextResponse.json({ success: true, sent: 1 });
   } catch (error: unknown) {

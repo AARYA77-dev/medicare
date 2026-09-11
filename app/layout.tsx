@@ -4,6 +4,7 @@ import "./globals.css";
 import AuthProvider from "@/components/AuthProvider";
 import StoreProvider from "@/components/StoreProvider";
 import ToasterProvider from "@/components/ToasterProvider";
+import NotificationSyncHandler from "@/components/NotificationSyncHandler";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -32,6 +33,7 @@ export default function RootLayout({
       >
         <StoreProvider>
           <AuthProvider>
+            <NotificationSyncHandler />
             {children}
             <ToasterProvider />
           </AuthProvider>

@@ -105,7 +105,7 @@ export default function NotificationSettings() {
           <span className="min-w-0">
             <span className="block truncate text-sm font-semibold text-white">Medication alerts</span>
             <span className={`block text-xs ${enabled ? "text-emerald-300" : "text-gray-400"}`}>
-              {loading ? "Updating..." : enabled ? "Enabled" : "Disabled"}
+              {loading ? "Updating..." : enabled ? "Enabled • 1-click 'Mark Done' active" : "Disabled"}
             </span>
           </span>
         </span>
@@ -113,7 +113,21 @@ export default function NotificationSettings() {
           <span className={`block h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-200 ${enabled ? "translate-x-5" : "translate-x-0"}`} />
         </span>
       </button>
-      {enabled && <button type="button" onClick={sendTestNotification} disabled={loading} className="min-h-[42px] self-start rounded-lg border border-white/15 bg-white/[0.06] px-3 text-xs font-semibold text-gray-300 shadow-lg transition-colors hover:border-[#03e9f4]/50 hover:text-[#03e9f4] disabled:cursor-wait disabled:opacity-70">Test Notification</button>}
+      {enabled && (
+        <div className="flex flex-wrap items-center gap-2 pt-1">
+          <button
+            type="button"
+            onClick={sendTestNotification}
+            disabled={loading}
+            className="min-h-[38px] rounded-lg border border-white/15 bg-white/[0.06] px-3 text-xs font-semibold text-gray-300 shadow-lg transition-colors hover:border-[#03e9f4]/50 hover:text-[#03e9f4] disabled:cursor-wait disabled:opacity-70"
+          >
+            Test Notification
+          </button>
+          <span className="text-[11px] text-gray-400">
+            Test the <strong>Mark Done</strong> button in your browser alert
+          </span>
+        </div>
+      )}
     </div>
   );
 }
