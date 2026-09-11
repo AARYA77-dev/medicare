@@ -16,13 +16,8 @@ export default function NotificationSettings() {
 
   useEffect(() => {
     if (!("serviceWorker" in navigator)) return;
-    navigator.serviceWorker.ready.then(async (registration) => {
-      try {
-        await registration.update();
-      } catch {
-        // ignore update errors
-      }
-      const subscription = await registration.pushManager.getSubscription();
+    navigator.serviceWorker.getRegistration("/sw.js").then(async (registration) => {
+      const subscription = await registration?.pushManager.getSubscription();
       if (!subscription) return;
       const response = await fetch("/api/notifications/subscription");
       const result = await response.json();
@@ -37,8 +32,7 @@ export default function NotificationSettings() {
     }
     setLoading(true);
     try {
-      const registration = await navigator.serviceWorker.register("/sw.js?v=2.3.0", { updateViaCache: "none" });
-      await registration.update();
+      const registration = await navigator.serviceWorker.register("/sw.js");
       const subscription = await registration.pushManager.getSubscription();
 
       if (enabled) {
@@ -50,10 +44,6 @@ export default function NotificationSettings() {
           });
           if (!response.ok) throw new Error("Could not disable notifications");
           await subscription.unsubscribe();
-        }
-        const registrations = await navigator.serviceWorker.getRegistrations();
-        for (const reg of registrations) {
-          await reg.unregister();
         }
         setEnabled(false);
         toast.success("Medication notifications disabled.");
@@ -78,14 +68,6 @@ export default function NotificationSettings() {
   const sendTestNotification = async () => {
     setLoading(true);
     try {
-      if ("serviceWorker" in navigator) {
-        try {
-          const registration = await navigator.serviceWorker.ready;
-          await registration.update();
-        } catch {
-          // ignore
-        }
-      }
       const response = await fetch("/api/notifications/test", { method: "POST" });
       const result = await response.json();
       if (!response.ok) {
@@ -123,7 +105,7 @@ export default function NotificationSettings() {
           <span className="min-w-0">
             <span className="block truncate text-sm font-semibold text-white">Medication alerts</span>
             <span className={`block text-xs ${enabled ? "text-emerald-300" : "text-gray-400"}`}>
-              {loading ? "Updating..." : enabled ? "Enabled • 1-click 'Mark Done' active" : "Disabled"}
+              {loading ? "Updating..." : enabled ? "Enabled" : "Disabled"}
             </span>
           </span>
         </span>
@@ -131,21 +113,7 @@ export default function NotificationSettings() {
           <span className={`block h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-200 ${enabled ? "translate-x-5" : "translate-x-0"}`} />
         </span>
       </button>
-      {enabled && (
-        <div className="flex flex-wrap items-center gap-2 pt-1">
-          <button
-            type="button"
-            onClick={sendTestNotification}
-            disabled={loading}
-            className="min-h-[38px] rounded-lg border border-white/15 bg-white/[0.06] px-3 text-xs font-semibold text-gray-300 shadow-lg transition-colors hover:border-[#03e9f4]/50 hover:text-[#03e9f4] disabled:cursor-wait disabled:opacity-70"
-          >
-            Test Notification
-          </button>
-          <span className="text-[11px] text-gray-400">
-            Test the <strong>Mark Done</strong> button in your browser alert
-          </span>
-        </div>
-      )}
+      {enabled && <button type="button" onClick={sendTestNotification} disabled={loading} className="min-h-[42px] self-start rounded-lg border border-white/15 bg-white/[0.06] px-3 text-xs font-semibold text-gray-300 shadow-lg transition-colors hover:border-[#03e9f4]/50 hover:text-[#03e9f4] disabled:cursor-wait disabled:opacity-70">Test Notification</button>}
     </div>
   );
 }

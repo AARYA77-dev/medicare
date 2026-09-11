@@ -19,14 +19,9 @@ export async function POST(request: NextRequest) {
   const results = await Promise.all(subscriptions.map(async (subscription) => {
     try {
       await sendPushNotification(subscription.toObject(), {
-        title: "Medicare test reminder",
-        body: "Notifications with 1-click actions are working! Click 'Mark Done' below to test the quick action.",
+        title: "Medicare test notification",
+        body: "Desktop notifications are working.",
         url: "/",
-        isTest: true,
-        actions: [
-          { action: "mark-done", title: "Mark Done" },
-          { action: "open-app", title: "Open App" },
-        ],
       });
       return { sent: true, expired: false };
     } catch (error: unknown) {

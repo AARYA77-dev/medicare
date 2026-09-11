@@ -6,7 +6,6 @@ import { getToken } from "next-auth/jwt";
 import dbConnect from "@/lib/dbConnect";
 import { cancelMedicineNotifications, scheduleMedicineNotifications } from "@/lib/notificationScheduling";
 import { decreaseQuantity, hasNoQuantity, hasNoQuantityForDose } from "@/lib/medicineQuantity";
-import { markDoseAsDone } from "@/lib/doseOperations";
 
 const SECRET = process.env.NEXTAUTH_SECRET;
 
@@ -83,9 +82,65 @@ export async function DELETE(request: NextRequest, context: Context) {
       return NextResponse.json({ message: "Medicine deleted successfully", success: true, result: med });
     }
 
-    // Otherwise treat as dose ID — complete the dose
-    const doseResult = await markDoseAsDone(objectId, String(token.id));
-    return NextResponse.json(doseResult, { status: doseResult.status });
+    // Otherwise treat as dose ID — find the medicine that contains this dose
+    const ownerMed = await MedicineSchema.findOne({ "schedule.doses._id": objectId });
+    if (!ownerMed) {
+      return NextResponse.json({ message: "Dose not found", success: false }, { status: 404 });
+    }
+    const role = await getEffectiveRole(String(token.id), ownerMed);
+    if (!role || !['owner', 'admin', 'collaborator'].includes(role)) {
+      return NextResponse.json({ message: "Access denied.", success: false }, { status: 403 });
+    }
+    if (ownerMed.is_paused) {
+      return NextResponse.json({ message: "Cannot mark a dose done while the medicine schedule is paused.", success: false }, { status: 409 });
+    }
+    const dose = ownerMed.schedule
+      .flatMap((entry: { doses: { _id?: unknown; dosage: string }[] }) => entry.doses)
+      .find((item: { _id?: unknown }) => String(item._id) === String(objectId));
+    if (dose && hasNoQuantityForDose(ownerMed.quantity, dose.dosage)) {
+      return NextResponse.json({ message: "Cannot mark this dose done because its dosage quantity is zero.", success: false }, { status: 409 });
+    }
+
+    await cancelMedicineNotifications(ownerMed.notificationMessageIds || []);
+
+    const nextQuantity = dose ? decreaseQuantity(ownerMed.quantity, dose.dosage) : ownerMed.quantity;
+    const shouldPause = hasNoQuantity(nextQuantity);
+    const result = await MedicineSchema.updateOne(
+      { "schedule.doses._id": objectId },
+      {
+        $pull: { "schedule.$[].doses": { _id: objectId } },
+        $set: {
+          quantity: nextQuantity,
+          ...(shouldPause ? { is_paused: true, paused_at: new Date() } : {}),
+        },
+      }
+    );
+
+    const result2 = await MedicineSchema.updateMany(
+      { userId: ownerMed.userId },
+      { $pull: { schedule: { doses: { $size: 0 } } } }
+    );
+
+    const deletedMedicineResult = await MedicineSchema.deleteMany({
+      userId: ownerMed.userId,
+      schedule: { $size: 0 },
+    });
+
+    if (shouldPause) {
+      await cancelMedicineNotifications(ownerMed.notificationMessageIds || []);
+    } else if (await MedicineSchema.exists({ _id: ownerMed._id })) {
+      await scheduleMedicineNotifications(String(ownerMed._id));
+    }
+
+    const updatedMedicine = await MedicineSchema.findById(ownerMed._id);
+    return NextResponse.json({
+      message: "Dose deleted successfully",
+      success: true,
+      result,
+      result2,
+      deletedMedicineResult,
+      updatedMedicine: updatedMedicine || null,
+    });
   } catch (err) {
     console.error("Error", err);
     return NextResponse.json({ message: "Failed to delete", error: String(err) }, { status: 500 });
