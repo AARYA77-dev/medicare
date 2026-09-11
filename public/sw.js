@@ -1,5 +1,5 @@
-// Service Worker v2.2.0 - 1-click background mark-done with mobile failure alerts
-const SW_VERSION = "2.2.0";
+// Service Worker v2.3.0 - 1-click background mark-done with mobile failure alerts
+const SW_VERSION = "2.3.0";
 
 self.addEventListener("install", () => {
   self.skipWaiting();
@@ -21,7 +21,7 @@ self.addEventListener("push", (event) => {
   if (data.doseId || data.isTest) {
     actions.push({
       action: "mark-done",
-      title: "✓ Mark Done",
+      title: "Mark Done",
     });
   }
   actions.push({

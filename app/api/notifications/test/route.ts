@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
         url: "/",
         isTest: true,
         actions: [
-          { action: "mark-done", title: "✓ Mark Done" },
+          { action: "mark-done", title: "Mark Done" },
           { action: "open-app", title: "Open App" },
         ],
       });

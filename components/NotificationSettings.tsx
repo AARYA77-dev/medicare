@@ -16,15 +16,13 @@ export default function NotificationSettings() {
 
   useEffect(() => {
     if (!("serviceWorker" in navigator)) return;
-    navigator.serviceWorker.getRegistration("/sw.js").then(async (registration) => {
-      if (registration) {
-        try {
-          await registration.update();
-        } catch {
-          // ignore update errors
-        }
+    navigator.serviceWorker.ready.then(async (registration) => {
+      try {
+        await registration.update();
+      } catch {
+        // ignore update errors
       }
-      const subscription = await registration?.pushManager.getSubscription();
+      const subscription = await registration.pushManager.getSubscription();
       if (!subscription) return;
       const response = await fetch("/api/notifications/subscription");
       const result = await response.json();
@@ -39,7 +37,7 @@ export default function NotificationSettings() {
     }
     setLoading(true);
     try {
-      const registration = await navigator.serviceWorker.register("/sw.js", { updateViaCache: "none" });
+      const registration = await navigator.serviceWorker.register("/sw.js?v=2.3.0", { updateViaCache: "none" });
       await registration.update();
       const subscription = await registration.pushManager.getSubscription();
 
@@ -52,6 +50,10 @@ export default function NotificationSettings() {
           });
           if (!response.ok) throw new Error("Could not disable notifications");
           await subscription.unsubscribe();
+        }
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        for (const reg of registrations) {
+          await reg.unregister();
         }
         setEnabled(false);
         toast.success("Medication notifications disabled.");
@@ -76,6 +78,14 @@ export default function NotificationSettings() {
   const sendTestNotification = async () => {
     setLoading(true);
     try {
+      if ("serviceWorker" in navigator) {
+        try {
+          const registration = await navigator.serviceWorker.ready;
+          await registration.update();
+        } catch {
+          // ignore
+        }
+      }
       const response = await fetch("/api/notifications/test", { method: "POST" });
       const result = await response.json();
       if (!response.ok) {

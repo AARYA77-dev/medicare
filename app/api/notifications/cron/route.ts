@@ -80,7 +80,7 @@ async function sendDueNotification(body: { type?: string; medicineId?: string; d
       time: dose.time,
       actionToken,
       actions: [
-        { action: "mark-done", title: "✓ Mark Done" },
+        { action: "mark-done", title: "Mark Done" },
         { action: "open-app", title: "Open App" },
       ],
     });
