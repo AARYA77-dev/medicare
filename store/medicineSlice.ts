@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import axios from 'axios';
-import { MedicinePayload, MedicineWithSchedule } from '@/Interfaces/interface';
+import { DoseHistoryRecord, MedicinePayload, MedicineWithSchedule } from '@/Interfaces/interface';
 
 const getErrorMessage = (error: unknown, fallback: string): string => {
   if (axios.isAxiosError(error)) {
@@ -11,14 +11,18 @@ const getErrorMessage = (error: unknown, fallback: string): string => {
 
 export interface MedicineState {
   medicines: MedicineWithSchedule[];
+  doseHistory: DoseHistoryRecord[];
   loading: boolean;
+  historyLoading: boolean;
   actionLoading: boolean;
   error: string | null;
 }
 
 const initialState: MedicineState = {
   medicines: [],
+  doseHistory: [],
   loading: false,
+  historyLoading: false,
   actionLoading: false,
   error: null,
 };
@@ -83,7 +87,7 @@ export const updateMedicineSchedule = createAsyncThunk<MedicineWithSchedule, { i
 
 // Async Thunk: Delete/Mark dose completed
 export const deleteDose = createAsyncThunk<
-  { doseId: string; medicineId: string; updatedMedicine: MedicineWithSchedule | null },
+  { doseId: string; medicineId: string; updatedMedicine: MedicineWithSchedule | null; historyItem?: DoseHistoryRecord | null },
   { doseId: string; medicineId: string }
 >(
   'medicine/deleteDose',
@@ -94,6 +98,7 @@ export const deleteDose = createAsyncThunk<
         doseId,
         medicineId,
         updatedMedicine: (response.data.updatedMedicine as MedicineWithSchedule) || null,
+        historyItem: (response.data.historyItem as DoseHistoryRecord) || null,
       };
     } catch (error: unknown) {
       return rejectWithValue(getErrorMessage(error, 'Failed to update dose'));
@@ -131,7 +136,7 @@ export const toggleMedicinePause = createAsyncThunk<
 
 // Async Thunk: Resolve Missed Dose
 export const resolveMissedDose = createAsyncThunk<
-  { success: boolean; message: string; result: MedicineWithSchedule },
+  { success: boolean; message: string; result: MedicineWithSchedule; historyItem?: DoseHistoryRecord | null },
   {
     medicineId: string;
     doseId: string;
@@ -163,6 +168,26 @@ export const resolveMissedDose = createAsyncThunk<
   }
 );
 
+export type FetchDoseHistoryParams = { ownerId?: string } | void;
+
+// Async Thunk: Fetch dose history (completed and missed doses)
+export const fetchDoseHistory = createAsyncThunk<
+  DoseHistoryRecord[],
+  FetchDoseHistoryParams
+>(
+  'medicine/fetchDoseHistory',
+  async (params, { rejectWithValue }) => {
+    try {
+      const ownerId = params?.ownerId;
+      const url = ownerId ? `/api/medicareDB/history?ownerId=${ownerId}` : '/api/medicareDB/history';
+      const response = await axios.get(url);
+      return response.data.result || [];
+    } catch (error: unknown) {
+      return rejectWithValue(getErrorMessage(error, 'Failed to fetch dose history'));
+    }
+  }
+);
+
 const medicineSlice = createSlice({
   name: 'medicine',
   initialState,
@@ -172,7 +197,9 @@ const medicineSlice = createSlice({
     },
     clearMedicines(state) {
       state.medicines = [];
+      state.doseHistory = [];
       state.loading = false;
+      state.historyLoading = false;
       state.actionLoading = false;
       state.error = null;
     },
@@ -227,7 +254,15 @@ const medicineSlice = createSlice({
 
       // Delete Dose
       .addCase(deleteDose.fulfilled, (state, action) => {
-        const { doseId, medicineId, updatedMedicine } = action.payload;
+        const { doseId, medicineId, updatedMedicine, historyItem } = action.payload;
+        if (historyItem) {
+          state.doseHistory = [
+            historyItem,
+            ...state.doseHistory.filter(
+              (h) => h._id !== historyItem._id && h.doseId !== historyItem.doseId
+            ),
+          ];
+        }
         if (updatedMedicine && updatedMedicine.schedule && updatedMedicine.schedule.length > 0) {
           state.medicines = state.medicines.map((med) =>
             med._id === medicineId ? updatedMedicine : med
@@ -265,11 +300,33 @@ const medicineSlice = createSlice({
       // Resolve Missed Dose
       .addCase(resolveMissedDose.fulfilled, (state, action) => {
         const updatedMedicine = action.payload?.result;
+        const historyItem = action.payload?.historyItem;
+        if (historyItem) {
+          state.doseHistory = [
+            historyItem,
+            ...state.doseHistory.filter(
+              (h) => h._id !== historyItem._id && h.doseId !== historyItem.doseId
+            ),
+          ];
+        }
         if (updatedMedicine && updatedMedicine._id) {
           state.medicines = state.medicines.map((med) =>
             med._id === updatedMedicine._id ? updatedMedicine : med
           );
         }
+      })
+
+      // Fetch Dose History
+      .addCase(fetchDoseHistory.pending, (state) => {
+        state.historyLoading = true;
+      })
+      .addCase(fetchDoseHistory.fulfilled, (state, action) => {
+        state.historyLoading = false;
+        state.doseHistory = action.payload;
+      })
+      .addCase(fetchDoseHistory.rejected, (state, action) => {
+        state.historyLoading = false;
+        state.error = action.payload as string;
       });
   },
 });

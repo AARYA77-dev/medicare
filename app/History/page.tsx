@@ -5,7 +5,7 @@ import ViewAsSelector from '@/components/ViewAsSelector';
 import React, { useEffect, useMemo, useState } from 'react';
 import Loading from '../loading';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { fetchMedicines } from '@/store/medicineSlice';
+import { fetchMedicines, fetchDoseHistory } from '@/store/medicineSlice';
 import {
   FaCalendarAlt,
   FaChevronLeft,
@@ -16,6 +16,7 @@ import {
   FaHourglassHalf,
   FaHistory,
   FaCalendarDay,
+  FaCalendarTimes,
 } from 'react-icons/fa';
 
 export interface DoseDetail {
@@ -27,7 +28,9 @@ export interface DoseDetail {
   dateObj: Date;
   time: string;
   dosage: string;
-  status: 'today' | 'upcoming' | 'previous';
+  status: 'today' | 'upcoming' | 'previous' | 'completed' | 'missed';
+  action?: string;
+  takenAt?: Date | string;
 }
 
 interface CalendarDayCell {
@@ -107,6 +110,16 @@ const formatDisplayDate = (d: Date): string => {
   return `${Months[d.getMonth()].slice(0, 3)} ${d.getDate()}, ${d.getFullYear()}`;
 };
 
+const formatActionTime = (val?: Date | string): { timeStr: string; dateStr: string } => {
+  if (!val) return { timeStr: '', dateStr: '' };
+  const d = new Date(val);
+  if (isNaN(d.getTime())) return { timeStr: '', dateStr: '' };
+  return {
+    timeStr: d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }),
+    dateStr: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+  };
+};
+
 const isSameDay = (d1: Date, d2: Date) => {
   return (
     d1.getFullYear() === d2.getFullYear() &&
@@ -117,11 +130,12 @@ const isSameDay = (d1: Date, d2: Date) => {
 
 export default function HistoryCalendarPage() {
   const dispatch = useAppDispatch();
-  const { medicines, loading } = useAppSelector((state) => state.medicine);
+  const { medicines, doseHistory, loading } = useAppSelector((state) => state.medicine);
   const { viewingOwnerId } = useAppSelector((state) => state.sharing);
 
   useEffect(() => {
     dispatch(fetchMedicines(viewingOwnerId ? { ownerId: viewingOwnerId } : undefined));
+    dispatch(fetchDoseHistory(viewingOwnerId ? { ownerId: viewingOwnerId } : undefined));
   }, [dispatch, viewingOwnerId]);
 
   const today = useMemo(() => {
@@ -138,6 +152,7 @@ export default function HistoryCalendarPage() {
   const allDoses = useMemo<DoseDetail[]>(() => {
     const extractedDoses: DoseDetail[] = [];
 
+    // 1. Scheduled Doses (from active medicines)
     medicines.forEach((med) => {
       if (med.schedule && Array.isArray(med.schedule)) {
         med.schedule.forEach((sch) => {
@@ -177,9 +192,42 @@ export default function HistoryCalendarPage() {
       }
     });
 
+    // 2. Historical Doses (Completed and Missed)
+    if (doseHistory && Array.isArray(doseHistory)) {
+      doseHistory.forEach((hist, idx) => {
+        let histDate = parseSafeDate(hist.scheduledDate);
+        if (!histDate && hist.takenAt) {
+          histDate = parseSafeDate(String(hist.takenAt));
+        }
+        if (!histDate) {
+          histDate = hist.takenAt ? new Date(hist.takenAt) : today;
+        }
+
+        const histDateNormalized = new Date(
+          histDate.getFullYear(),
+          histDate.getMonth(),
+          histDate.getDate()
+        );
+
+        extractedDoses.push({
+          id: hist._id || hist.doseId || `hist-${idx}`,
+          medicineId: hist.medicineId,
+          medicineName: hist.medicineName,
+          dayNumber: hist.dayNumber || 1,
+          dateStr: hist.scheduledDate || formatDisplayDate(histDateNormalized),
+          dateObj: histDateNormalized,
+          time: hist.scheduledTime,
+          dosage: hist.dosage,
+          status: hist.status,
+          action: hist.action,
+          takenAt: hist.takenAt,
+        });
+      });
+    }
+
     extractedDoses.sort((a, b) => a.dateObj.getTime() - b.dateObj.getTime());
     return extractedDoses;
-  }, [medicines, today]);
+  }, [medicines, doseHistory, today]);
 
   // Build calendar grid days
   const buildCalendarGrid = (): CalendarDayCell[] => {
@@ -249,13 +297,26 @@ export default function HistoryCalendarPage() {
     setCurYear(newYear);
   };
 
-  if (loading) return <Loading />;
+  if (loading && medicines.length === 0 && (!doseHistory || doseHistory.length === 0)) {
+    return <Loading />;
+  }
 
   const calendarGrid = buildCalendarGrid();
 
-  const todayDoses = allDoses.filter((d) => d.status === 'today');
+  const todayDoses = allDoses.filter(
+    (d) => isSameDay(d.dateObj, today) || d.status === 'today'
+  );
   const upcomingDoses = allDoses.filter((d) => d.status === 'upcoming');
-  const previousDoses = allDoses.filter((d) => d.status === 'previous');
+  const previousDoses = allDoses
+    .filter((d) => d.status === 'previous' || d.status === 'completed' || d.status === 'missed')
+    .sort((a, b) => {
+      const timeA = a.takenAt ? new Date(a.takenAt).getTime() : a.dateObj.getTime();
+      const timeB = b.takenAt ? new Date(b.takenAt).getTime() : b.dateObj.getTime();
+      return timeB - timeA;
+    });
+
+  const completedCount = previousDoses.filter((d) => d.status === 'completed').length;
+  const missedCount = previousDoses.filter((d) => d.status === 'missed').length;
 
   let displayedDoses: DoseDetail[] = [];
   if (activeTab === 'selected') {
@@ -270,24 +331,36 @@ export default function HistoryCalendarPage() {
     displayedDoses = allDoses;
   }
 
-  const getStatusBadge = (status: 'today' | 'upcoming' | 'previous') => {
+  const getStatusBadge = (status: 'today' | 'upcoming' | 'previous' | 'completed' | 'missed') => {
     switch (status) {
+      case 'completed':
+        return (
+          <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 shadow-[0_0_8px_rgba(52,211,153,0.3)]">
+            <FaCheckCircle className="text-[10px]" /> Completed
+          </span>
+        );
+      case 'missed':
+        return (
+          <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/40 shadow-[0_0_8px_rgba(251,191,36,0.3)]">
+            <FaCalendarTimes className="text-[10px]" /> Missed
+          </span>
+        );
       case 'today':
         return (
           <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-[#03e9f4]/20 text-[#03e9f4] border border-[#03e9f4]/40 shadow-[0_0_8px_rgba(3,233,244,0.4)]">
-            <FaCheckCircle className="text-[10px]" /> Today
+            <FaClock className="text-[10px]" /> Scheduled Today
           </span>
         );
       case 'upcoming':
         return (
-          <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
+          <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/40">
             <FaHourglassHalf className="text-[10px]" /> Upcoming
           </span>
         );
       case 'previous':
         return (
           <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/40">
-            <FaHistory className="text-[10px]" /> Previous
+            <FaHistory className="text-[10px]" /> Past Due
           </span>
         );
     }
@@ -304,7 +377,7 @@ export default function HistoryCalendarPage() {
               <FaCalendarAlt className="text-[#03e9f4]" /> Medicine Schedule Calendar
             </h1>
             <p className="text-gray-400 text-sm mt-1">
-              View past history, today&apos;s scheduled medication, and upcoming doses
+              View past dose history, today&apos;s scheduled medication, and upcoming doses
             </p>
           </div>
 
@@ -318,18 +391,25 @@ export default function HistoryCalendarPage() {
             </div>
 
             <div className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-2xl px-4 py-2.5 shadow-md">
-              <div className="w-3 h-3 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399]" />
+              <div className="w-3 h-3 rounded-full bg-blue-400 shadow-[0_0_8px_#60a5fa]" />
               <div>
                 <p className="text-[10px] text-gray-400 uppercase font-semibold">Upcoming</p>
-                <p className="text-lg font-bold text-emerald-400">{upcomingDoses.length}</p>
+                <p className="text-lg font-bold text-blue-400">{upcomingDoses.length}</p>
               </div>
             </div>
 
             <div className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-2xl px-4 py-2.5 shadow-md">
               <div className="w-3 h-3 rounded-full bg-purple-400 shadow-[0_0_8px_#c084fc]" />
               <div>
-                <p className="text-[10px] text-gray-400 uppercase font-semibold">Previous</p>
-                <p className="text-lg font-bold text-purple-300">{previousDoses.length}</p>
+                <p className="text-[10px] text-gray-400 uppercase font-semibold">Previous History</p>
+                <div className="flex items-baseline gap-2">
+                  <p className="text-lg font-bold text-purple-300">{previousDoses.length}</p>
+                  {(completedCount > 0 || missedCount > 0) && (
+                    <span className="text-[10px] text-gray-400">
+                      ({completedCount} done, {missedCount} missed)
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -356,7 +436,7 @@ export default function HistoryCalendarPage() {
                     setSelectedDate(today);
                     setActiveTab('selected');
                   }}
-                  className="px-2.5 sm:px-3 py-1.5 text-xs font-semibold bg-white/5 border border-white/10 rounded-xl text-gray-300 hover:text-[#03e9f4] transition-colors"
+                  className="px-2.5 sm:px-3 py-1.5 text-xs font-semibold bg-white/5 border border-white/10 rounded-xl text-gray-300 hover:text-[#03e9f4] transition-colors cursor-pointer"
                 >
                   Today
                 </button>
@@ -386,6 +466,8 @@ export default function HistoryCalendarPage() {
                 const hasDoses = cell.doses.length > 0;
                 const hasTodayDose = cell.doses.some((d) => d.status === 'today');
                 const hasUpcomingDose = cell.doses.some((d) => d.status === 'upcoming');
+                const hasCompletedDose = cell.doses.some((d) => d.status === 'completed');
+                const hasMissedDose = cell.doses.some((d) => d.status === 'missed');
                 const hasPreviousDose = cell.doses.some((d) => d.status === 'previous');
 
                 return (
@@ -395,43 +477,57 @@ export default function HistoryCalendarPage() {
                       setSelectedDate(cell.dateObj);
                       setActiveTab('selected');
                     }}
-                    className={`min-h-[46px] sm:min-h-[72px] p-1 sm:p-2 rounded-xl sm:rounded-2xl border transition-all flex flex-col justify-between items-center relative group cursor-pointer ${!cell.isCurrentMonth
+                    className={`min-h-[46px] sm:min-h-[72px] p-1 sm:p-2 rounded-xl sm:rounded-2xl border transition-all flex flex-col justify-between items-center relative group cursor-pointer ${
+                      !cell.isCurrentMonth
                         ? 'opacity-30 border-white/5 bg-transparent text-gray-500'
                         : isSelected
-                          ? 'border-[#03e9f4] bg-[#03e9f4]/15 shadow-[0_0_15px_rgba(3,233,244,0.3)] text-white'
-                          : cell.isToday
-                            ? 'border-[#03e9f4]/50 bg-white/10 text-[#03e9f4]'
-                            : 'border-white/10 bg-white/5 hover:border-[#03e9f4]/30 hover:bg-white/10 text-gray-200'
-                      }`}
+                        ? 'border-[#03e9f4] bg-[#03e9f4]/15 shadow-[0_0_15px_rgba(3,233,244,0.3)] text-white'
+                        : cell.isToday
+                        ? 'border-[#03e9f4]/50 bg-white/10 text-[#03e9f4]'
+                        : 'border-white/10 bg-white/5 hover:border-[#03e9f4]/30 hover:bg-white/10 text-gray-200'
+                    }`}
                   >
                     <span
-                      className={`text-xs sm:text-sm font-bold ${cell.isToday
+                      className={`text-xs sm:text-sm font-bold ${
+                        cell.isToday
                           ? 'w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-[#03e9f4] text-black flex items-center justify-center text-[10px] sm:text-xs'
                           : ''
-                        }`}
+                      }`}
                     >
                       {cell.dayNumber}
                     </span>
 
                     {hasDoses && (
                       <div className="flex flex-col items-center gap-0.5 sm:gap-1 w-full mt-0.5 sm:mt-1">
-                        <div className="flex items-center justify-center gap-0.5 sm:gap-1">
+                        <div className="flex items-center justify-center gap-0.5 sm:gap-1 flex-wrap max-w-full">
+                          {hasCompletedDose && (
+                            <span
+                              className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_#34d399]"
+                              title="Completed Dose"
+                            />
+                          )}
+                          {hasMissedDose && (
+                            <span
+                              className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-amber-400 shadow-[0_0_6px_#fbbf24]"
+                              title="Missed Dose"
+                            />
+                          )}
                           {hasTodayDose && (
                             <span
                               className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[#03e9f4] shadow-[0_0_6px_#03e9f4]"
-                              title="Today's Dose"
+                              title="Today's Scheduled Dose"
                             />
                           )}
                           {hasUpcomingDose && (
                             <span
-                              className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_#34d399]"
-                              title="Upcoming Dose"
+                              className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-blue-400 shadow-[0_0_6px_#60a5fa]"
+                              title="Upcoming Scheduled Dose"
                             />
                           )}
                           {hasPreviousDose && (
                             <span
                               className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-purple-400 shadow-[0_0_6px_#c084fc]"
-                              title="Previous Dose"
+                              title="Past Due Dose"
                             />
                           )}
                         </div>
@@ -450,46 +546,51 @@ export default function HistoryCalendarPage() {
             <div className="flex items-center gap-1.5 bg-black/40 p-1.5 pb-2.5 rounded-2xl border border-white/10 mb-6 overflow-x-auto theme-scrollbar scroll-smooth">
               <button
                 onClick={() => setActiveTab('selected')}
-                className={`px-3.5 py-1.5 text-xs font-semibold rounded-xl transition-all whitespace-nowrap cursor-pointer shrink-0 ${activeTab === 'selected'
+                className={`px-3.5 py-1.5 text-xs font-semibold rounded-xl transition-all whitespace-nowrap cursor-pointer shrink-0 ${
+                  activeTab === 'selected'
                     ? 'bg-[#03e9f4] text-black shadow-md shadow-[#03e9f4]/20 font-bold'
                     : 'text-gray-400 hover:text-white hover:bg-white/5'
-                  }`}
+                }`}
               >
                 Selected Day
               </button>
               <button
                 onClick={() => setActiveTab('today')}
-                className={`px-3.5 py-1.5 text-xs font-semibold rounded-xl transition-all whitespace-nowrap cursor-pointer shrink-0 ${activeTab === 'today'
+                className={`px-3.5 py-1.5 text-xs font-semibold rounded-xl transition-all whitespace-nowrap cursor-pointer shrink-0 ${
+                  activeTab === 'today'
                     ? 'bg-[#03e9f4] text-black shadow-md shadow-[#03e9f4]/20 font-bold'
                     : 'text-gray-400 hover:text-white hover:bg-white/5'
-                  }`}
+                }`}
               >
                 Today ({todayDoses.length})
               </button>
               <button
                 onClick={() => setActiveTab('upcoming')}
-                className={`px-3.5 py-1.5 text-xs font-semibold rounded-xl transition-all whitespace-nowrap cursor-pointer shrink-0 ${activeTab === 'upcoming'
+                className={`px-3.5 py-1.5 text-xs font-semibold rounded-xl transition-all whitespace-nowrap cursor-pointer shrink-0 ${
+                  activeTab === 'upcoming'
                     ? 'bg-[#03e9f4] text-black shadow-md shadow-[#03e9f4]/20 font-bold'
                     : 'text-gray-400 hover:text-white hover:bg-white/5'
-                  }`}
+                }`}
               >
                 Upcoming ({upcomingDoses.length})
               </button>
               <button
                 onClick={() => setActiveTab('previous')}
-                className={`px-3.5 py-1.5 text-xs font-semibold rounded-xl transition-all whitespace-nowrap cursor-pointer shrink-0 ${activeTab === 'previous'
+                className={`px-3.5 py-1.5 text-xs font-semibold rounded-xl transition-all whitespace-nowrap cursor-pointer shrink-0 ${
+                  activeTab === 'previous'
                     ? 'bg-[#03e9f4] text-black shadow-md shadow-[#03e9f4]/20 font-bold'
                     : 'text-gray-400 hover:text-white hover:bg-white/5'
-                  }`}
+                }`}
               >
                 Previous ({previousDoses.length})
               </button>
               <button
                 onClick={() => setActiveTab('all')}
-                className={`px-3.5 py-1.5 text-xs font-semibold rounded-xl transition-all whitespace-nowrap cursor-pointer shrink-0 ${activeTab === 'all'
+                className={`px-3.5 py-1.5 text-xs font-semibold rounded-xl transition-all whitespace-nowrap cursor-pointer shrink-0 ${
+                  activeTab === 'all'
                     ? 'bg-[#03e9f4] text-black shadow-md shadow-[#03e9f4]/20 font-bold'
                     : 'text-gray-400 hover:text-white hover:bg-white/5'
-                  }`}
+                }`}
               >
                 All ({allDoses.length})
               </button>
@@ -501,12 +602,12 @@ export default function HistoryCalendarPage() {
                 {activeTab === 'selected'
                   ? `Doses for ${formatDisplayDate(selectedDate)}`
                   : activeTab === 'today'
-                    ? "Today's Medication Doses"
-                    : activeTab === 'upcoming'
-                      ? 'Upcoming Scheduled Doses'
-                      : activeTab === 'previous'
-                        ? 'Previous Doses History'
-                        : 'All Scheduled Doses'}
+                  ? "Today's Medication Doses"
+                  : activeTab === 'upcoming'
+                  ? 'Upcoming Scheduled Doses'
+                  : activeTab === 'previous'
+                  ? 'Previous Doses History'
+                  : 'All Scheduled & Recorded Doses'}
               </h3>
             </div>
 
@@ -516,39 +617,97 @@ export default function HistoryCalendarPage() {
                   <FaPills className="text-4xl text-gray-600" />
                   <p className="text-sm font-medium">No doses found for this selection</p>
                   <p className="text-xs text-gray-500 max-w-xs">
-                    Select another date on the calendar or add a new medicine schedule.
+                    {activeTab === 'previous'
+                      ? 'No previous doses recorded yet. Doses marked completed or missed will appear here.'
+                      : 'Select another date on the calendar or add a new medicine schedule.'}
                   </p>
                 </div>
               ) : (
-                displayedDoses.map((dose) => (
-                  <div
-                    key={dose.id}
-                    className="p-4 border border-white/10 rounded-2xl bg-white/5 backdrop-blur-md hover:border-[#03e9f4]/40 hover:bg-white/10 transition-all space-y-3 relative group"
-                  >
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h4 className="text-base font-bold text-[#03e9f4]">
-                          {dose.medicineName}
-                        </h4>
-                        <p className="text-xs text-gray-400 mt-0.5">
-                          Day {dose.dayNumber} • {dose.dateStr}
-                        </p>
+                displayedDoses.map((dose) => {
+                  const actionTime = dose.takenAt ? formatActionTime(dose.takenAt) : null;
+                  return (
+                    <div
+                      key={dose.id}
+                      className={`p-4 border rounded-2xl bg-white/5 backdrop-blur-md transition-all space-y-3 relative group ${
+                        dose.status === 'completed'
+                          ? 'border-emerald-500/30 hover:border-emerald-500/50 hover:bg-emerald-500/5'
+                          : dose.status === 'missed'
+                          ? 'border-amber-500/30 hover:border-amber-500/50 hover:bg-amber-500/5'
+                          : 'border-white/10 hover:border-[#03e9f4]/40 hover:bg-white/10'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <h4 className="text-base font-bold text-white group-hover:text-[#03e9f4] transition-colors">
+                            {dose.medicineName}
+                          </h4>
+                          <p className="text-xs text-gray-400 mt-0.5">
+                            Day {dose.dayNumber} • {dose.dateStr}
+                          </p>
+                        </div>
+                        {getStatusBadge(dose.status)}
                       </div>
-                      {getStatusBadge(dose.status)}
-                    </div>
 
-                    <div className="flex items-center justify-between pt-2 border-t border-white/5 text-xs text-gray-300">
-                      <div className="flex items-center gap-1.5">
-                        <FaClock className="text-[#03e9f4]" />
-                        <span className="font-mono">{dose.time}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5 bg-white/10 px-2.5 py-1 rounded-lg">
-                        <FaPills className="text-[#03e9f4]" />
-                        <span className="font-semibold text-white">{dose.dosage}</span>
+                      {/* Action Timestamp and Details for Completed Doses */}
+                      {dose.status === 'completed' && actionTime && (
+                        <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex flex-wrap items-center justify-between gap-1.5 text-xs">
+                          <div className="flex items-center gap-1.5 text-emerald-300 font-medium">
+                            <FaCheckCircle className="text-emerald-400 shrink-0 text-sm" />
+                            <span>Marked as Completed:</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono font-bold bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded text-xs">
+                              {actionTime.timeStr}
+                            </span>
+                            <span className="text-[11px] text-emerald-400/80 font-medium">
+                              {actionTime.dateStr}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Action Timestamp and Details for Missed Doses */}
+                      {dose.status === 'missed' && actionTime && (
+                        <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 flex flex-wrap items-center justify-between gap-1.5 text-xs">
+                          <div className="flex items-center gap-1.5 text-amber-300 font-medium">
+                            <FaCalendarTimes className="text-amber-400 shrink-0 text-sm" />
+                            <span>
+                              Marked as Missed
+                              {dose.action === 'skip_and_continue'
+                                ? ' (Skipped & Added to End)'
+                                : dose.action === 'carry_forward_shift'
+                                ? ' (Shifted Forward)'
+                                : dose.action === 'quantity_unavailable'
+                                ? ' (Zero Quantity)'
+                                : ''}
+                              :
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono font-bold bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded text-xs">
+                              {actionTime.timeStr}
+                            </span>
+                            <span className="text-[11px] text-amber-400/80 font-medium">
+                              {actionTime.dateStr}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="flex items-center justify-between pt-2 border-t border-white/5 text-xs text-gray-300">
+                        <div className="flex items-center gap-1.5">
+                          <FaClock className="text-[#03e9f4]" />
+                          <span className="text-gray-400">Scheduled:</span>
+                          <span className="font-mono font-semibold text-white">{dose.time}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 bg-white/10 px-2.5 py-1 rounded-lg">
+                          <FaPills className="text-[#03e9f4]" />
+                          <span className="font-semibold text-white">{dose.dosage}</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           </div>

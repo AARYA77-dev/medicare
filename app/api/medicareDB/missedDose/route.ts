@@ -1,5 +1,6 @@
 import { MedicineSchema } from "@/Schemas/MedicinsSchema";
 import { AccessSchema } from "@/Schemas/AccessSchema";
+import { DoseHistorySchema } from "@/Schemas/DoseHistorySchema";
 import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 import dbConnect from "@/lib/dbConnect";
@@ -154,6 +155,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    let historyItem = null;
+    try {
+      const scheduledEntry = medicine.schedule[foundEntryIndex];
+      historyItem = await DoseHistorySchema.create({
+        userId: medicine.userId,
+        actionBy: token.id,
+        medicineId: String(medicine._id),
+        medicineName: medicine.medicine_name,
+        doseId: String(doseId),
+        dayNumber: scheduledEntry ? scheduledEntry.day : 1,
+        scheduledDate: scheduledEntry ? scheduledEntry.date : "",
+        scheduledTime: missedDose.time || "",
+        dosage: missedDose.dosage || "",
+        status: 'missed',
+        action: action,
+        takenAt: new Date(),
+      });
+    } catch (historyErr) {
+      console.error("Failed to record missed dose history:", historyErr);
+    }
+
     const currentSchedule = JSON.parse(JSON.stringify(medicine.schedule)) as ScheduleEntryData[];
 
     if (action === 'quantity_unavailable') {
@@ -294,6 +316,7 @@ export async function POST(request: NextRequest) {
           ? "Today's missed dose was skipped, and it will be added to the end of the schedule."
           : "Today's missed dose was moved to tomorrow, and the rest of the schedule was shifted forward by one day.",
       result: medicine,
+      historyItem: historyItem || null,
     });
   } catch (err: unknown) {
     console.error("Error resolving missed dose:", err);

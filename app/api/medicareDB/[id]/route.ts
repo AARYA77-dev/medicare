@@ -1,5 +1,6 @@
 import { MedicineSchema } from "@/Schemas/MedicinsSchema";
 import { AccessSchema } from "@/Schemas/AccessSchema";
+import { DoseHistorySchema } from "@/Schemas/DoseHistorySchema";
 import { Types } from "mongoose";
 import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
@@ -94,11 +95,42 @@ export async function DELETE(request: NextRequest, context: Context) {
     if (ownerMed.is_paused) {
       return NextResponse.json({ message: "Cannot mark a dose done while the medicine schedule is paused.", success: false }, { status: 409 });
     }
-    const dose = ownerMed.schedule
-      .flatMap((entry: { doses: { _id?: unknown; dosage: string }[] }) => entry.doses)
-      .find((item: { _id?: unknown }) => String(item._id) === String(objectId));
+    let matchedEntry: { day: number; date: string } | null = null;
+    let matchedDose: { _id?: unknown; dosage: string; time: string } | null = null;
+    for (const entry of ownerMed.schedule) {
+      const d = entry.doses.find((item: { _id?: unknown }) => String(item._id) === String(objectId));
+      if (d) {
+        matchedEntry = entry;
+        matchedDose = d;
+        break;
+      }
+    }
+
+    const dose = matchedDose;
     if (dose && hasNoQuantityForDose(ownerMed.quantity, dose.dosage)) {
       return NextResponse.json({ message: "Cannot mark this dose done because its dosage quantity is zero.", success: false }, { status: 409 });
+    }
+
+    let historyItem = null;
+    if (matchedDose) {
+      try {
+        historyItem = await DoseHistorySchema.create({
+          userId: ownerMed.userId,
+          actionBy: token.id,
+          medicineId: String(ownerMed._id),
+          medicineName: ownerMed.medicine_name,
+          doseId: String(objectId),
+          dayNumber: matchedEntry ? matchedEntry.day : 1,
+          scheduledDate: matchedEntry ? matchedEntry.date : "",
+          scheduledTime: matchedDose.time || "",
+          dosage: matchedDose.dosage || "",
+          status: 'completed',
+          action: 'completed',
+          takenAt: new Date(),
+        });
+      } catch (historyErr) {
+        console.error("Failed to create dose history record:", historyErr);
+      }
     }
 
     await cancelMedicineNotifications(ownerMed.notificationMessageIds || []);
@@ -140,6 +172,7 @@ export async function DELETE(request: NextRequest, context: Context) {
       result2,
       deletedMedicineResult,
       updatedMedicine: updatedMedicine || null,
+      historyItem: historyItem || null,
     });
   } catch (err) {
     console.error("Error", err);
@@ -173,7 +206,8 @@ export async function PUT(request: NextRequest, context: Context) {
       return NextResponse.json({ message: "Access denied. Co-Manager role required to edit.", success: false }, { status: 403 });
     }
 
-    const { _id: _ignoredId, ...cleanBody } = body;
+    const cleanBody = { ...body };
+    delete cleanBody._id;
     const quantityProvided = Object.prototype.hasOwnProperty.call(cleanBody, 'quantity');
     const shouldPause = quantityProvided && hasNoQuantity(cleanBody.quantity);
     const updateMedicine = await MedicineSchema.findByIdAndUpdate(

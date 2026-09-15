@@ -75,3 +75,21 @@ export interface LowStockItem {
     details: string;
     minQty: number;
 }
+
+export interface DoseHistoryRecord {
+    _id?: string;
+    userId: string;
+    actionBy: string;
+    medicineId: string;
+    medicineName: string;
+    doseId: string;
+    dayNumber: number;
+    scheduledDate: string;
+    scheduledTime: string;
+    dosage: string;
+    status: 'completed' | 'missed';
+    action: 'completed' | 'skip_and_continue' | 'carry_forward_shift' | 'quantity_unavailable';
+    takenAt: string | Date;
+    createdAt?: string | Date;
+    updatedAt?: string | Date;
+}
