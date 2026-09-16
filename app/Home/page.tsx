@@ -4,12 +4,22 @@ import Header from "@/components/header";
 import ViewAsSelector from "@/components/ViewAsSelector";
 import { useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
-import { Dose, LowStockItem, MedicineWithSchedule, ScheduleEntry } from "@/Interfaces/interface";
+import {
+  Dose,
+  LowStockItem,
+  MedicineWithSchedule,
+  ScheduleEntry,
+} from "@/Interfaces/interface";
 import Loading from "../loading";
 import Image from "next/image";
 import Link from "next/link";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { fetchMedicines, deleteDose, resolveMissedDose } from "@/store/medicineSlice";
+import {
+  fetchMedicines,
+  deleteDose,
+  resolveMissedDose,
+  fetchDoseHistory,
+} from "@/store/medicineSlice";
 import { hasNoQuantityForDose } from "@/lib/medicineQuantity";
 import {
   FaArrowRight,
@@ -17,6 +27,7 @@ import {
   FaCalendarCheck,
   FaCalendarDay,
   FaCalendarTimes,
+  FaCheckCircle,
   FaChevronLeft,
   FaChevronRight,
   FaClock,
@@ -29,12 +40,24 @@ import {
 import MissedDoseModal from "@/components/MissedDoseModal";
 import NotificationSettings from "@/components/NotificationSettings";
 
-interface ExtractedDoseItem {
-  medicine: MedicineWithSchedule;
-  scheduleEntry: ScheduleEntry;
-  dose: Dose;
+export interface UnifiedDoseItem {
+  id: string;
+  medicineId: string;
+  medicineName: string;
+  doseId: string;
+  dayNumber: number;
+  time: string;
+  dosage: string;
   dateKey: string;
   parsedDate: Date;
+  status: "completed" | "missed" | "pending";
+  action?: "completed" | "skip_and_continue" | "carry_forward_shift" | "quantity_unavailable";
+  takenAt?: Date | string;
+  isOverdue?: boolean;
+  doseHasNoStock?: boolean;
+  medicine?: MedicineWithSchedule;
+  scheduleEntry?: ScheduleEntry;
+  dose?: Dose;
 }
 
 function toDateKey(date: Date): string {
@@ -44,11 +67,17 @@ function toDateKey(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
-function parseScheduleDate(dateStr?: string): Date | null {
+function parseScheduleDate(dateStr?: string | Date): Date | null {
   if (!dateStr) return null;
+  if (dateStr instanceof Date) {
+    return isNaN(dateStr.getTime())
+      ? null
+      : new Date(dateStr.getFullYear(), dateStr.getMonth(), dateStr.getDate());
+  }
   const str = String(dateStr).trim();
+  if (!str) return null;
 
-  // 1. YYYY-MM-DD or YYYY/MM/DD
+  // 1. YYYY-MM-DD or YYYY/MM/DD or ISO string with time
   const ymdMatch = str.match(/^(\d{4})[-\/\.](\d{1,2})[-\/\.](\d{1,2})/);
   if (ymdMatch) {
     const [, year, month, day] = ymdMatch;
@@ -57,11 +86,23 @@ function parseScheduleDate(dateStr?: string): Date | null {
   }
 
   // 2. DD-MM-YYYY or DD/MM/YYYY
-  const dmyMatch = str.match(/^(\d{1,2})[-\/\.](\d{1,2})[-\/\.](\d{4})/);
-  if (dmyMatch) {
-    const [, day, month, year] = dmyMatch;
-    const d = new Date(Number(year), Number(month) - 1, Number(day));
-    return isNaN(d.getTime()) ? null : d;
+  const parts = str.split(/[\/\-\.]/).map((p) => p.trim());
+  if (parts.length === 3) {
+    const [p1, p2] = parts.map(Number);
+    let p3 = Number(parts[2]);
+    if (p3 < 100) p3 += 2000;
+    if (p3 >= 1900 && p3 <= 2100) {
+      if (p1 > 12 && p2 <= 12) {
+        const d = new Date(p3, p2 - 1, p1);
+        if (!isNaN(d.getTime())) return d;
+      }
+      if (p2 > 12 && p1 <= 12) {
+        const d = new Date(p3, p1 - 1, p2);
+        if (!isNaN(d.getTime())) return d;
+      }
+      const d = new Date(p3, p2 - 1, p1);
+      if (!isNaN(d.getTime())) return d;
+    }
   }
 
   // 3. Fallback standard parse
@@ -100,6 +141,16 @@ function formatHeaderDate(date: Date): string {
   });
 }
 
+function formatActionTime(val?: Date | string): { timeStr: string; dateStr: string } {
+  if (!val) return { timeStr: "", dateStr: "" };
+  const d = new Date(val);
+  if (isNaN(d.getTime())) return { timeStr: "", dateStr: "" };
+  return {
+    timeStr: d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: true }),
+    dateStr: d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+  };
+}
+
 function shiftDateKey(dateKey: string, deltaDays: number): string {
   const [y, m, d] = dateKey.split("-").map(Number);
   const date = new Date(y, m - 1, d);
@@ -123,7 +174,7 @@ function getDateRelativeLabel(dateKey: string, todayKey: string): string | null 
 
 export default function HomePage() {
   const dispatch = useAppDispatch();
-  const { medicines: medicineData, loading } = useAppSelector((state) => state.medicine);
+  const { medicines: medicineData, doseHistory, loading } = useAppSelector((state) => state.medicine);
   const { viewingOwnerId, role } = useAppSelector((state) => state.sharing);
   // Can interact (mark done, missed) if own schedule OR care partner/co-manager
   const canInteract = !viewingOwnerId || role === "collaborator" || role === "admin";
@@ -151,10 +202,12 @@ export default function HomePage() {
 
   const [selectedDateKey, setSelectedDateKey] = useState<string>(todayKey);
   const [filterMode, setFilterMode] = useState<"date" | "all">("date");
+  const [statusFilter, setStatusFilter] = useState<"all" | "completed" | "missed" | "pending">("all");
   const dateInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     dispatch(fetchMedicines(viewingOwnerId ? { ownerId: viewingOwnerId } : undefined));
+    dispatch(fetchDoseHistory(viewingOwnerId ? { ownerId: viewingOwnerId } : undefined));
   }, [dispatch, viewingOwnerId]);
 
   const handleCheckbox = (doseId: string) => {
@@ -244,12 +297,60 @@ export default function HomePage() {
     }
   });
 
-  // Extract doses by date and compute overdue counts & dates with doses
-  const { scheduledDoses, pastOverdueCount, dateDoseCounts } = useMemo(() => {
-    const allList: ExtractedDoseItem[] = [];
+  // Extract doses by date (integrating active schedule doses and DoseHistory records)
+  const { allDoseList, pastOverdueCount, dateDoseCounts, dateStatusCounts } = useMemo(() => {
+    const list: UnifiedDoseItem[] = [];
     let overdue = 0;
     const counts: Record<string, number> = {};
+    const statusCounts: Record<string, { completed: number; missed: number; pending: number }> = {};
 
+    const helperAddCount = (dKey: string, status: "completed" | "missed" | "pending") => {
+      counts[dKey] = (counts[dKey] || 0) + 1;
+      if (!statusCounts[dKey]) {
+        statusCounts[dKey] = { completed: 0, missed: 0, pending: 0 };
+      }
+      statusCounts[dKey][status] = (statusCounts[dKey][status] || 0) + 1;
+    };
+
+    // Keep track of dose IDs resolved in history to prevent any duplicate active entries
+    const resolvedDoseIds = new Set<string>();
+
+    // 1. Process Dose History (Completed and Missed doses)
+    if (doseHistory && Array.isArray(doseHistory)) {
+      doseHistory.forEach((hist, idx) => {
+        if (hist.doseId) {
+          resolvedDoseIds.add(String(hist.doseId));
+        }
+
+        let parsed = parseScheduleDate(hist.scheduledDate);
+        if (!parsed && hist.takenAt) {
+          parsed = parseScheduleDate(hist.takenAt);
+        }
+        if (!parsed) {
+          parsed = todayObj;
+        }
+
+        const dKey = toDateKey(parsed);
+        helperAddCount(dKey, hist.status);
+
+        list.push({
+          id: hist._id || hist.doseId || `hist-${idx}`,
+          medicineId: hist.medicineId,
+          medicineName: hist.medicineName,
+          doseId: hist.doseId || "",
+          dayNumber: hist.dayNumber || 1,
+          time: hist.scheduledTime || (hist.takenAt ? formatActionTime(hist.takenAt).timeStr : "00:00"),
+          dosage: hist.dosage || "",
+          dateKey: dKey,
+          parsedDate: parsed,
+          status: hist.status,
+          action: hist.action,
+          takenAt: hist.takenAt,
+        });
+      });
+    }
+
+    // 2. Process Active Schedule Doses (Pending / No Action Taken)
     medicineData.forEach((med) => {
       if (!med.schedule || !Array.isArray(med.schedule)) return;
 
@@ -260,46 +361,51 @@ export default function HomePage() {
 
         if (sch.doses && Array.isArray(sch.doses)) {
           sch.doses.forEach((dose) => {
-            if (dose) {
-              counts[dKey] = (counts[dKey] || 0) + 1;
-              if (dKey < todayKey && !med.is_paused) {
-                overdue++;
-              }
-              allList.push({
-                medicine: med,
-                scheduleEntry: sch,
-                dose,
-                dateKey: dKey,
-                parsedDate: parsed,
-              });
+            if (!dose) return;
+            const doseIdStr = dose._id ? String(dose._id) : "";
+            // Skip if this dose was already recorded in history
+            if (doseIdStr && resolvedDoseIds.has(doseIdStr)) {
+              return;
             }
+
+            const isPastPending = dKey < todayKey;
+            if (isPastPending && !med.is_paused) {
+              overdue++;
+            }
+
+            helperAddCount(dKey, "pending");
+
+            const doseHasNoStock = hasNoQuantityForDose(med.quantity, dose.dosage);
+
+            list.push({
+              id: doseIdStr || `${med._id}-${sch.day}-${dose.time}`,
+              medicineId: med._id,
+              medicineName: med.medicine_name,
+              doseId: doseIdStr,
+              dayNumber: sch.day,
+              time: dose.time || "00:00",
+              dosage: dose.dosage || "",
+              dateKey: dKey,
+              parsedDate: parsed,
+              status: "pending",
+              medicine: med,
+              scheduleEntry: sch,
+              dose,
+              isOverdue: isPastPending,
+              doseHasNoStock,
+            });
           });
         }
       });
     });
 
-    let filtered: ExtractedDoseItem[] = [];
-    if (filterMode === "all") {
-      filtered = allList;
-    } else {
-      filtered = allList.filter((item) => item.dateKey === selectedDateKey);
-    }
-
-    filtered.sort((a, b) => {
-      if (a.dateKey !== b.dateKey) {
-        return a.dateKey.localeCompare(b.dateKey);
-      }
-      const timeA = a.dose.time || "00:00";
-      const timeB = b.dose.time || "00:00";
-      return timeA.localeCompare(timeB);
-    });
-
     return {
-      scheduledDoses: filtered,
+      allDoseList: list,
       pastOverdueCount: overdue,
       dateDoseCounts: counts,
+      dateStatusCounts: statusCounts,
     };
-  }, [medicineData, filterMode, selectedDateKey, todayKey]);
+  }, [doseHistory, medicineData, todayKey, todayObj]);
 
   // Selected date object for display
   const selectedDateObj = useMemo(() => {
@@ -311,6 +417,41 @@ export default function HomePage() {
     () => getDateRelativeLabel(selectedDateKey, todayKey),
     [selectedDateKey, todayKey]
   );
+
+  // Compute filtered doses and stats for the current view
+  const { filteredDoses, selectedDateStats } = useMemo(() => {
+    // 1. Filter by date or all
+    let dateFiltered = allDoseList;
+    if (filterMode === "date") {
+      dateFiltered = allDoseList.filter((item) => item.dateKey === selectedDateKey);
+    }
+
+    const total = dateFiltered.length;
+    const completed = dateFiltered.filter((d) => d.status === "completed").length;
+    const missed = dateFiltered.filter((d) => d.status === "missed").length;
+    const pending = dateFiltered.filter((d) => d.status === "pending").length;
+
+    // 2. Filter by status if selected
+    let finalFiltered = dateFiltered;
+    if (statusFilter !== "all") {
+      finalFiltered = dateFiltered.filter((item) => item.status === statusFilter);
+    }
+
+    // 3. Sort by date, then time
+    finalFiltered.sort((a, b) => {
+      if (a.dateKey !== b.dateKey) {
+        return a.dateKey.localeCompare(b.dateKey);
+      }
+      const timeA = a.time || "00:00";
+      const timeB = b.time || "00:00";
+      return timeA.localeCompare(timeB);
+    });
+
+    return {
+      filteredDoses: finalFiltered,
+      selectedDateStats: { total, completed, missed, pending },
+    };
+  }, [allDoseList, filterMode, selectedDateKey, statusFilter]);
 
   // 7 date pills centered around the selected date
   const datePills = useMemo(() => {
@@ -325,6 +466,7 @@ export default function HomePage() {
       const isToday = pillKey === todayKey;
       const isSelected = filterMode === "date" && pillKey === selectedDateKey;
       const count = dateDoseCounts[pillKey] || 0;
+      const st = dateStatusCounts[pillKey];
 
       pills.push({
         key: pillKey,
@@ -334,13 +476,18 @@ export default function HomePage() {
         isToday,
         isSelected,
         doseCount: count,
+        hasPending: (st?.pending || 0) > 0,
+        hasCompleted: (st?.completed || 0) > 0,
+        hasMissed: (st?.missed || 0) > 0,
       });
     }
 
     return pills;
-  }, [selectedDateKey, todayKey, filterMode, dateDoseCounts]);
+  }, [selectedDateKey, todayKey, filterMode, dateDoseCounts, dateStatusCounts]);
 
-  if (loading) return <Loading />;
+  if (loading && medicineData.length === 0 && (!doseHistory || doseHistory.length === 0)) {
+    return <Loading />;
+  }
 
   return (
     <div className="min-h-screen text-white">
@@ -417,7 +564,7 @@ export default function HomePage() {
             <div>
               <div className="flex items-center gap-2.5 flex-wrap">
                 <h2 className="text-xl sm:text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-white via-gray-200 to-gray-400">
-                  {filterMode === "all" ? "All Scheduled Medications" : "Daily Medication Schedule"}
+                  {filterMode === "all" ? "All Scheduled & Recorded Doses" : "Daily Medication Schedule"}
                 </h2>
                 {filterMode === "date" && selectedDateKey === todayKey && (
                   <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#03e9f4]/15 text-[#03e9f4] border border-[#03e9f4]/30 animate-pulse">
@@ -431,20 +578,53 @@ export default function HomePage() {
                   </span>
                 )}
               </div>
-              <p className="text-xs sm:text-sm text-gray-400 mt-1 flex items-center gap-2">
+
+              <div className="text-xs sm:text-sm text-gray-400 mt-1 flex items-center gap-2 flex-wrap">
                 <FaCalendarDay className="text-[#03e9f4] text-xs shrink-0" />
                 <span>
                   {filterMode === "all"
-                    ? "Showing all active doses across all schedule dates"
+                    ? "Showing all active and recorded doses across all dates"
                     : `${formatHeaderDate(selectedDateObj)}${
                         relativeLabel ? ` • ${relativeLabel}` : ""
                       }`}
                 </span>
                 <span className="text-gray-500">•</span>
                 <span className="text-gray-300 font-medium font-mono">
-                  {scheduledDoses.length} dose{scheduledDoses.length === 1 ? "" : "s"}
+                  {selectedDateStats.total} dose{selectedDateStats.total === 1 ? "" : "s"}
                 </span>
-              </p>
+
+                {selectedDateStats.total > 0 && (
+                  <div className="flex items-center gap-2 text-xs ml-1 flex-wrap">
+                    {selectedDateStats.completed > 0 && (
+                      <span className="inline-flex items-center gap-1 text-emerald-400 font-medium">
+                        <FaCheckCircle className="text-[10px]" />
+                        {selectedDateStats.completed} done
+                      </span>
+                    )}
+                    {selectedDateStats.missed > 0 && (
+                      <span className="inline-flex items-center gap-1 text-amber-400 font-medium">
+                        <FaCalendarTimes className="text-[10px]" />
+                        {selectedDateStats.missed} missed
+                      </span>
+                    )}
+                    {selectedDateStats.pending > 0 && (
+                      <span
+                        className={`inline-flex items-center gap-1 font-medium ${
+                          selectedDateKey < todayKey ? "text-rose-400" : "text-[#03e9f4]"
+                        }`}
+                      >
+                        {selectedDateKey < todayKey ? (
+                          <FaExclamationTriangle className="text-[10px]" />
+                        ) : (
+                          <FaClock className="text-[10px]" />
+                        )}
+                        {selectedDateStats.pending}{" "}
+                        {selectedDateKey < todayKey ? "action needed" : "scheduled"}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Quick Action Controls */}
@@ -455,6 +635,7 @@ export default function HomePage() {
                 onClick={() => {
                   setSelectedDateKey(todayKey);
                   setFilterMode("date");
+                  setStatusFilter("all");
                 }}
                 className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
                   filterMode === "date" && selectedDateKey === todayKey
@@ -475,7 +656,10 @@ export default function HomePage() {
               {/* All Doses Toggle Button */}
               <button
                 type="button"
-                onClick={() => setFilterMode((prev) => (prev === "all" ? "date" : "all"))}
+                onClick={() => {
+                  setFilterMode((prev) => (prev === "all" ? "date" : "all"));
+                  setStatusFilter("all");
+                }}
                 className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
                   filterMode === "all"
                     ? "bg-[#03e9f4] text-black shadow-[0_0_15px_rgba(3,233,244,0.3)]"
@@ -511,6 +695,7 @@ export default function HomePage() {
                     if (e.target.value) {
                       setSelectedDateKey(e.target.value);
                       setFilterMode("date");
+                      setStatusFilter("all");
                     }
                   }}
                   className="absolute inset-0 opacity-0 pointer-events-none w-0 h-0"
@@ -520,6 +705,80 @@ export default function HomePage() {
             </div>
           </div>
 
+          {/* Optional Status Filter Chips if multiple statuses exist for this date */}
+          {selectedDateStats.total > 0 &&
+            (selectedDateStats.completed > 0 ||
+              selectedDateStats.missed > 0 ||
+              selectedDateStats.pending > 0) &&
+            ((selectedDateStats.completed > 0 && selectedDateStats.missed > 0) ||
+              (selectedDateStats.completed > 0 && selectedDateStats.pending > 0) ||
+              (selectedDateStats.missed > 0 && selectedDateStats.pending > 0)) && (
+              <div className="pt-3 pb-1 border-b border-white/5 flex items-center gap-2 overflow-x-auto">
+                <span className="text-[11px] uppercase tracking-wider text-gray-400 font-semibold shrink-0">
+                  Filter:
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setStatusFilter("all")}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
+                    statusFilter === "all"
+                      ? "bg-white/20 text-white border border-white/30"
+                      : "bg-white/5 text-gray-400 hover:text-white border border-white/10"
+                  }`}
+                >
+                  All ({selectedDateStats.total})
+                </button>
+                {selectedDateStats.completed > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setStatusFilter("completed")}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+                      statusFilter === "completed"
+                        ? "bg-emerald-500/25 text-emerald-300 border border-emerald-500/50 shadow-[0_0_10px_rgba(52,211,153,0.2)]"
+                        : "bg-white/5 text-gray-400 hover:text-emerald-300 border border-white/10"
+                    }`}
+                  >
+                    <FaCheckCircle className="text-[10px] text-emerald-400" />
+                    Completed ({selectedDateStats.completed})
+                  </button>
+                )}
+                {selectedDateStats.missed > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setStatusFilter("missed")}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+                      statusFilter === "missed"
+                        ? "bg-amber-500/25 text-amber-300 border border-amber-500/50 shadow-[0_0_10px_rgba(251,191,36,0.2)]"
+                        : "bg-white/5 text-gray-400 hover:text-amber-300 border border-white/10"
+                    }`}
+                  >
+                    <FaCalendarTimes className="text-[10px] text-amber-400" />
+                    Missed ({selectedDateStats.missed})
+                  </button>
+                )}
+                {selectedDateStats.pending > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setStatusFilter("pending")}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+                      statusFilter === "pending"
+                        ? selectedDateKey < todayKey
+                          ? "bg-rose-500/25 text-rose-300 border border-rose-500/50 shadow-[0_0_10px_rgba(244,63,94,0.2)]"
+                          : "bg-[#03e9f4]/25 text-[#03e9f4] border border-[#03e9f4]/50 shadow-[0_0_10px_rgba(3,233,244,0.2)]"
+                        : "bg-white/5 text-gray-400 hover:text-white border border-white/10"
+                    }`}
+                  >
+                    {selectedDateKey < todayKey ? (
+                      <FaExclamationTriangle className="text-[10px] text-rose-400" />
+                    ) : (
+                      <FaClock className="text-[10px] text-[#03e9f4]" />
+                    )}
+                    {selectedDateKey < todayKey ? "Action Needed" : "Scheduled"} ({selectedDateStats.pending})
+                  </button>
+                )}
+              </div>
+            )}
+
           {/* Interactive Date Pills Strip */}
           <div className="mt-4 flex items-center justify-between gap-1.5 sm:gap-2">
             <button
@@ -527,6 +786,7 @@ export default function HomePage() {
               onClick={() => {
                 setSelectedDateKey((curr) => shiftDateKey(curr, -1));
                 setFilterMode("date");
+                setStatusFilter("all");
               }}
               className="p-2 sm:p-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white border border-white/10 transition-colors cursor-pointer shrink-0"
               title="Previous Day"
@@ -544,6 +804,7 @@ export default function HomePage() {
                   onClick={() => {
                     setSelectedDateKey(pill.key);
                     setFilterMode("date");
+                    setStatusFilter("all");
                   }}
                   className={`flex flex-col items-center justify-center min-w-[48px] sm:min-w-[60px] py-2 px-1 sm:px-2 rounded-xl transition-all duration-200 cursor-pointer relative ${
                     pill.isSelected
@@ -562,12 +823,18 @@ export default function HomePage() {
                   </span>
                   <span className="text-sm sm:text-base font-bold my-0.5">{pill.dayNum}</span>
 
-                  {/* Dose Indicator Dot */}
+                  {/* Status Aware Dose Indicator Dot */}
                   <div className="h-1.5 flex items-center justify-center">
                     {pill.doseCount > 0 && (
                       <span
                         className={`w-1.5 h-1.5 rounded-full ${
-                          pill.isSelected ? "bg-black" : "bg-[#03e9f4]"
+                          pill.isSelected
+                            ? "bg-black"
+                            : pill.hasPending
+                            ? "bg-[#03e9f4]"
+                            : pill.hasMissed
+                            ? "bg-amber-400"
+                            : "bg-emerald-400"
                         }`}
                         title={`${pill.doseCount} dose(s)`}
                       />
@@ -582,6 +849,7 @@ export default function HomePage() {
               onClick={() => {
                 setSelectedDateKey((curr) => shiftDateKey(curr, 1));
                 setFilterMode("date");
+                setStatusFilter("all");
               }}
               className="p-2 sm:p-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white border border-white/10 transition-colors cursor-pointer shrink-0"
               title="Next Day"
@@ -598,15 +866,18 @@ export default function HomePage() {
                 <FaExclamationTriangle className="text-amber-400 text-xs shrink-0" />
                 <span>
                   You have <strong className="text-white">{pastOverdueCount}</strong> pending dose
-                  {pastOverdueCount > 1 ? "s" : ""} from earlier days.
+                  {pastOverdueCount > 1 ? "s" : ""} from earlier days where no action was taken.
                 </span>
               </div>
               <button
                 type="button"
-                onClick={() => setFilterMode("all")}
+                onClick={() => {
+                  setFilterMode("all");
+                  setStatusFilter("pending");
+                }}
                 className="underline hover:text-white font-medium cursor-pointer ml-2 shrink-0"
               >
-                View All Doses
+                Resolve Pending
               </button>
             </div>
           )}
@@ -614,7 +885,7 @@ export default function HomePage() {
 
         {/* Doses Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {scheduledDoses.length === 0 ? (
+          {filteredDoses.length === 0 ? (
             <div className="col-span-full flex flex-col items-center justify-center py-16 px-4 border border-dashed border-white/10 rounded-2xl bg-white/[0.02]">
               <Image
                 src="/not_found.png"
@@ -623,26 +894,34 @@ export default function HomePage() {
                 alt="no doses"
                 className="opacity-75"
               />
-              <h3 className="mt-4 text-xl font-medium tracking-wide text-white">
-                {medicineData.length === 0
+              <h3 className="mt-4 text-xl font-medium tracking-wide text-white text-center">
+                {medicineData.length === 0 && (!doseHistory || doseHistory.length === 0)
                   ? "No Medicines Added"
+                  : statusFilter !== "all"
+                  ? `No ${statusFilter} doses found`
                   : filterMode === "all"
-                  ? "No Scheduled Doses Remaining"
+                  ? "No Medication Records Found"
                   : selectedDateKey === todayKey
                   ? "No Medicines Scheduled for Today"
+                  : selectedDateKey < todayKey
+                  ? `No Medication Records for ${formatDisplayDate(selectedDateObj)}`
                   : `No Medicines Scheduled for ${formatDisplayDate(selectedDateObj)}`}
               </h3>
               <p className="mt-1 text-sm text-gray-400 text-center max-w-md">
-                {medicineData.length === 0
+                {medicineData.length === 0 && (!doseHistory || doseHistory.length === 0)
                   ? "You haven't added any medication schedules yet. Start by adding your first medicine."
+                  : statusFilter !== "all"
+                  ? `There are no doses matching the '${statusFilter}' filter for this selection.`
                   : filterMode === "all"
-                  ? "All scheduled doses have been marked done or no active doses are found."
+                  ? "No active or recorded medication doses are currently found."
                   : selectedDateKey === todayKey
                   ? "You are all caught up for today! Use the date pills or calendar to check other dates."
+                  : selectedDateKey < todayKey
+                  ? "There are no completed, missed, or scheduled medication records for this previous date."
                   : "There are no medication doses scheduled on this date. Select another date or view all doses."}
               </p>
-              <div className="mt-5 flex items-center gap-3">
-                {medicineData.length === 0 ? (
+              <div className="mt-5 flex items-center gap-3 flex-wrap justify-center">
+                {medicineData.length === 0 && (!doseHistory || doseHistory.length === 0) ? (
                   <Link
                     href="/Medicines"
                     className="px-4 py-2 rounded-xl bg-[#03e9f4] hover:bg-[#02c4ce] text-black font-semibold text-xs transition-colors flex items-center gap-1.5"
@@ -652,14 +931,24 @@ export default function HomePage() {
                   </Link>
                 ) : (
                   <>
+                    {statusFilter !== "all" && (
+                      <button
+                        type="button"
+                        onClick={() => setStatusFilter("all")}
+                        className="px-4 py-2 rounded-xl bg-[#03e9f4] hover:bg-[#02c4ce] text-black font-semibold text-xs transition-colors cursor-pointer"
+                      >
+                        Show All Statuses
+                      </button>
+                    )}
                     {filterMode === "date" && selectedDateKey !== todayKey && (
                       <button
                         type="button"
                         onClick={() => {
                           setSelectedDateKey(todayKey);
                           setFilterMode("date");
+                          setStatusFilter("all");
                         }}
-                        className="px-4 py-2 rounded-xl bg-[#03e9f4] hover:bg-[#02c4ce] text-black font-semibold text-xs transition-colors cursor-pointer"
+                        className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white font-semibold text-xs transition-colors border border-white/10 cursor-pointer"
                       >
                         Go to Today
                       </button>
@@ -667,7 +956,10 @@ export default function HomePage() {
                     {filterMode !== "all" && (
                       <button
                         type="button"
-                        onClick={() => setFilterMode("all")}
+                        onClick={() => {
+                          setFilterMode("all");
+                          setStatusFilter("all");
+                        }}
                         className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white font-semibold text-xs transition-colors border border-white/10 cursor-pointer"
                       >
                         View All Doses
@@ -678,77 +970,285 @@ export default function HomePage() {
               </div>
             </div>
           ) : (
-            scheduledDoses.map((item, idx) => {
-              const dose = item.dose;
-              const isChecked = dose._id ? checkDoses.includes(dose._id) : false;
-              const doseHasNoStock = hasNoQuantityForDose(item.medicine.quantity, dose.dosage);
+            filteredDoses.map((item, idx) => {
+              const actionTime = item.takenAt ? formatActionTime(item.takenAt) : null;
 
-              return (
-                <div
-                  key={`${item.medicine._id}-${dose._id || item.scheduleEntry.day}-${idx}`}
-                  className="relative group overflow-hidden transition-all duration-300 border border-white/10 rounded-2xl bg-white/5 backdrop-blur-md p-6 hover:border-[#03e9f4]/40 hover:shadow-[0_0_20px_rgba(3,233,244,0.15)]"
-                >
-                  {/* Glassmorphic Background Accent */}
-                  <div className="pointer-events-none absolute -top-10 -right-10 w-24 h-24 bg-[#03e9f4]/10 blur-3xl rounded-full" />
+              // CASE 1: COMPLETED DOSE (FROM HISTORY)
+              if (item.status === "completed") {
+                return (
+                  <div
+                    key={`completed-${item.id}-${idx}`}
+                    className="relative group overflow-hidden transition-all duration-300 border border-emerald-500/30 rounded-2xl bg-emerald-500/[0.03] backdrop-blur-md p-6 hover:border-emerald-500/50 hover:shadow-[0_0_20px_rgba(52,211,153,0.15)] flex flex-col justify-between"
+                  >
+                    {/* Glassmorphic Emerald Background Accent */}
+                    <div className="pointer-events-none absolute -top-10 -right-10 w-24 h-24 bg-emerald-500/10 blur-3xl rounded-full" />
 
-                  {/* Header: Name, Date Badge (if 'all' mode) and Checkbox */}
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="pr-2">
-                      <h3 className="text-xl font-bold text-[#03e9f4]">
-                        {item.medicine.medicine_name}
-                      </h3>
-                      {filterMode === "all" && (
-                        <span className="text-[11px] text-gray-400 font-mono">
-                          {formatDisplayDate(item.parsedDate)}
+                    <div>
+                      {/* Header: Name, Date Badge (if 'all' mode) and Status Badge */}
+                      <div className="flex justify-between items-start mb-4 gap-2">
+                        <div className="pr-1">
+                          <h3 className="text-xl font-bold text-white group-hover:text-emerald-400 transition-colors">
+                            {item.medicineName}
+                          </h3>
+                          {filterMode === "all" && (
+                            <span className="text-[11px] text-gray-400 font-mono">
+                              {formatDisplayDate(item.parsedDate)}
+                            </span>
+                          )}
+                        </div>
+
+                        <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 shadow-[0_0_8px_rgba(52,211,153,0.3)] shrink-0">
+                          <FaCheckCircle className="text-[10px]" /> Completed
                         </span>
+                      </div>
+
+                      {/* Body: Info Rows */}
+                      <div className="space-y-3 text-sm text-gray-300">
+                        <div className="flex items-center gap-2">
+                          <FaClock className="text-emerald-400 text-xs opacity-80" />
+                          <span className="opacity-50">Time:</span>
+                          <span className="font-mono text-white">{item.time}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <FaPills className="text-emerald-400 text-xs opacity-80" />
+                          <span className="opacity-50">Dosage:</span>
+                          <span className="bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded text-xs text-white">
+                            {item.dosage}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="opacity-50 text-[10px] uppercase tracking-tighter">
+                            Schedule:
+                          </span>
+                          <span className="text-[12px] italic text-gray-300">
+                            Day {item.dayNumber} • {formatDisplayDate(item.parsedDate)}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Completed Action Timestamp Box */}
+                      {actionTime && (
+                        <div className="mt-4 p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-between text-xs">
+                          <div className="flex items-center gap-1.5 text-emerald-300 font-medium">
+                            <FaCheckCircle className="text-emerald-400 shrink-0 text-xs" />
+                            <span>Marked Done:</span>
+                          </div>
+                          <span className="font-mono font-bold text-emerald-200">
+                            {actionTime.timeStr}
+                          </span>
+                        </div>
                       )}
                     </div>
 
-                    <input
-                      className="w-10 h-5 rounded accent-[#03e9f4] transition-transform enabled:cursor-pointer enabled:hover:scale-140 disabled:cursor-not-allowed disabled:opacity-40"
-                      onChange={() => handleCheckbox(dose._id!)}
-                      checked={isChecked}
-                      disabled={!canInteract || item.medicine.is_paused || doseHasNoStock}
-                      type="checkbox"
-                      aria-label={`Select dose for ${item.medicine.medicine_name}`}
-                    />
+                    {/* Footer Tag */}
+                    <div className="mt-6 pt-3 border-t border-emerald-500/20 flex items-center justify-center text-xs font-medium text-emerald-300/90 gap-1.5">
+                      <FaCheckCircle className="text-xs text-emerald-400" />
+                      <span>Dose completed on schedule</span>
+                    </div>
                   </div>
+                );
+              }
 
-                  {/* Body: Info Rows */}
-                  <div className="space-y-3 text-sm text-gray-300">
-                    <div className="flex items-center gap-2">
-                      <FaClock className="text-[#03e9f4] text-xs opacity-70" />
-                      <span className="opacity-50">Time:</span>
-                      <span className="font-mono text-white">{dose.time}</span>
+              // CASE 2: MISSED DOSE (FROM HISTORY)
+              if (item.status === "missed") {
+                return (
+                  <div
+                    key={`missed-${item.id}-${idx}`}
+                    className="relative group overflow-hidden transition-all duration-300 border border-amber-500/30 rounded-2xl bg-amber-500/[0.03] backdrop-blur-md p-6 hover:border-amber-500/50 hover:shadow-[0_0_20px_rgba(251,191,36,0.15)] flex flex-col justify-between"
+                  >
+                    {/* Glassmorphic Amber Background Accent */}
+                    <div className="pointer-events-none absolute -top-10 -right-10 w-24 h-24 bg-amber-500/10 blur-3xl rounded-full" />
+
+                    <div>
+                      {/* Header: Name, Date Badge (if 'all' mode) and Status Badge */}
+                      <div className="flex justify-between items-start mb-4 gap-2">
+                        <div className="pr-1">
+                          <h3 className="text-xl font-bold text-white group-hover:text-amber-400 transition-colors">
+                            {item.medicineName}
+                          </h3>
+                          {filterMode === "all" && (
+                            <span className="text-[11px] text-gray-400 font-mono">
+                              {formatDisplayDate(item.parsedDate)}
+                            </span>
+                          )}
+                        </div>
+
+                        <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/40 shadow-[0_0_8px_rgba(251,191,36,0.3)] shrink-0">
+                          <FaCalendarTimes className="text-[10px]" /> Missed
+                        </span>
+                      </div>
+
+                      {/* Body: Info Rows */}
+                      <div className="space-y-3 text-sm text-gray-300">
+                        <div className="flex items-center gap-2">
+                          <FaClock className="text-amber-400 text-xs opacity-80" />
+                          <span className="opacity-50">Scheduled:</span>
+                          <span className="font-mono text-white">{item.time}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <FaPills className="text-amber-400 text-xs opacity-80" />
+                          <span className="opacity-50">Dosage:</span>
+                          <span className="bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded text-xs text-white">
+                            {item.dosage}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="opacity-50 text-[10px] uppercase tracking-tighter">
+                            Schedule:
+                          </span>
+                          <span className="text-[12px] italic text-gray-300">
+                            Day {item.dayNumber} • {formatDisplayDate(item.parsedDate)}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Missed Action Resolution Box */}
+                      <div className="mt-4 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 space-y-1 text-xs">
+                        <div className="flex items-center justify-between text-amber-300 font-medium">
+                          <span className="flex items-center gap-1">
+                            <FaCalendarTimes className="text-amber-400 text-xs" />
+                            Resolution:
+                          </span>
+                          {actionTime && (
+                            <span className="font-mono text-amber-200 text-[11px] font-bold">
+                              {actionTime.timeStr}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-amber-300/85 text-[11px]">
+                          {item.action === "skip_and_continue"
+                            ? "Skipped & Added to End of Schedule"
+                            : item.action === "carry_forward_shift"
+                            ? "Shifted Forward to Next Day"
+                            : item.action === "quantity_unavailable"
+                            ? "Recorded Missed (Zero Stock)"
+                            : "Recorded in Missed History"}
+                        </p>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <FaPills className="text-[#03e9f4] text-xs opacity-70" />
-                      <span className="opacity-50">Dosage:</span>
-                      <span className="bg-white/10 px-2 py-0.5 rounded text-xs text-white">
-                        {dose.dosage}
-                      </span>
+
+                    {/* Footer Tag */}
+                    <div className="mt-6 pt-3 border-t border-amber-500/20 flex items-center justify-center text-xs font-medium text-amber-300/90 gap-1.5">
+                      <FaCalendarTimes className="text-xs text-amber-400" />
+                      <span>Missed dose logged in history</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="opacity-50 text-[10px] uppercase tracking-tighter">
-                        Schedule:
-                      </span>
-                      <span className="text-[12px] italic">
-                        Day {item.scheduleEntry.day} • {formatDisplayDate(item.parsedDate)}
-                      </span>
+                  </div>
+                );
+              }
+
+              // CASE 3: PENDING DOSE (ACTIVE SCHEDULE - INCLUDING PAST DATES WITH NO ACTION PERFORMED)
+              const dose = item.dose!;
+              const medicine = item.medicine!;
+              const isChecked = dose._id ? checkDoses.includes(dose._id) : false;
+              const isPastPending = item.isOverdue;
+
+              return (
+                <div
+                  key={`pending-${medicine._id}-${dose._id || item.dayNumber}-${idx}`}
+                  className={`relative group overflow-hidden transition-all duration-300 border rounded-2xl backdrop-blur-md p-6 flex flex-col justify-between ${
+                    isPastPending
+                      ? "border-rose-500/40 bg-rose-500/[0.03] hover:border-rose-500/70 hover:shadow-[0_0_20px_rgba(244,63,94,0.2)]"
+                      : "border-white/10 bg-white/5 hover:border-[#03e9f4]/40 hover:shadow-[0_0_20px_rgba(3,233,244,0.15)]"
+                  }`}
+                >
+                  {/* Glassmorphic Background Accent */}
+                  <div
+                    className={`pointer-events-none absolute -top-10 -right-10 w-24 h-24 blur-3xl rounded-full ${
+                      isPastPending ? "bg-rose-500/10" : "bg-[#03e9f4]/10"
+                    }`}
+                  />
+
+                  <div>
+                    {/* Header: Name, Date Badge (if 'all' mode) and Checkbox */}
+                    <div className="flex justify-between items-start mb-4 gap-2">
+                      <div className="pr-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h3
+                            className={`text-xl font-bold ${
+                              isPastPending ? "text-rose-300" : "text-[#03e9f4]"
+                            }`}
+                          >
+                            {medicine.medicine_name}
+                          </h3>
+                        </div>
+                        {filterMode === "all" && (
+                          <span className="text-[11px] text-gray-400 font-mono block mt-0.5">
+                            {formatDisplayDate(item.parsedDate)}
+                          </span>
+                        )}
+                        {isPastPending && (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/40 mt-1">
+                            <FaExclamationTriangle className="text-[9px]" /> Past Due • Action Needed
+                          </span>
+                        )}
+                      </div>
+
+                      <input
+                        className={`w-10 h-5 rounded transition-transform enabled:cursor-pointer enabled:hover:scale-140 disabled:cursor-not-allowed disabled:opacity-40 ${
+                          isPastPending ? "accent-rose-500" : "accent-[#03e9f4]"
+                        }`}
+                        onChange={() => handleCheckbox(dose._id!)}
+                        checked={isChecked}
+                        disabled={!canInteract || medicine.is_paused || item.doseHasNoStock}
+                        type="checkbox"
+                        aria-label={`Select dose for ${medicine.medicine_name}`}
+                      />
                     </div>
+
+                    {/* Body: Info Rows */}
+                    <div className="space-y-3 text-sm text-gray-300">
+                      <div className="flex items-center gap-2">
+                        <FaClock
+                          className={`text-xs opacity-70 ${
+                            isPastPending ? "text-rose-400" : "text-[#03e9f4]"
+                          }`}
+                        />
+                        <span className="opacity-50">Time:</span>
+                        <span className="font-mono text-white">{dose.time}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <FaPills
+                          className={`text-xs opacity-70 ${
+                            isPastPending ? "text-rose-400" : "text-[#03e9f4]"
+                          }`}
+                        />
+                        <span className="opacity-50">Dosage:</span>
+                        <span className="bg-white/10 px-2 py-0.5 rounded text-xs text-white">
+                          {dose.dosage}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="opacity-50 text-[10px] uppercase tracking-tighter">
+                          Schedule:
+                        </span>
+                        <span className="text-[12px] italic text-gray-300">
+                          Day {item.dayNumber} • {formatDisplayDate(item.parsedDate)}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Past Due Warning Helper */}
+                    {isPastPending && (
+                      <div className="mt-4 p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/25 text-xs text-rose-300/90 flex items-start gap-2">
+                        <FaExclamationTriangle className="text-rose-400 text-xs shrink-0 mt-0.5" />
+                        <span>No action was recorded on this date. You can still mark it done or missed.</span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Footer: Done and Missed Buttons */}
                   <div className="mt-6 flex items-center gap-2">
-                    {canInteract && !item.medicine.is_paused ? (
+                    {canInteract && !medicine.is_paused ? (
                       <>
                         <button
-                          disabled={!isChecked || !!buttonLoading || doseHasNoStock}
-                          onClick={() => handleDeleteDose(dose._id!, item.medicine._id)}
+                          disabled={!isChecked || !!buttonLoading || item.doseHasNoStock}
+                          onClick={() => handleDeleteDose(dose._id!, medicine._id)}
                           className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold uppercase text-[11px] sm:text-xs tracking-wider transition-all duration-200 
                             ${
                               isChecked
-                                ? "bg-[#03e9f4] text-black shadow-lg shadow-[#03e9f4]/20 hover:scale-[1.02] active:scale-95 cursor-pointer"
+                                ? isPastPending
+                                  ? "bg-rose-500 hover:bg-rose-400 text-white shadow-lg shadow-rose-500/20 hover:scale-[1.02] active:scale-95 cursor-pointer"
+                                  : "bg-[#03e9f4] text-black shadow-lg shadow-[#03e9f4]/20 hover:scale-[1.02] active:scale-95 cursor-pointer"
                                 : "bg-gray-800 text-gray-500 cursor-not-allowed"
                             }`}
                         >
@@ -761,15 +1261,15 @@ export default function HomePage() {
                         <button
                           type="button"
                           disabled={!!buttonLoading}
-                          onClick={() => handleOpenMissedModal(item.medicine, dose)}
+                          onClick={() => handleOpenMissedModal(medicine, dose)}
                           className="px-3 py-2.5 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20 hover:border-amber-500/60 font-semibold text-[11px] sm:text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
-                          title="Reschedule or skip this dose"
+                          title="Reschedule or record as missed"
                         >
                           <FaCalendarTimes className="text-xs" />
                           <span>Missed</span>
                         </button>
                       </>
-                    ) : item.medicine.is_paused ? (
+                    ) : medicine.is_paused ? (
                       <div className="w-full py-2.5 rounded-xl bg-yellow-500/10 border border-yellow-500/30 text-center text-xs text-yellow-300 font-medium">
                         Schedule is paused
                       </div>
