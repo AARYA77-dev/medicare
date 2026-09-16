@@ -274,7 +274,7 @@ export default function SharingPage() {
                     {/* Email */}
                     <div>
                       <label htmlFor="inviteEmail" className="block text-xs font-semibold text-gray-300 mb-1.5">
-                        Invitee Email Address
+                        Invite Email Address
                       </label>
                       <div className="relative">
                         <FaEnvelope className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-xs" />
