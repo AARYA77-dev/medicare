@@ -515,68 +515,99 @@ export default function HomePage() {
     return pills;
   }, [selectedDateKey, todayKey, filterMode, dateDoseCounts, dateStatusCounts]);
 
-  // Dose cards scroll-triggered stagger - reruns when filtered list changes
+  // Convenience: skip all animations if user prefers reduced motion
+  const prefersReducedMotion =
+    typeof window !== "undefined"
+      ? window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      : false;
+
+  // Track whether pills have already been revealed (so tapping a date
+  // doesn't replay the entrance flash on every tap)
+  const pillsAnimated = useRef(false);
+
+  // Dose cards — ScrollTrigger on desktop, plain stagger on mobile
   useEffect(() => {
-    if (!dosesGridRef.current) return;
+    if (prefersReducedMotion || !dosesGridRef.current) return;
     const cards = dosesGridRef.current.querySelectorAll<HTMLElement>(".dose-card");
     if (!cards.length) return;
 
+    // Reset visibility so the animation plays cleanly after a filter change
+    gsap.set(cards, { opacity: 0, y: 30, scale: 0.96 });
+
+    const isDesktop = window.matchMedia("(min-width: 768px)").matches;
+
     const ctx = gsap.context(() => {
-      gsap.fromTo(
-        cards,
-        { opacity: 0, y: 50, scale: 0.94 },
-        {
+      if (isDesktop) {
+        // Desktop: scroll-triggered
+        gsap.to(cards, {
           opacity: 1,
           y: 0,
           scale: 1,
-          duration: 0.55,
+          duration: 0.5,
           stagger: 0.07,
           ease: "power2.out",
           scrollTrigger: {
             trigger: dosesGridRef.current,
-            start: "top 88%",
+            start: "top 90%",
             toggleActions: "play none none none",
+            onEnter: () => ScrollTrigger.refresh(),
           },
-        }
-      );
+        });
+      } else {
+        // Mobile: animate immediately (cards are already visible in viewport)
+        gsap.to(cards, {
+          opacity: 1,
+          y: 0,
+          scale: 1,
+          duration: 0.45,
+          stagger: 0.06,
+          ease: "power2.out",
+          delay: 0.1,
+        });
+      }
     }, dosesGridRef);
 
     return () => ctx.revert();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filteredDoses.length]);
+  }, [filteredDoses.length, prefersReducedMotion]);
 
-  // Low stock alert shake-in
+  // Low stock alert shake-in (once per appearance)
   useEffect(() => {
-    if (!lowStockRef.current || lowStockMedicines.length === 0) return;
+    if (prefersReducedMotion || !lowStockRef.current || lowStockMedicines.length === 0) return;
     gsap.fromTo(
       lowStockRef.current,
-      { opacity: 0, x: -20 },
-      { opacity: 1, x: 0, duration: 0.5, ease: "elastic.out(1, 0.5)" }
+      { opacity: 0, x: -16 },
+      { opacity: 1, x: 0, duration: 0.45, ease: "power3.out" }
     );
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lowStockMedicines.length]);
 
-  // Date pills stagger bounce - reruns when selected date changes
+  // Date pills — only animate on first reveal, not on every date tap
   useEffect(() => {
-    if (!datePillsRef.current) return;
+    if (prefersReducedMotion || !datePillsRef.current) return;
     const pills = datePillsRef.current.querySelectorAll<HTMLElement>(".date-pill-btn");
     if (!pills.length) return;
+
+    if (pillsAnimated.current) return; // already played — don't replay on date change
+    pillsAnimated.current = true;
 
     const ctx = gsap.context(() => {
       gsap.fromTo(
         pills,
-        { opacity: 0, scale: 0.7, y: 10 },
+        { opacity: 0, scale: 0.75, y: 8 },
         {
           opacity: 1,
           scale: 1,
           y: 0,
-          duration: 0.4,
-          stagger: 0.05,
-          ease: "back.out(1.4)",
+          duration: 0.35,
+          stagger: 0.04,
+          ease: "back.out(1.3)",
         }
       );
     }, datePillsRef);
 
     return () => ctx.revert();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedDateKey]);
 
   if (loading && medicineData.length === 0 && (!doseHistory || doseHistory.length === 0)) {
