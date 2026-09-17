@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import React, { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { FaBars, FaTimes, FaUserCircle, FaSignOutAlt, FaSignInAlt } from "react-icons/fa";
@@ -9,12 +9,66 @@ import { useSession, signOut } from "next-auth/react";
 import { useAppDispatch } from "@/store/hooks";
 import { clearMedicines } from "@/store/medicineSlice";
 import { clearCollaborations, clearViewAs } from "@/store/sharingSlice";
+import gsap from "gsap";
 
 const Header = () => {
   const dispatch = useAppDispatch();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const { data: session, status } = useSession();
+  const headerRef = useRef<HTMLDivElement>(null);
+  const logoRef = useRef<HTMLAnchorElement>(null);
+  const navRef = useRef<HTMLElement>(null);
+  const authRef = useRef<HTMLDivElement>(null);
+  const mobileMenuRef = useRef<HTMLDivElement>(null);
+
+  // Mount entrance animation
+  useEffect(() => {
+    const ctx = gsap.context(() => {
+      const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
+
+      // Logo slides in from left
+      tl.fromTo(
+        logoRef.current,
+        { opacity: 0, x: -40 },
+        { opacity: 1, x: 0, duration: 0.7 }
+      );
+
+      // Nav links stagger in from top
+      if (navRef.current) {
+        tl.fromTo(
+          navRef.current.children,
+          { opacity: 0, y: -20 },
+          { opacity: 1, y: 0, duration: 0.5, stagger: 0.07 },
+          "-=0.4"
+        );
+      }
+
+      // Auth buttons fade in from right
+      if (authRef.current) {
+        tl.fromTo(
+          authRef.current,
+          { opacity: 0, x: 30 },
+          { opacity: 1, x: 0, duration: 0.5 },
+          "-=0.4"
+        );
+      }
+    }, headerRef);
+
+    return () => ctx.revert();
+  }, []);
+
+  // Mobile menu slide-down animation
+  useEffect(() => {
+    if (!mobileMenuRef.current) return;
+    if (open) {
+      gsap.fromTo(
+        mobileMenuRef.current,
+        { opacity: 0, y: -15, scale: 0.97 },
+        { opacity: 1, y: 0, scale: 1, duration: 0.3, ease: "power2.out" }
+      );
+    }
+  }, [open]);
 
   const navItems = [
     { name: "Home", path: "/" },
@@ -26,10 +80,10 @@ const Header = () => {
   ];
 
   return (
-    <div className="sticky top-0 z-50 p-4 md:p-6 font-[family-name:var(--font-geist-sans)]">
+    <div ref={headerRef} className="sticky top-0 z-50 p-4 md:p-6 font-[family-name:var(--font-geist-sans)]">
       <header className="flex items-center w-full justify-between bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl px-6 py-3 shadow-[0_8px_32px_0_rgba(0,0,0,0.8)] border-b-[#03e9f4]/20">
         {/* Logo Section */}
-        <Link href="/">
+        <Link ref={logoRef} href="/">
           <Image
             src="/medicareLogo.png"
             height={32}
@@ -40,7 +94,7 @@ const Header = () => {
         </Link>
 
         {/* Desktop Navigation */}
-        <nav className="hidden md:flex gap-8 items-center">
+        <nav ref={navRef} className="hidden md:flex gap-8 items-center">
           {navItems.map((item) => (
             <Link key={item.path} href={item.path}>
               <p
@@ -59,7 +113,7 @@ const Header = () => {
         </nav>
 
         {/* Auth Buttons / User Session (Desktop) */}
-        <div className="hidden md:flex items-center gap-4">
+        <div ref={authRef} className="hidden md:flex items-center gap-4">
           {status === "authenticated" && session?.user ? (
             <div className="flex items-center gap-3">
               <Link href="/User" className="flex items-center gap-2 text-xs font-semibold text-gray-200 hover:text-[#03e9f4] transition-colors">
@@ -110,7 +164,7 @@ const Header = () => {
 
       {/* Mobile Dropdown Menu */}
       {open && (
-        <div className="absolute right-6 left-6 mt-3 md:hidden bg-[#0a0a0a]/95 backdrop-blur-2xl border border-[#03e9f4]/30 rounded-2xl shadow-[0_10px_50px_rgba(0,0,0,0.5)] z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+        <div ref={mobileMenuRef} className="absolute right-6 left-6 mt-3 md:hidden bg-[#0a0a0a]/95 backdrop-blur-2xl border border-[#03e9f4]/30 rounded-2xl shadow-[0_10px_50px_rgba(0,0,0,0.5)] z-50 overflow-hidden">
           {navItems.map((item) => (
             <Link key={item.path} href={item.path} onClick={() => setOpen(false)}>
               <p
@@ -133,8 +187,8 @@ const Header = () => {
                   onClick={() => {
                     setOpen(false);
                     dispatch(clearMedicines());
-                  dispatch(clearViewAs());
-                  dispatch(clearCollaborations());
+                    dispatch(clearViewAs());
+                    dispatch(clearCollaborations());
                     signOut({ callbackUrl: "/login" });
                   }}
                   className="w-full py-2 bg-red-500/20 text-red-400 border border-red-500/30 rounded-lg text-xs font-semibold hover:bg-red-500/30 transition-all flex items-center justify-center gap-2 cursor-pointer"
