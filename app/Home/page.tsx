@@ -525,20 +525,18 @@ export default function HomePage() {
   // doesn't replay the entrance flash on every tap)
   const pillsAnimated = useRef(false);
 
-  // Dose cards — ScrollTrigger on desktop, plain stagger on mobile
+  // Dose cards — y-fade on desktop, alternating x-slide on mobile (both scroll-triggered)
   useEffect(() => {
     if (prefersReducedMotion || !dosesGridRef.current) return;
     const cards = dosesGridRef.current.querySelectorAll<HTMLElement>(".dose-card");
     if (!cards.length) return;
 
-    // Reset visibility so the animation plays cleanly after a filter change
-    gsap.set(cards, { opacity: 0, y: 30, scale: 0.96 });
-
     const isDesktop = window.matchMedia("(min-width: 768px)").matches;
 
     const ctx = gsap.context(() => {
       if (isDesktop) {
-        // Desktop: scroll-triggered
+        // Desktop: fade + slide up, scroll-triggered
+        gsap.set(cards, { opacity: 0, y: 30, scale: 0.96 });
         gsap.to(cards, {
           opacity: 1,
           y: 0,
@@ -554,16 +552,23 @@ export default function HomePage() {
           },
         });
       } else {
-        // Mobile: animate immediately (cards are already visible in viewport)
-        gsap.to(cards, {
-          opacity: 1,
-          y: 0,
-          scale: 1,
-          duration: 0.45,
-          stagger: 0.06,
-          ease: "power2.out",
-          delay: 0.1,
+        // Mobile: alternating left/right slide-in, scroll-triggered per card
+        cards.forEach((card, i) => {
+          const fromX = i % 2 === 0 ? -100 : 100;
+          gsap.from(card, {
+            x: fromX,
+            opacity: 0,
+            duration: 0.6,
+            ease: "power3.out",
+            scrollTrigger: {
+              trigger: card,
+              start: "top 92%",
+              toggleActions: "play none none none",
+            },
+            delay: i * 0.08, // light stagger between cards
+          });
         });
+        ScrollTrigger.refresh();
       }
     }, dosesGridRef);
 
