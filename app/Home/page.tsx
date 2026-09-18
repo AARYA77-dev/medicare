@@ -3,8 +3,6 @@
 import Header from "@/components/header";
 import ViewAsSelector from "@/components/ViewAsSelector";
 import { useEffect, useMemo, useRef, useState } from "react";
-import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
 import toast from "react-hot-toast";
 import {
   Dose,
@@ -206,34 +204,6 @@ export default function HomePage() {
   const [filterMode, setFilterMode] = useState<"date" | "all">("date");
   const [statusFilter, setStatusFilter] = useState<"all" | "completed" | "missed" | "pending">("all");
   const dateInputRef = useRef<HTMLInputElement>(null);
-
-  // ── GSAP refs ──────────────────────────────────────────────────
-  const dateBarRef = useRef<HTMLDivElement>(null);
-  const dosesGridRef = useRef<HTMLDivElement>(null);
-  const datePillsRef = useRef<HTMLDivElement>(null);
-  const lowStockRef = useRef<HTMLDivElement>(null);
-
-  // Register ScrollTrigger once
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      gsap.registerPlugin(ScrollTrigger);
-    }
-  }, []);
-
-  // Date bar + page entrance animation
-  useEffect(() => {
-    const ctx = gsap.context(() => {
-      if (dateBarRef.current) {
-        gsap.fromTo(
-          dateBarRef.current,
-          { opacity: 0, y: 40 },
-          { opacity: 1, y: 0, duration: 0.7, ease: "power3.out", delay: 0.15 }
-        );
-      }
-    });
-    return () => ctx.revert();
-  }, []);
-
 
   useEffect(() => {
     dispatch(fetchMedicines(viewingOwnerId ? { ownerId: viewingOwnerId } : undefined));
@@ -515,106 +485,6 @@ export default function HomePage() {
     return pills;
   }, [selectedDateKey, todayKey, filterMode, dateDoseCounts, dateStatusCounts]);
 
-  // Convenience: skip all animations if user prefers reduced motion
-  const prefersReducedMotion =
-    typeof window !== "undefined"
-      ? window.matchMedia("(prefers-reduced-motion: reduce)").matches
-      : false;
-
-  // Track whether pills have already been revealed (so tapping a date
-  // doesn't replay the entrance flash on every tap)
-  const pillsAnimated = useRef(false);
-
-  // Dose cards — y-fade on desktop, alternating x-slide on mobile (both scroll-triggered)
-  useEffect(() => {
-    if (prefersReducedMotion || !dosesGridRef.current) return;
-    const cards = dosesGridRef.current.querySelectorAll<HTMLElement>(".dose-card");
-    if (!cards.length) return;
-
-    const isDesktop = window.matchMedia("(min-width: 768px)").matches;
-
-    const ctx = gsap.context(() => {
-      if (isDesktop) {
-        // Desktop: fade + slide up, scroll-triggered
-        gsap.set(cards, { opacity: 0, y: 30, scale: 0.96 });
-        gsap.to(cards, {
-          opacity: 1,
-          y: 0,
-          scale: 1,
-          duration: 0.5,
-          stagger: 0.07,
-          ease: "power2.out",
-          scrollTrigger: {
-            trigger: dosesGridRef.current,
-            start: "top 90%",
-            toggleActions: "play none none none",
-            onEnter: () => ScrollTrigger.refresh(),
-          },
-        });
-      } else {
-        // Mobile: alternating left/right slide-in, scroll-triggered per card
-        cards.forEach((card, i) => {
-          const fromX = i % 2 === 0 ? -100 : 100;
-          gsap.from(card, {
-            x: fromX,
-            opacity: 0,
-            duration: 0.6,
-            ease: "power3.out",
-            scrollTrigger: {
-              trigger: card,
-              start: "top 92%",
-              toggleActions: "play none none none",
-            },
-            delay: i * 0.08, // light stagger between cards
-          });
-        });
-        ScrollTrigger.refresh();
-      }
-    }, dosesGridRef);
-
-    return () => ctx.revert();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filteredDoses.length, prefersReducedMotion]);
-
-  // Low stock alert shake-in (once per appearance)
-  useEffect(() => {
-    if (prefersReducedMotion || !lowStockRef.current || lowStockMedicines.length === 0) return;
-    gsap.fromTo(
-      lowStockRef.current,
-      { opacity: 0, x: -16 },
-      { opacity: 1, x: 0, duration: 0.45, ease: "power3.out" }
-    );
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lowStockMedicines.length]);
-
-  // Date pills — only animate on first reveal, not on every date tap
-  useEffect(() => {
-    if (prefersReducedMotion || !datePillsRef.current) return;
-    const pills = datePillsRef.current.querySelectorAll<HTMLElement>(".date-pill-btn");
-    if (!pills.length) return;
-
-    if (pillsAnimated.current) return; // already played — don't replay on date change
-    pillsAnimated.current = true;
-
-    const ctx = gsap.context(() => {
-      gsap.fromTo(
-        pills,
-        { opacity: 0, scale: 0.75, y: 8 },
-        {
-          opacity: 1,
-          scale: 1,
-          y: 0,
-          duration: 0.35,
-          stagger: 0.04,
-          ease: "back.out(1.3)",
-        }
-      );
-    }, datePillsRef);
-
-    return () => ctx.revert();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedDateKey]);
-
   if (loading && medicineData.length === 0 && (!doseHistory || doseHistory.length === 0)) {
     return <Loading />;
   }
@@ -624,7 +494,7 @@ export default function HomePage() {
       <Header />
       {/* Low Stock Alert Bar */}
       {lowStockMedicines.length > 0 && !alertDismissed && (
-        <div ref={lowStockRef} className="mx-auto max-w-7xl px-4">
+        <div className="mx-auto max-w-7xl px-4">
           <div className="mb-8 rounded-2xl border border-amber-500/25 bg-amber-500/10 backdrop-blur-md p-4 sm:p-4.5">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-3.5">
               <div className="flex items-start gap-3">
@@ -688,7 +558,7 @@ export default function HomePage() {
         <ViewAsSelector />
 
         {/* Date Filter Bar */}
-        <div ref={dateBarRef} className="mb-8 rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-4 sm:p-5 shadow-2xl">
+        <div className="mb-8 rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-4 sm:p-5 shadow-2xl">
           {/* Top Row: Title, Date Headline & Mode Toggles */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-white/10">
             <div>
@@ -910,7 +780,7 @@ export default function HomePage() {
             )}
 
           {/* Interactive Date Pills Strip */}
-          <div ref={datePillsRef} className="mt-4 flex items-center justify-between gap-1.5 sm:gap-2">
+          <div className="mt-4 flex items-center justify-between gap-1.5 sm:gap-2">
             <button
               type="button"
               onClick={() => {
@@ -936,7 +806,7 @@ export default function HomePage() {
                     setFilterMode("date");
                     setStatusFilter("all");
                   }}
-                  className={`date-pill-btn flex flex-col items-center justify-center min-w-[48px] sm:min-w-[60px] py-2 px-1 sm:px-2 rounded-xl transition-all duration-200 cursor-pointer relative ${
+                  className={`flex flex-col items-center justify-center min-w-[48px] sm:min-w-[60px] py-2 px-1 sm:px-2 rounded-xl transition-all duration-200 cursor-pointer relative ${
                     pill.isSelected
                       ? "bg-[#03e9f4] text-black shadow-[0_0_18px_rgba(3,233,244,0.35)] scale-105 font-bold"
                       : pill.isToday
@@ -1014,7 +884,7 @@ export default function HomePage() {
         </div>
 
         {/* Doses Grid */}
-        <div ref={dosesGridRef} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {filteredDoses.length === 0 ? (
             <div className="col-span-full flex flex-col items-center justify-center py-16 px-4 border border-dashed border-white/10 rounded-2xl bg-white/[0.02]">
               <Image
@@ -1108,7 +978,7 @@ export default function HomePage() {
                 return (
                   <div
                     key={`completed-${item.id}-${idx}`}
-                    className="dose-card relative group overflow-hidden transition-all duration-300 border border-emerald-500/30 rounded-2xl bg-emerald-500/[0.03] backdrop-blur-md p-6 hover:border-emerald-500/50 hover:shadow-[0_0_20px_rgba(52,211,153,0.15)] flex flex-col justify-between"
+                    className="relative group overflow-hidden transition-all duration-300 border border-emerald-500/30 rounded-2xl bg-emerald-500/[0.03] backdrop-blur-md p-6 hover:border-emerald-500/50 hover:shadow-[0_0_20px_rgba(52,211,153,0.15)] flex flex-col justify-between"
                   >
                     {/* Glassmorphic Emerald Background Accent */}
                     <div className="pointer-events-none absolute -top-10 -right-10 w-24 h-24 bg-emerald-500/10 blur-3xl rounded-full" />
@@ -1184,7 +1054,7 @@ export default function HomePage() {
                 return (
                   <div
                     key={`missed-${item.id}-${idx}`}
-                    className="dose-card relative group overflow-hidden transition-all duration-300 border border-amber-500/30 rounded-2xl bg-amber-500/[0.03] backdrop-blur-md p-6 hover:border-amber-500/50 hover:shadow-[0_0_20px_rgba(251,191,36,0.15)] flex flex-col justify-between"
+                    className="relative group overflow-hidden transition-all duration-300 border border-amber-500/30 rounded-2xl bg-amber-500/[0.03] backdrop-blur-md p-6 hover:border-amber-500/50 hover:shadow-[0_0_20px_rgba(251,191,36,0.15)] flex flex-col justify-between"
                   >
                     {/* Glassmorphic Amber Background Accent */}
                     <div className="pointer-events-none absolute -top-10 -right-10 w-24 h-24 bg-amber-500/10 blur-3xl rounded-full" />
@@ -1275,7 +1145,7 @@ export default function HomePage() {
               return (
                 <div
                   key={`pending-${medicine._id}-${dose._id || item.dayNumber}-${idx}`}
-                  className={`dose-card relative group overflow-hidden transition-all duration-300 border rounded-2xl backdrop-blur-md p-6 flex flex-col justify-between ${
+                  className={`relative group overflow-hidden transition-all duration-300 border rounded-2xl backdrop-blur-md p-6 flex flex-col justify-between ${
                     isPastPending
                       ? "border-rose-500/40 bg-rose-500/[0.03] hover:border-rose-500/70 hover:shadow-[0_0_20px_rgba(244,63,94,0.2)]"
                       : "border-white/10 bg-white/5 hover:border-[#03e9f4]/40 hover:shadow-[0_0_20px_rgba(3,233,244,0.15)]"
