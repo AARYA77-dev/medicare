@@ -289,12 +289,12 @@ const UpdateMedicine = () => {
 
   const parseDoses = () => {
     if (scheduleType === "alternate") {
-      return alternateCycle.filter((d) => d.trim() !== "").map((d) => `${d} mg`);
+      return alternateCycle.filter((d) => d.trim() !== "").map((d) => `${d}mg`);
     }
     if (scheduleType === "weekly") {
-      return Array.from(new Set([weeklyDefaultDose, weeklyOverrideDose])).filter(Boolean).map((d) => `${d} mg`);
+      return Array.from(new Set([weeklyDefaultDose, weeklyOverrideDose])).filter(Boolean).map((d) => `${d}mg`);
     }
-    return dosageList.filter((d) => d.trim() !== "").map((d) => `${d} mg`);
+    return dosageList.filter((d) => d.trim() !== "").map((d) => `${d}mg`);
   };
 
   const parseTimes = () => {
@@ -317,18 +317,18 @@ const UpdateMedicine = () => {
     if (scheduleType === "daily") {
       return validTimes.map((t, tIdx) => {
         const dIdx = timeDoseIndices[tIdx] !== undefined ? timeDoseIndices[tIdx] : 0;
-        const assignedDose = validDoses[dIdx] || validDoses[0] || "5 mg";
+        const assignedDose = validDoses[dIdx] || validDoses[0] || "5mg";
         return { time: t, dosage: assignedDose };
       });
     } else if (scheduleType === "alternate") {
       const cycleLength = validDoses.length || 2;
       const t = validTimes[0] || "08:00";
-      const doseForDay = validDoses[cycleIdx % cycleLength] || "5 mg";
+      const doseForDay = validDoses[cycleIdx % cycleLength] || "5mg";
       return [{ time: t, dosage: doseForDay }];
     } else if (scheduleType === "weekly") {
       const t = validTimes[0] || "08:00";
-      const overrideVal = `${weeklyOverrideDose || "2"} mg`;
-      const defaultVal = `${weeklyDefaultDose || "3"} mg`;
+      const overrideVal = `${weeklyOverrideDose || "2"}mg`;
+      const defaultVal = `${weeklyDefaultDose || "3"}mg`;
       const dayOfWeek = date.getDay();
       const doseForDay = weeklyDays.includes(dayOfWeek) ? overrideVal : defaultVal;
       return [{ time: t, dosage: doseForDay }];
@@ -376,15 +376,18 @@ const UpdateMedicine = () => {
     const targetRemainingDays = Math.max(1, newTotalDays - completedDays);
 
     // 2. Check if timing, dosage, frequency, or schedule_type changed
+    const currentScheduleType = medicineData?.schedule_type || 'daily';
     const timingOrDoseChanged = Boolean(
       !medicineData ||
       formValues.times_days !== medicineData.times_days ||
       formValues.dosage_pattern !== medicineData.dosage_pattern ||
       formValues.frequency !== medicineData.frequency ||
-      scheduleType !== (medicineData.schedule_type || 'daily') ||
-      formValues.weekly_default_dose !== (medicineData.weekly_default_dose || '') ||
-      formValues.weekly_override_dose !== (medicineData.weekly_override_dose || '') ||
-      JSON.stringify(weeklyDays.slice().sort()) !== JSON.stringify((medicineData.weekly_days || []).slice().sort())
+      scheduleType !== currentScheduleType ||
+      (scheduleType === 'weekly' && (
+        formValues.weekly_default_dose !== (medicineData.weekly_default_dose || '') ||
+        formValues.weekly_override_dose !== (medicineData.weekly_override_dose || '') ||
+        JSON.stringify(weeklyDays.slice().sort()) !== JSON.stringify((medicineData.weekly_days || []).slice().sort())
+      ))
     );
 
     // 3. Shift dates if startDateMode === 'shift'
@@ -402,10 +405,11 @@ const UpdateMedicine = () => {
 
       // If timing or dosage changed, regenerate doses for this day
       if (timingOrDoseChanged) {
+        const courseDayIndex = (entry.day && entry.day > 0) ? (entry.day - 1) : (completedDays + idx);
         return {
           day: entry.day,
           date: formattedDate,
-          doses: generateDayDoses(shiftedDate, idx),
+          doses: generateDayDoses(shiftedDate, courseDayIndex),
         };
       }
 
@@ -433,7 +437,7 @@ const UpdateMedicine = () => {
         updatedEntries.push({
           day: nextDay,
           date: formatScheduleDate(nextDate),
-          doses: generateDayDoses(nextDate, updatedEntries.length),
+          doses: generateDayDoses(nextDate, nextDay - 1),
         });
       }
       return updatedEntries;
