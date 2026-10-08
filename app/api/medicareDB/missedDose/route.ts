@@ -148,7 +148,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (action === 'quantity_unavailable' && !hasNoQuantityForDose(medicine.quantity, missedDose.dosage)) {
+    if (action === 'quantity_unavailable' && !hasNoQuantityForDose(medicine.quantity, missedDose.dosage, medicine.dosage_pattern)) {
       return NextResponse.json(
         { success: false, message: "This dosage still has quantity available." },
         { status: 409 }

@@ -16,7 +16,7 @@ export const MedicineSchema = Yup.object({
     frequency: Yup.string().required("please enter Frequancy"),
     dosage_pattern: Yup.string()
         .matches(/^[0-9]+(\.[0-9]+)?(,[0-9]+(\.[0-9]+)?)*$/, 'Please enter valid numbers for dosage')
-        .required("please enter Dosage Pattern"),
+        .required("please enter Dosage Pattern(strength)"),
     times_days: Yup.string()
         .matches(
             /^([01]\d|2[0-3]):[0-5]\d(,([01]\d|2[0-3]):[0-5]\d)*$/,

@@ -134,6 +134,27 @@ export const toggleMedicinePause = createAsyncThunk<
   }
 );
 
+// Async Thunk: Update single dose strength
+export const updateDoseStrength = createAsyncThunk<
+  MedicineWithSchedule,
+  { doseId: string; dosage: string; medicineId?: string },
+  { rejectValue: string }
+>(
+  'medicine/updateDoseStrength',
+  async ({ doseId, dosage, medicineId }, { rejectWithValue }) => {
+    try {
+      const response = await axios.patch(`/api/medicareDB/${doseId}`, {
+        dosage,
+        doseId,
+        medicineId,
+      });
+      return response.data.result;
+    } catch (error: unknown) {
+      return rejectWithValue(getErrorMessage(error, 'Failed to update dose strength'));
+    }
+  }
+);
+
 // Async Thunk: Resolve Missed Dose
 export const resolveMissedDose = createAsyncThunk<
   { success: boolean; message: string; result: MedicineWithSchedule; historyItem?: DoseHistoryRecord | null },
@@ -250,6 +271,15 @@ const medicineSlice = createSlice({
       .addCase(updateMedicineSchedule.rejected, (state, action) => {
         state.actionLoading = false;
         state.error = action.payload as string;
+      })
+
+      // Update Dose Strength
+      .addCase(updateDoseStrength.fulfilled, (state, action) => {
+        if (action.payload && action.payload._id) {
+          state.medicines = state.medicines.map((med) =>
+            med._id === action.payload._id ? action.payload : med
+          );
+        }
       })
 
       // Delete Dose

@@ -1,18 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Dose, MedicineWithSchedule } from '@/Interfaces/interface';
+import { MissedDoseModalProps } from '@/Interfaces/interface';
 import { hasNoQuantityForDose } from '@/lib/medicineQuantity';
 import { FaTimes, FaInfoCircle } from 'react-icons/fa';
-
-interface MissedDoseModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  medicine: MedicineWithSchedule | null;
-  dose: Dose | null;
-  onConfirm: (action: 'skip_and_continue' | 'carry_forward_shift' | 'quantity_unavailable') => Promise<void>;
-  isLoading: boolean;
-}
 
 export default function MissedDoseModal({
   isOpen,
@@ -25,7 +16,7 @@ export default function MissedDoseModal({
   const [selectedOption, setSelectedOption] = useState<'skip_and_continue' | 'carry_forward_shift' | 'quantity_unavailable'>('skip_and_continue');
 
   const doseHasNoStock = medicine && dose
-    ? hasNoQuantityForDose(medicine.quantity, dose.dosage)
+    ? hasNoQuantityForDose(medicine.quantity, dose.dosage, medicine.dosage_pattern)
     : false;
 
   const effectiveOption = doseHasNoStock

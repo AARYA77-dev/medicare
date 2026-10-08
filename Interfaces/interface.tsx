@@ -93,3 +93,43 @@ export interface DoseHistoryRecord {
     createdAt?: string | Date;
     updatedAt?: string | Date;
 }
+
+export interface EditDoseStrengthModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    medicine: MedicineWithSchedule | null;
+    dose: Dose | null;
+    dayNumber?: number;
+    scheduledDate?: string;
+    onConfirm: (newDosage: string) => Promise<void>;
+    isLoading: boolean;
+}
+
+export interface MissedDoseModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    medicine: MedicineWithSchedule | null;
+    dose: Dose | null;
+    onConfirm: (action: 'skip_and_continue' | 'carry_forward_shift' | 'quantity_unavailable') => Promise<void>;
+    isLoading: boolean;
+}
+
+export interface UnifiedDoseItem {
+    id: string;
+    medicineId: string;
+    medicineName: string;
+    doseId: string;
+    dayNumber: number;
+    time: string;
+    dosage: string;
+    dateKey: string;
+    parsedDate: Date;
+    status: "completed" | "missed" | "pending";
+    action?: "completed" | "skip_and_continue" | "carry_forward_shift" | "quantity_unavailable";
+    takenAt?: Date | string;
+    isOverdue?: boolean;
+    doseHasNoStock?: boolean;
+    medicine?: MedicineWithSchedule;
+    scheduleEntry?: ScheduleEntry;
+    dose?: Dose;
+}

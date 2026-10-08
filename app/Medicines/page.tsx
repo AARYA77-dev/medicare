@@ -536,7 +536,7 @@ const MedicinePage = () => {
           </button>
         </div>
         {resumeConfirmOpen && (
-          <div className="fixed inset-0 z-[60] grid place-items-center bg-black/70 p-4">
+          <div className="fixed inset-0 z-60 grid place-items-center bg-black/70 p-4">
             <div className="w-full max-w-sm rounded-lg border-2 border-yellow-300 bg-black p-5 text-white shadow-2xl">
               <h2 className="text-base font-bold text-yellow-300">Resume medicine schedule?</h2>
               {hasNoQuantity(quantity) ? (
@@ -667,7 +667,7 @@ const MedicinePage = () => {
                       {dosageList.map((dose, idx) => (
                         <div key={idx} className="flex items-center gap-2">
                           {dosageList.length > 1 && (
-                            <span className="text-xs text-gray-400 font-mono min-w-[50px]">
+                            <span className="text-xs text-gray-400 font-mono min-w-12.5">
                               Dose {idx + 1}:
                             </span>
                           )}
@@ -758,7 +758,7 @@ const MedicinePage = () => {
                                   name="times_days"
                                   onChange={(e) => handleTimeChange(idx, e.target.value)}
                                   onBlur={handleBlur}
-                                  className="w-full bg-black text-white rounded-md border-2 border-[#03e9f4] px-3 py-1.5 text-sm [color-scheme:dark]"
+                                  className="w-full bg-black text-white rounded-md border-2 border-[#03e9f4] px-3 py-1.5 text-sm scheme-dark"
                                 />
                               </div>
 
@@ -802,7 +802,7 @@ const MedicinePage = () => {
                     <div className="space-y-2">
                       {alternateCycle.map((dose, idx) => (
                         <div key={idx} className="flex items-center gap-2">
-                          <span className="text-xs text-[#03e9f4] font-mono min-w-[55px] font-bold">
+                          <span className="text-xs text-[#03e9f4] font-mono min-w-13.75 font-bold">
                             Day {idx + 1}:
                           </span>
                           <div className="relative flex-1">
@@ -855,7 +855,7 @@ const MedicinePage = () => {
                       name="times_days"
                       onChange={(e) => handleSingleTimeChange(e.target.value)}
                       onBlur={handleBlur}
-                      className="w-full bg-black text-white rounded-md border-2 border-[#03e9f4] px-3 py-2 text-sm [color-scheme:dark]"
+                      className="w-full bg-black text-white rounded-md border-2 border-[#03e9f4] px-3 py-2 text-sm scheme-dark"
                     />
                   </div>
                 </div>
@@ -950,7 +950,7 @@ const MedicinePage = () => {
                       name="times_days"
                       onChange={(e) => handleSingleTimeChange(e.target.value)}
                       onBlur={handleBlur}
-                      className="w-full bg-black text-white rounded-md border-2 border-[#03e9f4] px-3 py-2 text-sm [color-scheme:dark]"
+                      className="w-full bg-black text-white rounded-md border-2 border-[#03e9f4] px-3 py-2 text-sm scheme-dark"
                     />
                   </div>
                 </div>
@@ -998,7 +998,7 @@ const MedicinePage = () => {
                     const qtyVal = qtyMap[dose] ?? "";
                     return (
                       <div key={dose} className="flex items-center gap-2">
-                        <span className="min-w-[70px] text-xs font-mono bg-[#03e9f4]/20 border border-[#03e9f4] text-white px-2 py-2 rounded text-center font-bold">
+                        <span className="min-w-17.5 text-xs font-mono bg-[#03e9f4]/20 border border-[#03e9f4] text-white px-2 py-2 rounded text-center font-bold">
                           {dose}
                         </span>
                         <input
@@ -1083,7 +1083,7 @@ const MedicinePage = () => {
                 className="w-full flex cursor-pointer justify-center items-center gap-2 bg-[#03e9f4] text-black font-semibold px-4 py-2.5 my-5 rounded-lg shadow-lg active:scale-95 disabled:opacity-50 transition-all hover:bg-[#00c5cf]"
               >
                 {actionLoading && (
-                  <div className="h-[20px] w-[20px] animate-spin rounded-full border-3 border-solid border-black border-r-transparent" />
+                  <div className="h-5 w-5 animate-spin rounded-full border-3 border-solid border-black border-r-transparent" />
                 )}
                 Generate Schedule
               </button>
@@ -1097,9 +1097,9 @@ const MedicinePage = () => {
           )}
 
           {/* Medicines List Sidebar */}
-          <div className="flex flex-col w-full h-[fit-content] lg:w-[35%] xl:w-[22%] mx-auto border border-white/10 rounded-2xl bg-white/5 backdrop-blur-md items-center rounded-2xl p-3">
+          <div className="flex flex-col w-full h-fit lg:w-[35%] xl:w-[22%] mx-auto border border-white/10 bg-white/5 backdrop-blur-md items-center rounded-2xl p-3">
             <div className="flex items-center justify-between w-full mb-2">
-              <div className='border border-white/10 rounded-xl bg-white/5 backdrop-blur-md py-2.5 text-center rounded-xl flex-1 font-bold'>
+              <div className='border border-white/10 bg-white/5 backdrop-blur-md py-2.5 text-center rounded-xl flex-1 font-bold'>
                 <h1>Your Medicines</h1>
               </div>
             </div>
