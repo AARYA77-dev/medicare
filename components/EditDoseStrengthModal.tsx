@@ -30,6 +30,28 @@ export default function EditDoseStrengthModal({
   const dosagePattern = medicine?.dosage_pattern;
   const medicineQuantity = medicine?.quantity;
 
+  const normalizeDosage = (val?: string | null): string => {
+    if (!val) return '';
+    const trimmed = val.trim().toLowerCase();
+    const numVal = parseFloat(trimmed);
+    if (!isNaN(numVal) && numVal > 0) {
+      const unitPart = trimmed.replace(/^[0-9.]+\s*/, '').trim();
+      if (!unitPart || unitPart === 'mg') {
+        return `${numVal}mg`;
+      }
+      return `${numVal}${unitPart}`;
+    }
+    return trimmed;
+  };
+
+  // Check if current strength differs from initial strength
+  const isChanged = useMemo(() => {
+    if (!dosageInput.trim()) return false;
+    const numVal = parseFloat(dosageInput.trim());
+    if (isNaN(numVal) || numVal <= 0) return false;
+    return normalizeDosage(dosageInput) !== normalizeDosage(dose?.dosage);
+  }, [dosageInput, dose?.dosage]);
+
   // Extract configured dosage pattern options for this medicine
   const patternOptions = useMemo(() => {
     if (!dosagePattern) return [];
@@ -62,8 +84,12 @@ export default function EditDoseStrengthModal({
 
   if (!isOpen || !medicine || !dose) return null;
 
+  const isSaveDisabled = isLoading || !dosageInput.trim() || !isChanged;
+
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
+    if (!isChanged || isLoading) return;
+
     const trimmed = dosageInput.trim();
     if (!trimmed) {
       setError('Please enter a dose strength');
@@ -244,11 +270,11 @@ export default function EditDoseStrengthModal({
             </button>
             <button
               type="submit"
-              disabled={isLoading || !dosageInput.trim()}
-              className={`px-5 py-2 rounded-xl text-xs sm:text-sm font-bold bg-[#03e9f4] hover:bg-[#00c5cf] text-black shadow-lg shadow-[#03e9f4]/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center gap-2 ${
-                isLoading || !dosageInput.trim()
+              disabled={isSaveDisabled}
+              className={`px-5 py-2 rounded-xl text-xs sm:text-sm font-bold bg-[#03e9f4] text-black shadow-lg shadow-[#03e9f4]/20 transition-all flex items-center gap-2 ${
+                isSaveDisabled
                   ? 'opacity-50 cursor-not-allowed'
-                  : 'cursor-pointer'
+                  : 'hover:bg-[#00c5cf] hover:scale-[1.02] active:scale-95 cursor-pointer'
               }`}
             >
               {isLoading && (
