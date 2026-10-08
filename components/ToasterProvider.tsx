@@ -6,7 +6,7 @@ export default function ToasterProvider() {
   return (
     <Toaster
       toastOptions={{
-        duration: 8000,
+        duration: 4000,
       }}
     >
       {(t) => (
