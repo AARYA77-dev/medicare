@@ -31,10 +31,8 @@ export default function EditDoseStrengthModal({
   const medicineQuantity = medicine?.quantity;
 
   // Check if current strength differs from initial strength
-  const isChanged = useMemo(() => {
-    const initial = dose?.dosage ? dose.dosage.replace(/mg$/i, '').trim() : '';
-    return dosageInput.trim() !== '' && dosageInput.trim() !== initial;
-  }, [dosageInput, dose?.dosage]);
+  const initialDose = dose?.dosage ? dose.dosage.replace(/mg$/i, '').trim() : '';
+  const isChanged = dosageInput.trim() !== '' && dosageInput.trim() !== initialDose;
 
   // Extract configured dosage pattern options for this medicine
   const patternOptions = useMemo(() => {
