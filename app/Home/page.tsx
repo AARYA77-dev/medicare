@@ -8,7 +8,7 @@ import {
   Dose,
   LowStockItem,
   MedicineWithSchedule,
-  ScheduleEntry,
+  UnifiedDoseItem,
 } from "@/Interfaces/interface";
 import Loading from "../loading";
 import Image from "next/image";
@@ -43,25 +43,7 @@ import MissedDoseModal from "@/components/MissedDoseModal";
 import EditDoseStrengthModal from "@/components/EditDoseStrengthModal";
 import NotificationSettings from "@/components/NotificationSettings";
 
-export interface UnifiedDoseItem {
-  id: string;
-  medicineId: string;
-  medicineName: string;
-  doseId: string;
-  dayNumber: number;
-  time: string;
-  dosage: string;
-  dateKey: string;
-  parsedDate: Date;
-  status: "completed" | "missed" | "pending";
-  action?: "completed" | "skip_and_continue" | "carry_forward_shift" | "quantity_unavailable";
-  takenAt?: Date | string;
-  isOverdue?: boolean;
-  doseHasNoStock?: boolean;
-  medicine?: MedicineWithSchedule;
-  scheduleEntry?: ScheduleEntry;
-  dose?: Dose;
-}
+
 
 function toDateKey(date: Date): string {
   const year = date.getFullYear();
@@ -618,12 +600,12 @@ export default function HomePage() {
         <ViewAsSelector />
 
         {/* Date Filter Bar */}
-        <div className="mb-8 rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-4 sm:p-5 shadow-2xl">
+        <div className="mb-8 rounded-2xl border border-white/10 bg-white/3 backdrop-blur-xl p-4 sm:p-5 shadow-2xl">
           {/* Top Row: Title, Date Headline & Mode Toggles */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-white/10">
             <div>
               <div className="flex items-center gap-2.5 flex-wrap">
-                <h2 className="text-xl sm:text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-white via-gray-200 to-gray-400">
+                <h2 className="text-xl sm:text-2xl font-bold text-transparent bg-clip-text bg-linear-to-r from-white via-gray-200 to-gray-400">
                   {filterMode === "all" ? "All Scheduled & Recorded Doses" : "Daily Medication Schedule"}
                 </h2>
                 {filterMode === "date" && selectedDateKey === todayKey && (
@@ -644,9 +626,8 @@ export default function HomePage() {
                 <span>
                   {filterMode === "all"
                     ? "Showing all active and recorded doses across all dates"
-                    : `${formatHeaderDate(selectedDateObj)}${
-                        relativeLabel ? ` • ${relativeLabel}` : ""
-                      }`}
+                    : `${formatHeaderDate(selectedDateObj)}${relativeLabel ? ` • ${relativeLabel}` : ""
+                    }`}
                 </span>
                 <span className="text-gray-500">•</span>
                 <span className="text-gray-300 font-medium font-mono">
@@ -669,9 +650,8 @@ export default function HomePage() {
                     )}
                     {selectedDateStats.pending > 0 && (
                       <span
-                        className={`inline-flex items-center gap-1 font-medium ${
-                          selectedDateKey < todayKey ? "text-rose-400" : "text-[#03e9f4]"
-                        }`}
+                        className={`inline-flex items-center gap-1 font-medium ${selectedDateKey < todayKey ? "text-rose-400" : "text-[#03e9f4]"
+                          }`}
                       >
                         {selectedDateKey < todayKey ? (
                           <FaExclamationTriangle className="text-[10px]" />
@@ -697,11 +677,10 @@ export default function HomePage() {
                   setFilterMode("date");
                   setStatusFilter("all");
                 }}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
-                  filterMode === "date" && selectedDateKey === todayKey
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${filterMode === "date" && selectedDateKey === todayKey
                     ? "bg-[#03e9f4] text-black shadow-[0_0_15px_rgba(3,233,244,0.3)]"
                     : "bg-white/5 hover:bg-white/10 text-gray-300 border border-white/10"
-                }`}
+                  }`}
               >
                 <FaCalendarCheck
                   className={
@@ -720,11 +699,10 @@ export default function HomePage() {
                   setFilterMode((prev) => (prev === "all" ? "date" : "all"));
                   setStatusFilter("all");
                 }}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
-                  filterMode === "all"
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${filterMode === "all"
                     ? "bg-[#03e9f4] text-black shadow-[0_0_15px_rgba(3,233,244,0.3)]"
                     : "bg-white/5 hover:bg-white/10 text-gray-300 border border-white/10"
-                }`}
+                  }`}
               >
                 <FaHistory className={filterMode === "all" ? "text-black" : "text-gray-400"} />
                 All Doses
@@ -780,11 +758,10 @@ export default function HomePage() {
                 <button
                   type="button"
                   onClick={() => setStatusFilter("all")}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
-                    statusFilter === "all"
+                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${statusFilter === "all"
                       ? "bg-white/20 text-white border border-white/30"
                       : "bg-white/5 text-gray-400 hover:text-white border border-white/10"
-                  }`}
+                    }`}
                 >
                   All ({selectedDateStats.total})
                 </button>
@@ -792,11 +769,10 @@ export default function HomePage() {
                   <button
                     type="button"
                     onClick={() => setStatusFilter("completed")}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
-                      statusFilter === "completed"
+                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${statusFilter === "completed"
                         ? "bg-emerald-500/25 text-emerald-300 border border-emerald-500/50 shadow-[0_0_10px_rgba(52,211,153,0.2)]"
                         : "bg-white/5 text-gray-400 hover:text-emerald-300 border border-white/10"
-                    }`}
+                      }`}
                   >
                     <FaCheckCircle className="text-[10px] text-emerald-400" />
                     Completed ({selectedDateStats.completed})
@@ -806,11 +782,10 @@ export default function HomePage() {
                   <button
                     type="button"
                     onClick={() => setStatusFilter("missed")}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
-                      statusFilter === "missed"
+                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${statusFilter === "missed"
                         ? "bg-amber-500/25 text-amber-300 border border-amber-500/50 shadow-[0_0_10px_rgba(251,191,36,0.2)]"
                         : "bg-white/5 text-gray-400 hover:text-amber-300 border border-white/10"
-                    }`}
+                      }`}
                   >
                     <FaCalendarTimes className="text-[10px] text-amber-400" />
                     Missed ({selectedDateStats.missed})
@@ -820,13 +795,12 @@ export default function HomePage() {
                   <button
                     type="button"
                     onClick={() => setStatusFilter("pending")}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
-                      statusFilter === "pending"
+                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${statusFilter === "pending"
                         ? selectedDateKey < todayKey
                           ? "bg-rose-500/25 text-rose-300 border border-rose-500/50 shadow-[0_0_10px_rgba(244,63,94,0.2)]"
                           : "bg-[#03e9f4]/25 text-[#03e9f4] border border-[#03e9f4]/50 shadow-[0_0_10px_rgba(3,233,244,0.2)]"
                         : "bg-white/5 text-gray-400 hover:text-white border border-white/10"
-                    }`}
+                      }`}
                   >
                     {selectedDateKey < todayKey ? (
                       <FaExclamationTriangle className="text-[10px] text-rose-400" />
@@ -866,18 +840,16 @@ export default function HomePage() {
                     setFilterMode("date");
                     setStatusFilter("all");
                   }}
-                  className={`flex flex-col items-center justify-center min-w-[48px] sm:min-w-[60px] py-2 px-1 sm:px-2 rounded-xl transition-all duration-200 cursor-pointer relative ${
-                    pill.isSelected
+                  className={`flex flex-col items-center justify-center min-w-12 sm:min-w-15 py-2 px-1 sm:px-2 rounded-xl transition-all duration-200 cursor-pointer relative ${pill.isSelected
                       ? "bg-[#03e9f4] text-black shadow-[0_0_18px_rgba(3,233,244,0.35)] scale-105 font-bold"
                       : pill.isToday
-                      ? "bg-white/10 text-white border border-[#03e9f4]/50 hover:bg-white/15"
-                      : "bg-white/5 hover:bg-white/10 text-gray-300 border border-white/5"
-                  }`}
+                        ? "bg-white/10 text-white border border-[#03e9f4]/50 hover:bg-white/15"
+                        : "bg-white/5 hover:bg-white/10 text-gray-300 border border-white/5"
+                    }`}
                 >
                   <span
-                    className={`text-[10px] uppercase tracking-wider ${
-                      pill.isSelected ? "text-black/80 font-bold" : "text-gray-400"
-                    }`}
+                    className={`text-[10px] uppercase tracking-wider ${pill.isSelected ? "text-black/80 font-bold" : "text-gray-400"
+                      }`}
                   >
                     {pill.dayName}
                   </span>
@@ -887,15 +859,14 @@ export default function HomePage() {
                   <div className="h-1.5 flex items-center justify-center">
                     {pill.doseCount > 0 && (
                       <span
-                        className={`w-1.5 h-1.5 rounded-full ${
-                          pill.isSelected
+                        className={`w-1.5 h-1.5 rounded-full ${pill.isSelected
                             ? "bg-black"
                             : pill.hasPending
-                            ? "bg-[#03e9f4]"
-                            : pill.hasMissed
-                            ? "bg-amber-400"
-                            : "bg-emerald-400"
-                        }`}
+                              ? "bg-[#03e9f4]"
+                              : pill.hasMissed
+                                ? "bg-amber-400"
+                                : "bg-emerald-400"
+                          }`}
                         title={`${pill.doseCount} dose(s)`}
                       />
                     )}
@@ -921,7 +892,7 @@ export default function HomePage() {
 
           {/* Past Pending Overdue Banner */}
           {pastOverdueCount > 0 && (
-            <div className="mt-3.5 pt-3 border-t border-white/5 flex items-center justify-between text-xs text-amber-300/90 bg-amber-500/10 rounded-xl px-3 py-2 border border-amber-500/20">
+            <div className="mt-3.5 flex items-center justify-between text-xs text-amber-300/90 bg-amber-500/10 rounded-xl px-3 py-2 border border-amber-500/20">
               <div className="flex items-center gap-2">
                 <FaExclamationTriangle className="text-amber-400 text-xs shrink-0" />
                 <span>
@@ -946,7 +917,7 @@ export default function HomePage() {
         {/* Doses Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {filteredDoses.length === 0 ? (
-            <div className="col-span-full flex flex-col items-center justify-center py-16 px-4 border border-dashed border-white/10 rounded-2xl bg-white/[0.02]">
+            <div className="col-span-full flex flex-col items-center justify-center py-16 px-4 border border-dashed border-white/10 rounded-2xl bg-white/2">
               <Image
                 src="/not_found.png"
                 height={100}
@@ -958,27 +929,27 @@ export default function HomePage() {
                 {medicineData.length === 0 && (!doseHistory || doseHistory.length === 0)
                   ? "No Medicines Added"
                   : statusFilter !== "all"
-                  ? `No ${statusFilter} doses found`
-                  : filterMode === "all"
-                  ? "No Medication Records Found"
-                  : selectedDateKey === todayKey
-                  ? "No Medicines Scheduled for Today"
-                  : selectedDateKey < todayKey
-                  ? `No Medication Records for ${formatDisplayDate(selectedDateObj)}`
-                  : `No Medicines Scheduled for ${formatDisplayDate(selectedDateObj)}`}
+                    ? `No ${statusFilter} doses found`
+                    : filterMode === "all"
+                      ? "No Medication Records Found"
+                      : selectedDateKey === todayKey
+                        ? "No Medicines Scheduled for Today"
+                        : selectedDateKey < todayKey
+                          ? `No Medication Records for ${formatDisplayDate(selectedDateObj)}`
+                          : `No Medicines Scheduled for ${formatDisplayDate(selectedDateObj)}`}
               </h3>
               <p className="mt-1 text-sm text-gray-400 text-center max-w-md">
                 {medicineData.length === 0 && (!doseHistory || doseHistory.length === 0)
                   ? "You haven't added any medication schedules yet. Start by adding your first medicine."
                   : statusFilter !== "all"
-                  ? `There are no doses matching the '${statusFilter}' filter for this selection.`
-                  : filterMode === "all"
-                  ? "No active or recorded medication doses are currently found."
-                  : selectedDateKey === todayKey
-                  ? "You are all caught up for today! Use the date pills or calendar to check other dates."
-                  : selectedDateKey < todayKey
-                  ? "There are no completed, missed, or scheduled medication records for this previous date."
-                  : "There are no medication doses scheduled on this date. Select another date or view all doses."}
+                    ? `There are no doses matching the '${statusFilter}' filter for this selection.`
+                    : filterMode === "all"
+                      ? "No active or recorded medication doses are currently found."
+                      : selectedDateKey === todayKey
+                        ? "You are all caught up for today! Use the date pills or calendar to check other dates."
+                        : selectedDateKey < todayKey
+                          ? "There are no completed, missed, or scheduled medication records for this previous date."
+                          : "There are no medication doses scheduled on this date. Select another date or view all doses."}
               </p>
               <div className="mt-5 flex items-center gap-3 flex-wrap justify-center">
                 {medicineData.length === 0 && (!doseHistory || doseHistory.length === 0) ? (
@@ -1038,7 +1009,7 @@ export default function HomePage() {
                 return (
                   <div
                     key={`completed-${item.id}-${idx}`}
-                    className="relative group overflow-hidden transition-all duration-300 border border-emerald-500/30 rounded-2xl bg-emerald-500/[0.03] backdrop-blur-md p-6 hover:border-emerald-500/50 hover:shadow-[0_0_20px_rgba(52,211,153,0.15)] flex flex-col justify-between"
+                    className="relative group overflow-hidden transition-all duration-300 border border-emerald-500/30 rounded-2xl bg-emerald-500/3 backdrop-blur-md p-6 hover:border-emerald-500/50 hover:shadow-[0_0_20px_rgba(52,211,153,0.15)] flex flex-col justify-between"
                   >
                     {/* Glassmorphic Emerald Background Accent */}
                     <div className="pointer-events-none absolute -top-10 -right-10 w-24 h-24 bg-emerald-500/10 blur-3xl rounded-full" />
@@ -1114,7 +1085,7 @@ export default function HomePage() {
                 return (
                   <div
                     key={`missed-${item.id}-${idx}`}
-                    className="relative group overflow-hidden transition-all duration-300 border border-amber-500/30 rounded-2xl bg-amber-500/[0.03] backdrop-blur-md p-6 hover:border-amber-500/50 hover:shadow-[0_0_20px_rgba(251,191,36,0.15)] flex flex-col justify-between"
+                    className="relative group overflow-hidden transition-all duration-300 border border-amber-500/30 rounded-2xl bg-amber-500/3 backdrop-blur-md p-6 hover:border-amber-500/50 hover:shadow-[0_0_20px_rgba(251,191,36,0.15)] flex flex-col justify-between"
                   >
                     {/* Glassmorphic Amber Background Accent */}
                     <div className="pointer-events-none absolute -top-10 -right-10 w-24 h-24 bg-amber-500/10 blur-3xl rounded-full" />
@@ -1179,10 +1150,10 @@ export default function HomePage() {
                           {item.action === "skip_and_continue"
                             ? "Skipped & Added to End of Schedule"
                             : item.action === "carry_forward_shift"
-                            ? "Shifted Forward to Next Day"
-                            : item.action === "quantity_unavailable"
-                            ? "Recorded Missed (Zero Stock)"
-                            : "Recorded in Missed History"}
+                              ? "Shifted Forward to Next Day"
+                              : item.action === "quantity_unavailable"
+                                ? "Recorded Missed (Zero Stock)"
+                                : "Recorded in Missed History"}
                         </p>
                       </div>
                     </div>
@@ -1205,17 +1176,15 @@ export default function HomePage() {
               return (
                 <div
                   key={`pending-${medicine._id}-${dose._id || item.dayNumber}-${idx}`}
-                  className={`relative group overflow-hidden transition-all duration-300 border rounded-2xl backdrop-blur-md p-6 flex flex-col justify-between ${
-                    isPastPending
-                      ? "border-rose-500/40 bg-rose-500/[0.03] hover:border-rose-500/70 hover:shadow-[0_0_20px_rgba(244,63,94,0.2)]"
+                  className={`relative group overflow-hidden transition-all duration-300 border rounded-2xl backdrop-blur-md p-6 flex flex-col justify-between ${isPastPending
+                      ? "border-rose-500/40 bg-rose-500/3 hover:border-rose-500/70 hover:shadow-[0_0_20px_rgba(244,63,94,0.2)]"
                       : "border-white/10 bg-white/5 hover:border-[#03e9f4]/40 hover:shadow-[0_0_20px_rgba(3,233,244,0.15)]"
-                  }`}
+                    }`}
                 >
                   {/* Glassmorphic Background Accent */}
                   <div
-                    className={`pointer-events-none absolute -top-10 -right-10 w-24 h-24 blur-3xl rounded-full ${
-                      isPastPending ? "bg-rose-500/10" : "bg-[#03e9f4]/10"
-                    }`}
+                    className={`pointer-events-none absolute -top-10 -right-10 w-24 h-24 blur-3xl rounded-full ${isPastPending ? "bg-rose-500/10" : "bg-[#03e9f4]/10"
+                      }`}
                   />
 
                   <div>
@@ -1224,9 +1193,8 @@ export default function HomePage() {
                       <div className="pr-1">
                         <div className="flex items-center gap-2 flex-wrap">
                           <h3
-                            className={`text-xl font-bold ${
-                              isPastPending ? "text-rose-300" : "text-[#03e9f4]"
-                            }`}
+                            className={`text-xl font-bold ${isPastPending ? "text-rose-300" : "text-[#03e9f4]"
+                              }`}
                           >
                             {medicine.medicine_name}
                           </h3>
@@ -1244,9 +1212,11 @@ export default function HomePage() {
                       </div>
 
                       <input
-                        className={`w-10 h-5 rounded transition-transform enabled:cursor-pointer enabled:hover:scale-140 disabled:cursor-not-allowed disabled:opacity-40 ${
-                          isPastPending ? "accent-rose-500" : "accent-[#03e9f4]"
-                        }`}
+                        className={`w-10 h-5 rounded transition-transform ${
+                          !canInteract || medicine.is_paused || item.doseHasNoStock
+                            ? "cursor-not-allowed opacity-40"
+                            : "cursor-pointer hover:scale-140"
+                        } ${isPastPending ? "accent-rose-500" : "accent-[#03e9f4]"}`}
                         onChange={() => handleCheckbox(dose._id!)}
                         checked={isChecked}
                         disabled={!canInteract || medicine.is_paused || item.doseHasNoStock}
@@ -1259,18 +1229,16 @@ export default function HomePage() {
                     <div className="space-y-3 text-sm text-gray-300">
                       <div className="flex items-center gap-2">
                         <FaClock
-                          className={`text-xs opacity-70 ${
-                            isPastPending ? "text-rose-400" : "text-[#03e9f4]"
-                          }`}
+                          className={`text-xs opacity-70 ${isPastPending ? "text-rose-400" : "text-[#03e9f4]"
+                            }`}
                         />
                         <span className="opacity-50">Time:</span>
                         <span className="font-mono text-white">{dose.time}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <FaPills
-                          className={`text-xs opacity-70 ${
-                            isPastPending ? "text-rose-400" : "text-[#03e9f4]"
-                          }`}
+                          className={`text-xs opacity-70 ${isPastPending ? "text-rose-400" : "text-[#03e9f4]"
+                            }`}
                         />
                         <span className="opacity-50">Dosage:</span>
                         <span className="bg-white/10 px-2 py-0.5 rounded text-xs text-white">
@@ -1322,12 +1290,11 @@ export default function HomePage() {
                           disabled={!isChecked || !!buttonLoading || item.doseHasNoStock}
                           onClick={() => handleDeleteDose(dose._id!, medicine._id)}
                           className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold uppercase text-[11px] sm:text-xs tracking-wider transition-all duration-200 
-                            ${
-                              isChecked
-                                ? isPastPending
-                                  ? "bg-rose-500 hover:bg-rose-400 text-white shadow-lg shadow-rose-500/20 hover:scale-[1.02] active:scale-95 cursor-pointer"
-                                  : "bg-[#03e9f4] text-black shadow-lg shadow-[#03e9f4]/20 hover:scale-[1.02] active:scale-95 cursor-pointer"
-                                : "bg-gray-800 text-gray-500 cursor-not-allowed"
+                            ${isChecked
+                              ? isPastPending
+                                ? "bg-rose-500 hover:bg-rose-400 text-white shadow-lg shadow-rose-500/20 hover:scale-[1.02] active:scale-95 cursor-pointer"
+                                : "bg-[#03e9f4] text-black shadow-lg shadow-[#03e9f4]/20 hover:scale-[1.02] active:scale-95 cursor-pointer"
+                              : "bg-gray-800 text-gray-500 cursor-not-allowed"
                             }`}
                         >
                           {buttonLoading === dose?._id && (

@@ -1,20 +1,9 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { Dose, MedicineWithSchedule } from '@/Interfaces/interface';
+import { EditDoseStrengthModalProps } from '@/Interfaces/interface';
 import { isDosageInPattern } from '@/lib/medicineQuantity';
 import { FaTimes, FaPills, FaCheck, FaInfoCircle, FaExclamationCircle } from 'react-icons/fa';
-
-interface EditDoseStrengthModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  medicine: MedicineWithSchedule | null;
-  dose: Dose | null;
-  dayNumber?: number;
-  scheduledDate?: string;
-  onConfirm: (newDosage: string) => Promise<void>;
-  isLoading: boolean;
-}
 
 export default function EditDoseStrengthModal({
   isOpen,
@@ -176,7 +165,7 @@ export default function EditDoseStrengthModal({
             <label htmlFor="dose-strength-input" className="block text-sm font-medium text-white mb-1.5">
               Dose Strength (mg):
             </label>
-            <div className="relative">
+            <div className="relative text-white">
               <input
                 id="dose-strength-input"
                 type="text"
@@ -188,10 +177,8 @@ export default function EditDoseStrengthModal({
                 }}
                 placeholder="e.g. 500 or 2.5"
                 disabled={isLoading}
-                className={`w-full bg-black/60 rounded-xl border-2 px-3.5 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none transition-colors pr-12 font-mono ${
-                  error
-                    ? 'border-rose-500 focus:border-rose-500'
-                    : 'border-[#03e9f4]/50 focus:border-[#03e9f4]'
+                className={`w-full bg-black/60 rounded-xl border-2 px-3.5 py-2.5 text-sm placeholder:text-gray-500 focus:outline-none focus:ring-1 focus:ring-[#03e9f4] transition-colors pr-12 font-mono ${
+                  error ? 'border-rose-500' : 'border-[#03e9f4]/50'
                 }`}
                 autoFocus
               />
@@ -258,7 +245,11 @@ export default function EditDoseStrengthModal({
             <button
               type="submit"
               disabled={isLoading || !dosageInput.trim()}
-              className="px-5 py-2 rounded-xl text-xs sm:text-sm font-bold bg-[#03e9f4] hover:bg-[#00c5cf] text-black shadow-lg shadow-[#03e9f4]/20 hover:scale-[1.02] active:scale-95 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              className={`px-5 py-2 rounded-xl text-xs sm:text-sm font-bold bg-[#03e9f4] hover:bg-[#00c5cf] text-black shadow-lg shadow-[#03e9f4]/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center gap-2 ${
+                isLoading || !dosageInput.trim()
+                  ? 'opacity-50 cursor-not-allowed'
+                  : 'cursor-pointer'
+              }`}
             >
               {isLoading && (
                 <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-black border-t-transparent" />
