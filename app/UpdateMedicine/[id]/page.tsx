@@ -736,7 +736,7 @@ const UpdateMedicine = () => {
                   {dosageList.map((dose, idx) => (
                     <div key={idx} className="flex items-center gap-2">
                       {dosageList.length > 1 && (
-                        <span className="text-xs text-gray-400 font-mono min-w-[50px]">
+                        <span className="text-xs text-gray-400 font-mono min-w-12.5">
                           Dose {idx + 1}:
                         </span>
                       )}
@@ -827,7 +827,7 @@ const UpdateMedicine = () => {
                               name="times_days"
                               onChange={(e) => handleTimeChange(idx, e.target.value)}
                               onBlur={handleBlur}
-                              className="w-full bg-black text-white rounded-md border-2 border-[#03e9f4] px-3 py-1.5 text-sm [color-scheme:dark]"
+                              className="w-full bg-black text-white rounded-md border-2 border-[#03e9f4] px-3 py-1.5 text-sm scheme-dark"
                             />
                           </div>
 
@@ -870,7 +870,7 @@ const UpdateMedicine = () => {
                 <div className="space-y-2">
                   {alternateCycle.map((dose, idx) => (
                     <div key={idx} className="flex items-center gap-2">
-                      <span className="text-xs text-[#03e9f4] font-mono min-w-[55px] font-bold">
+                      <span className="text-xs text-[#03e9f4] font-mono min-w-13.75 font-bold">
                         Day {idx + 1}:
                       </span>
                       <div className="relative flex-1">
@@ -922,7 +922,7 @@ const UpdateMedicine = () => {
                   name="times_days"
                   onChange={(e) => handleSingleTimeChange(e.target.value)}
                   onBlur={handleBlur}
-                  className="w-full bg-black text-white rounded-md border-2 border-[#03e9f4] px-3 py-2 text-sm [color-scheme:dark]"
+                  className="w-full bg-black text-white rounded-md border-2 border-[#03e9f4] px-3 py-2 text-sm scheme-dark"
                 />
               </div>
             </div>
@@ -1013,7 +1013,7 @@ const UpdateMedicine = () => {
                   name="times_days"
                   onChange={(e) => handleSingleTimeChange(e.target.value)}
                   onBlur={handleBlur}
-                  className="w-full bg-black text-white rounded-md border-2 border-[#03e9f4] px-3 py-2 text-sm [color-scheme:dark]"
+                  className="w-full bg-black text-white rounded-md border-2 border-[#03e9f4] px-3 py-2 text-sm scheme-dark"
                 />
               </div>
             </div>
@@ -1061,7 +1061,7 @@ const UpdateMedicine = () => {
                 const qtyVal = qtyMap[dose] ?? "";
                 return (
                   <div key={dose} className="flex items-center gap-2">
-                    <span className="min-w-[70px] text-xs font-mono bg-[#03e9f4]/20 border border-[#03e9f4] text-white px-2 py-2 rounded text-center font-bold">
+                    <span className="min-w-17.5 text-xs font-mono bg-[#03e9f4]/20 border border-[#03e9f4] text-white px-2 py-2 rounded text-center font-bold">
                       {dose}
                     </span>
                     <input
@@ -1172,7 +1172,7 @@ const UpdateMedicine = () => {
             className="w-full flex cursor-pointer justify-center items-center gap-2 bg-[#03e9f4] text-black font-semibold px-4 py-2.5 my-6 rounded-lg shadow-lg active:scale-95 disabled:opacity-50 transition-all hover:bg-[#00c5cf]"
           >
             {buttonLoading && (
-              <div className="h-[20px] w-[20px] animate-spin rounded-full border-3 border-solid border-black border-r-transparent" />
+              <div className="h-5 w-5 animate-spin rounded-full border-3 border-solid border-black border-r-transparent" />
             )}
             Update Schedule
           </button>
