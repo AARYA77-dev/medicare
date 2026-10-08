@@ -30,26 +30,10 @@ export default function EditDoseStrengthModal({
   const dosagePattern = medicine?.dosage_pattern;
   const medicineQuantity = medicine?.quantity;
 
-  const normalizeDosage = (val?: string | null): string => {
-    if (!val) return '';
-    const trimmed = val.trim().toLowerCase();
-    const numVal = parseFloat(trimmed);
-    if (!isNaN(numVal) && numVal > 0) {
-      const unitPart = trimmed.replace(/^[0-9.]+\s*/, '').trim();
-      if (!unitPart || unitPart === 'mg') {
-        return `${numVal}mg`;
-      }
-      return `${numVal}${unitPart}`;
-    }
-    return trimmed;
-  };
-
   // Check if current strength differs from initial strength
   const isChanged = useMemo(() => {
-    if (!dosageInput.trim()) return false;
-    const numVal = parseFloat(dosageInput.trim());
-    if (isNaN(numVal) || numVal <= 0) return false;
-    return normalizeDosage(dosageInput) !== normalizeDosage(dose?.dosage);
+    const initial = dose?.dosage ? dose.dosage.replace(/mg$/i, '').trim() : '';
+    return dosageInput.trim() !== '' && dosageInput.trim() !== initial;
   }, [dosageInput, dose?.dosage]);
 
   // Extract configured dosage pattern options for this medicine
@@ -194,8 +178,9 @@ export default function EditDoseStrengthModal({
             <div className="relative text-white">
               <input
                 id="dose-strength-input"
-                type="text"
-                inputMode="decimal"
+                type="number"
+                min="0.1"
+                step="any"
                 value={dosageInput}
                 onChange={(e) => {
                   setDosageInput(e.target.value);
