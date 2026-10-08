@@ -107,7 +107,7 @@ export async function DELETE(request: NextRequest, context: Context) {
     }
 
     const dose = matchedDose;
-    if (dose && hasNoQuantityForDose(ownerMed.quantity, dose.dosage)) {
+    if (dose && hasNoQuantityForDose(ownerMed.quantity, dose.dosage, ownerMed.dosage_pattern)) {
       return NextResponse.json({ message: "Cannot mark this dose done because its dosage quantity is zero.", success: false }, { status: 409 });
     }
 
@@ -135,7 +135,7 @@ export async function DELETE(request: NextRequest, context: Context) {
 
     await cancelMedicineNotifications(ownerMed.notificationMessageIds || []);
 
-    const nextQuantity = dose ? decreaseQuantity(ownerMed.quantity, dose.dosage) : ownerMed.quantity;
+    const nextQuantity = dose ? decreaseQuantity(ownerMed.quantity, dose.dosage, ownerMed.dosage_pattern) : ownerMed.quantity;
     const shouldPause = hasNoQuantity(nextQuantity);
     const result = await MedicineSchema.updateOne(
       { "schedule.doses._id": objectId },
@@ -231,5 +231,96 @@ export async function PUT(request: NextRequest, context: Context) {
     }
     console.log("error", err);
     return NextResponse.json({ success: false, message: "Update failed", error: String(err) }, { status: 500 });
+  }
+}
+
+export async function PATCH(request: NextRequest, context: Context) {
+  const token = await getToken({ req: request, secret: SECRET });
+  if (!token?.id) {
+    return NextResponse.json({ message: "Unauthorized", success: false }, { status: 401 });
+  }
+
+  try {
+    const { id } = await context.params;
+    if (!Types.ObjectId.isValid(id)) {
+      return NextResponse.json({ success: false, message: "Invalid ID" }, { status: 400 });
+    }
+
+    const body = await request.json();
+    const { dosage, doseId } = body;
+
+    if (!dosage || typeof dosage !== "string" || !dosage.trim()) {
+      return NextResponse.json(
+        { success: false, message: "Valid dose strength (dosage) is required" },
+        { status: 400 }
+      );
+    }
+
+    const trimmedDosage = dosage.trim();
+    // Normalize dosage format to include 'mg' if only numeric value provided
+    const normalizedDosage = isNaN(Number(trimmedDosage))
+      ? trimmedDosage
+      : `${trimmedDosage}mg`;
+
+    await dbConnect();
+
+    const targetDoseIdStr = doseId || id;
+    if (!Types.ObjectId.isValid(targetDoseIdStr)) {
+      return NextResponse.json({ success: false, message: "Invalid Dose ID" }, { status: 400 });
+    }
+    const targetDoseObjectId = new Types.ObjectId(targetDoseIdStr);
+
+    // Find medicine containing this dose
+    let med = await MedicineSchema.findOne({ "schedule.doses._id": targetDoseObjectId });
+    if (!med && Types.ObjectId.isValid(id)) {
+      med = await MedicineSchema.findById(id);
+    }
+
+    if (!med) {
+      return NextResponse.json({ success: false, message: "Dose or Medicine not found" }, { status: 404 });
+    }
+
+    const role = await getEffectiveRole(String(token.id), med);
+    if (!role || !["owner", "admin", "collaborator"].includes(role)) {
+      return NextResponse.json({ message: "Access denied.", success: false }, { status: 403 });
+    }
+
+    if (med.is_paused) {
+      return NextResponse.json(
+        { success: false, message: "Cannot edit dose strength while schedule is paused." },
+        { status: 409 }
+      );
+    }
+
+    let doseFound = false;
+    for (const entry of med.schedule) {
+      const targetDose = entry.doses.find(
+        (d: { _id?: unknown }) => String(d._id) === String(targetDoseObjectId)
+      );
+      if (targetDose) {
+        targetDose.dosage = normalizedDosage;
+        doseFound = true;
+        break;
+      }
+    }
+
+    if (!doseFound) {
+      return NextResponse.json({ success: false, message: "Dose not found in schedule" }, { status: 404 });
+    }
+
+    med.markModified("schedule");
+    await med.save();
+
+    return NextResponse.json({
+      success: true,
+      message: "Dose strength updated successfully",
+      result: med,
+    });
+  } catch (err: unknown) {
+    console.error("Error updating dose strength:", err);
+    return NextResponse.json(
+      { success: false, message: "Failed to update dose strength", error: String(err) },
+      { status: 500 }
+    );
   }
 }

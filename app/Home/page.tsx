@@ -19,6 +19,7 @@ import {
   deleteDose,
   resolveMissedDose,
   fetchDoseHistory,
+  updateDoseStrength,
 } from "@/store/medicineSlice";
 import { hasNoQuantityForDose } from "@/lib/medicineQuantity";
 import {
@@ -34,10 +35,12 @@ import {
   FaExclamationTriangle,
   FaEye,
   FaHistory,
+  FaPencilAlt,
   FaPills,
   FaTimes,
 } from "react-icons/fa";
 import MissedDoseModal from "@/components/MissedDoseModal";
+import EditDoseStrengthModal from "@/components/EditDoseStrengthModal";
 import NotificationSettings from "@/components/NotificationSettings";
 
 export interface UnifiedDoseItem {
@@ -192,6 +195,20 @@ export default function HomePage() {
   });
   const [modalLoading, setModalLoading] = useState(false);
 
+  // Edit Dose Strength Modal State
+  const [activeEditDoseModal, setActiveEditDoseModal] = useState<{
+    isOpen: boolean;
+    medicine: MedicineWithSchedule | null;
+    dose: Dose | null;
+    dayNumber?: number;
+    scheduledDate?: string;
+  }>({
+    isOpen: false,
+    medicine: null,
+    dose: null,
+  });
+  const [editDoseLoading, setEditDoseLoading] = useState(false);
+
   // Date filter state - Today default selected
   const todayObj = useMemo(() => {
     const d = new Date();
@@ -257,6 +274,45 @@ export default function HomePage() {
       toast.error(typeof err === "string" ? err : "Failed to update schedule");
     } finally {
       setModalLoading(false);
+    }
+  };
+
+  const handleOpenEditDoseModal = (
+    medicine: MedicineWithSchedule,
+    dose: Dose,
+    dayNumber?: number,
+    scheduledDate?: string
+  ) => {
+    setActiveEditDoseModal({
+      isOpen: true,
+      medicine,
+      dose,
+      dayNumber,
+      scheduledDate,
+    });
+  };
+
+  const handleConfirmEditDose = async (newDosage: string) => {
+    if (!activeEditDoseModal.medicine || !activeEditDoseModal.dose?._id) return;
+    setEditDoseLoading(true);
+    try {
+      await dispatch(
+        updateDoseStrength({
+          doseId: activeEditDoseModal.dose._id,
+          dosage: newDosage,
+          medicineId: activeEditDoseModal.medicine._id,
+        })
+      ).unwrap();
+      toast.success("Dose strength updated successfully!");
+      setActiveEditDoseModal({
+        isOpen: false,
+        medicine: null,
+        dose: null,
+      });
+    } catch (err: unknown) {
+      toast.error(typeof err === "string" ? err : "Failed to update dose strength");
+    } finally {
+      setEditDoseLoading(false);
     }
   };
 
@@ -375,7 +431,11 @@ export default function HomePage() {
 
             helperAddCount(dKey, "pending");
 
-            const doseHasNoStock = hasNoQuantityForDose(med.quantity, dose.dosage);
+            const doseHasNoStock = hasNoQuantityForDose(
+              med.quantity,
+              dose.dosage,
+              med.dosage_pattern
+            );
 
             list.push({
               id: doseIdStr || `${med._id}-${sch.day}-${dose.time}`,
@@ -1216,6 +1276,24 @@ export default function HomePage() {
                         <span className="bg-white/10 px-2 py-0.5 rounded text-xs text-white">
                           {dose.dosage}
                         </span>
+                        {canInteract && !medicine.is_paused && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleOpenEditDoseModal(
+                                medicine,
+                                dose,
+                                item.dayNumber,
+                                formatDisplayDate(item.parsedDate)
+                              )
+                            }
+                            className="p-1 rounded text-gray-400 hover:text-[#03e9f4] hover:bg-white/10 transition-colors cursor-pointer"
+                            title="Edit dose strength"
+                            aria-label={`Edit dose strength for ${medicine.medicine_name}`}
+                          >
+                            <FaPencilAlt className="text-xs" />
+                          </button>
+                        )}
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="opacity-50 text-[10px] uppercase tracking-tighter">
@@ -1296,6 +1374,25 @@ export default function HomePage() {
         dose={activeMissedModal.dose}
         onConfirm={handleConfirmMissedDose}
         isLoading={modalLoading}
+      />
+
+      {/* Edit Dose Strength Modal */}
+      <EditDoseStrengthModal
+        key={activeEditDoseModal.dose?._id || "edit-dose-modal"}
+        isOpen={activeEditDoseModal.isOpen}
+        onClose={() =>
+          setActiveEditDoseModal({
+            isOpen: false,
+            medicine: null,
+            dose: null,
+          })
+        }
+        medicine={activeEditDoseModal.medicine}
+        dose={activeEditDoseModal.dose}
+        dayNumber={activeEditDoseModal.dayNumber}
+        scheduledDate={activeEditDoseModal.scheduledDate}
+        onConfirm={handleConfirmEditDose}
+        isLoading={editDoseLoading}
       />
     </div>
   );

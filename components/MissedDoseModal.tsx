@@ -25,7 +25,7 @@ export default function MissedDoseModal({
   const [selectedOption, setSelectedOption] = useState<'skip_and_continue' | 'carry_forward_shift' | 'quantity_unavailable'>('skip_and_continue');
 
   const doseHasNoStock = medicine && dose
-    ? hasNoQuantityForDose(medicine.quantity, dose.dosage)
+    ? hasNoQuantityForDose(medicine.quantity, dose.dosage, medicine.dosage_pattern)
     : false;
 
   const effectiveOption = doseHasNoStock
